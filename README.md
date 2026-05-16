@@ -51,6 +51,8 @@ flowchart TD
     Bilbo["🎒 B.I.L.B.O.<br/><i>indexer</i>"]
     Faramir["🛡️ F.A.R.A.M.I.R.<br/><i>calendar & delegation</i>"]
     Smeagol["👁️ S.M.E.A.G.O.L.<br/><i>query logger</i>"]
+    Elrond["🧝‍♂️ E.L.R.O.N.D.<br/><i>env & resource manager</i>"]
+    Desktop["🖥️ Desktop<br/><i>GPU · WoL</i>"]
 
     KBPublic[("kb_public<br/>vector DB")]
     KBPrivate[("kb_private<br/>vector DB")]
@@ -65,7 +67,12 @@ flowchart TD
     Gandalf -.routes.-> Gimli
     Gandalf -.routes.-> Legolas
     Gandalf -.routes.-> Faramir
+    Gandalf -.manages models for.-> Elrond
+    Elrond -.wakes on demand.-> Desktop
+    Desktop -.heavy inference.-> Gandalf
+
     Gandalf ==logs all queries==> Smeagol
+    Elrond ==logs==> Smeagol
 
     Samwise --> KBPublic
     Samwise --> KBPrivate
@@ -112,6 +119,22 @@ The scout. The only agent with outbound network access. Performs web searches fo
 **B**ot **I**ndexing **L**ocal **B**inary **O**bjects
 
 The indexer. Not a reactive agent — runs in the background as a scheduled task. Walks watched directories, detects new or modified files, chunks them, and stores them in the knowledge base. Bilbo is what keeps the knowledge base alive without manual upkeep.
+
+### 🧝‍♂️ E.L.R.O.N.D.
+
+**E**nvironment **L**oader, **R**esource & **O**n-demand **N**ode **D**ispatcher
+
+The host of the fellowship. Not a reasoning agent — a resource manager that decides *where and how* models actually run. E.L.R.O.N.D. tracks which LLMs are currently loaded in Ollama, monitors available RAM and thermals on the Raspberry Pi, and loads or unloads models on demand to keep the device responsive. When an incoming request exceeds what the Pi can handle locally — long context, heavy reasoning, a larger model — Elrond wakes the desktop via Wake-on-LAN, waits for the Ollama instance there to come up, routes the inference call over Tailscale, and (optionally) puts the machine back to sleep after an idle window.
+
+Responsibilities:
+
+- **Model lifecycle on RPi 5** — load, unload, and warm-keep models based on recent usage logged by S.M.E.A.G.O.L.
+- **Memory & thermal guard** — refuse or defer requests that would push the Pi past safe limits; surface this back to G.A.N.D.A.L.F. so the user gets a sensible explanation instead of an OOM.
+- **Desktop fallback over Tailscale** — issue WoL magic packets, poll for Ollama readiness on the RTX 2070S box, and proxy requests there for heavy models.
+- **Idle suspension** — track the last request timestamp on the desktop and trigger sleep/shutdown after a configurable idle period to avoid leaving a 300W machine running for one occasional query.
+- **Capability registry** — maintain a small table of "which model lives where, what it's good at, how much it costs to wake" so Gandalf's routing decisions account for real-world latency, not just task type.
+
+Elrond is what makes the two-machine setup feel like one system instead of two. Without him, every request either over-burdens the Pi or wastes power on a constantly-on desktop.
 
 ### 🛡️ F.A.R.A.M.I.R.
 
@@ -229,9 +252,10 @@ The project is at **concept stage**. The intended build order:
 3. **Add S.M.E.A.G.O.L.** — query logging from day one, even if the dashboard comes later.
 4. **Add B.I.L.B.O.** — automate ingestion via watched folders.
 5. **Migrate to RPi 5** — observe what breaks, optimise model choice.
-6. **Add L.E.G.O.L.A.S.** — web search for fact verification.
-7. **Add F.A.R.A.M.I.R.** — calendar, reminders, delegation to `agentic-sdlc-forge`.
-8. **Optional voice layer** — only if real usage proves it's wanted.
+6. **Add E.L.R.O.N.D.** — resource manager: model lifecycle on the Pi, Wake-on-LAN fallback to the desktop, idle suspension. Becomes necessary the moment a single request can't fit on the Pi's RAM.
+7. **Add L.E.G.O.L.A.S.** — web search for fact verification.
+8. **Add F.A.R.A.M.I.R.** — calendar, reminders, delegation to `agentic-sdlc-forge`.
+9. **Optional voice layer** — only if real usage proves it's wanted.
 
 ---
 
