@@ -29,7 +29,7 @@ This project exists for four reasons, in roughly this order:
 All components in this system follow a `X.Y.Z.` acronym format, and yes — the names are Tolkien references. This is a deliberate convention, not an accident:
 
 - The acronym always describes the component's **role** (e.g. `G.A.N.D.A.L.F.` = *Generative Agent Navigating Databases And Local Files*).
-- The character chosen reflects the component's **disposition** — Samwise carries weight, Gimli digs through structured data, Legolas scouts the outside world.
+- The character chosen reflects the component's **disposition** — Samwise carries weight, Gimli digs through structured data, Legolas scouts the outside world, Treebeard remembers everything from long ago.
 - The metaphor fits the hardware: a small Raspberry Pi shouldering a large workload, a fellowship of specialised agents instead of one all-knowing model.
 
 If a name feels forced, the role probably needs rethinking.
@@ -51,12 +51,13 @@ flowchart TD
     Bilbo["🎒 B.I.L.B.O.<br/><i>indexer</i>"]
     Faramir["🛡️ F.A.R.A.M.I.R.<br/><i>calendar & delegation</i>"]
     Smeagol["👁️ S.M.E.A.G.O.L.<br/><i>query logger</i>"]
-    Elrond["🧝‍♂️ E.L.R.O.N.D.<br/><i>env & resource manager</i>"]
-    Desktop["🖥️ Desktop<br/><i>GPU · WoL</i>"]
+    Treebeard["🌳 T.R.E.E.B.E.A.R.D.<br/><i>archivist · compression</i>"]
 
     KBPublic[("kb_public<br/>vector DB")]
     KBPrivate[("kb_private<br/>vector DB")]
+    KBArchive[("kb_archive<br/>cold vector + summaries")]
     SQLData[("SQLite<br/>structured data")]
+    ColdStore[("Cold storage<br/>PDF · HTML · raw files<br/>+ manifest")]
     Files[("Local files<br/>PDF · MD · CSV")]
     External["🌐 Web · DuckDuckGo / SearXNG"]
     Forge["⚒️ agentic-sdlc-forge<br/><i>development tasks</i>"]
@@ -67,12 +68,8 @@ flowchart TD
     Gandalf -.routes.-> Gimli
     Gandalf -.routes.-> Legolas
     Gandalf -.routes.-> Faramir
-    Gandalf -.manages models for.-> Elrond
-    Elrond -.wakes on demand.-> Desktop
-    Desktop -.heavy inference.-> Gandalf
-
+    Gandalf -.historical queries.-> Treebeard
     Gandalf ==logs all queries==> Smeagol
-    Elrond ==logs==> Smeagol
 
     Samwise --> KBPublic
     Samwise --> KBPrivate
@@ -80,15 +77,20 @@ flowchart TD
     Legolas --> External
     Bilbo --> KBPublic
     Bilbo --> KBPrivate
+    Bilbo --> ColdStore
     Bilbo --> Files
     Faramir --> Forge
     Faramir --> N8N
+    Treebeard --> KBPublic
+    Treebeard --> KBPrivate
+    Treebeard --> KBArchive
+    Treebeard --> ColdStore
 
     N8N -.triggers.-> Bilbo
     Smeagol -.feedback loop.-> Gandalf
 ```
 
-The user talks to Gandalf. Gandalf decides which agent (or combination) is needed, hands off the work, gathers the results, and produces the final answer. Every query — successful or not — flows through S.M.E.A.G.O.L. for logging.
+The user talks to Gandalf. Gandalf decides which agent (or combination) is needed, hands off the work, gathers the results, and produces the final answer. Every query — successful or not — flows through S.M.E.A.G.O.L. for logging. T.R.E.E.B.E.A.R.D. runs on a schedule, not on demand, but Gandalf calls him directly when a question explicitly concerns the past.
 
 ---
 
@@ -120,22 +122,6 @@ The scout. The only agent with outbound network access. Performs web searches fo
 
 The indexer. Not a reactive agent — runs in the background as a scheduled task. Walks watched directories, detects new or modified files, chunks them, and stores them in the knowledge base. Bilbo is what keeps the knowledge base alive without manual upkeep.
 
-### 🧝‍♂️ E.L.R.O.N.D.
-
-**E**nvironment **L**oader, **R**esource & **O**n-demand **N**ode **D**ispatcher
-
-The host of the fellowship. Not a reasoning agent — a resource manager that decides *where and how* models actually run. E.L.R.O.N.D. tracks which LLMs are currently loaded in Ollama, monitors available RAM and thermals on the Raspberry Pi, and loads or unloads models on demand to keep the device responsive. When an incoming request exceeds what the Pi can handle locally — long context, heavy reasoning, a larger model — Elrond wakes the desktop via Wake-on-LAN, waits for the Ollama instance there to come up, routes the inference call over Tailscale, and (optionally) puts the machine back to sleep after an idle window.
-
-Responsibilities:
-
-- **Model lifecycle on RPi 5** — load, unload, and warm-keep models based on recent usage logged by S.M.E.A.G.O.L.
-- **Memory & thermal guard** — refuse or defer requests that would push the Pi past safe limits; surface this back to G.A.N.D.A.L.F. so the user gets a sensible explanation instead of an OOM.
-- **Desktop fallback over Tailscale** — issue WoL magic packets, poll for Ollama readiness on the RTX 2070S box, and proxy requests there for heavy models.
-- **Idle suspension** — track the last request timestamp on the desktop and trigger sleep/shutdown after a configurable idle period to avoid leaving a 300W machine running for one occasional query.
-- **Capability registry** — maintain a small table of "which model lives where, what it's good at, how much it costs to wake" so Gandalf's routing decisions account for real-world latency, not just task type.
-
-Elrond is what makes the two-machine setup feel like one system instead of two. Without him, every request either over-burdens the Pi or wastes power on a constantly-on desktop.
-
 ### 🛡️ F.A.R.A.M.I.R.
 
 **F**orwarding **A**ctions, **R**eminders **A**nd **M**eetings, **I**nvoking **R**epositories
@@ -148,6 +134,18 @@ The executor and delegator. Manages calendars, reminders, and — most important
 
 The query logger. Watches every interaction with the system, what got retrieved, what got routed where, how long it took, and whether the user was satisfied. Smeagol's data is what reveals which silos are missing, which agents are underused, and which queries consistently fail. The system improves by reading its own logs.
 
+### 🌳 T.R.E.E.B.E.A.R.D.
+
+**T**emporal **R**epository **E**ngine **E**valuating, **A**rchiving **A**nd **R**educing **D**ata
+
+The archivist. Old, slow, speaks at length, and remembers everything. Treebeard runs on a schedule (nightly or weekly) and performs three jobs that no other agent owns:
+
+1. **Compression.** Groups of stale chunks within the same silos are summarised by a local LLM into a single condensed chunk — fifty daily notes from March collapse into one *"March 2026: worked on X, read Y, opinions on Z shifted from A to B"* chunk. Originals move to `kb_archive`; the summary stays in the active silos.
+2. **Supersession resolution.** When a fact is updated (`superseded_by` pointer set), Treebeard decides whether the old version should remain individually retrievable (e.g. `kb_self`, `kb_relations`) or be folded into a periodic snapshot.
+3. **Archive retrieval.** When Gandalf receives an explicitly historical query (*"what did I think about X two years ago?"*, *"how were my finances in 2024?"*), Treebeard is called instead of Samwise — he is the one with access to `kb_archive`.
+
+Treebeard is why the active knowledge base stops growing linearly after roughly two years of use. Without him, the system slowly drowns in its own past.
+
 ---
 
 ## 🧠 Knowledge base
@@ -159,7 +157,9 @@ The knowledge base is the hardest part of the project. Not because storing data 
 - **Privacy is tiered, not binary.** Some data should never leave the device under any circumstances. Other data can be sent to cloud models when needed. The split is enforced architecturally, not by convention.
 - **Rate of change determines storage strategy.** Stable facts ("I live in Poland") and rapidly changing context ("what I read today") cannot share the same indexing logic.
 - **Structure matters.** Bank exports belong in SQL, not in a vector database. Forcing everything into embeddings degrades both retrieval quality and answer correctness.
+- **Not everything deserves embeddings.** Full PDFs, course HTML, and reference books are expensive to vectorise and produce noisy retrieval. They belong in cold storage with a thin searchable manifest pointing to them.
 - **Evolutionary schema.** The initial structure will be wrong in unexpected ways. The system must be easy to refactor as real usage reveals what's missing.
+- **Append-only with compression.** History has value, but unbounded growth does not. Old data is preserved as compressed summaries, not deleted.
 
 ### Phase 1 — Two zones
 
@@ -208,6 +208,99 @@ How data actually gets *into* the knowledge base. Multiple modes, complementary 
 
 ---
 
+## 🧬 Memory hierarchy
+
+A single flat vector database is fine at 1 000 chunks and disastrous at 100 000. The memory model below separates data by **what kind of question it answers** and **how fast it goes stale**, then layers compression on top to keep the active footprint bounded over time.
+
+### Three storage tiers
+
+Data lives in one of three tiers, chosen by the *shape of questions* you'd realistically ask of it:
+
+| Tier | Backend | Use when the question is… | Examples |
+|---|---|---|---|
+| **A — Structured** | SQLite | *how much / when / which / count* | Bank transactions, dev-tracker telemetry, media consumption log, life timeline |
+| **B — Semantic** | ChromaDB (vector) | *what did I think / how does X work / find similar* | Notes, conversation summaries, article digests, project context |
+| **C — Cold blobs** | Filesystem + SQLite manifest | *where is the original* | Full PDFs, course HTML, raw exports, source documents |
+
+The cold tier is critical and easy to underestimate. Vectorising a 400-page book produces hundreds of low-quality chunks that pollute retrieval. Storing the file in `kb_cold/` and indexing only a 200-word LLM-generated summary plus metadata in the manifest gives Gandalf enough to say *"this is in `sapiens.pdf`, chapter 3 covers your question"* — which is usually what you actually want.
+
+### Temporal layers — active, warm, archive
+
+Inside the semantic tier, data also moves through age-based layers, managed by T.R.E.E.B.E.A.R.D.:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ACTIVE     │  full-resolution chunks, recent               │
+│             │  (last N days/months, silo-dependent)         │
+│             │  → primary retrieval target for Samwise       │
+├─────────────────────────────────────────────────────────────┤
+│  WARM       │  chunks past first threshold, not yet         │
+│             │  compressed                                   │
+│             │  → still retrievable, lower recency score     │
+├─────────────────────────────────────────────────────────────┤
+│  ARCHIVE    │  compressed summaries + original chunks       │
+│             │  moved to kb_archive collection               │
+│             │  → only Treebeard reaches here                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+Transitions are silo-specific, not global. *"Current"* data goes stale in weeks; *"self"* data stays warm for years.
+
+### Append-only with supersession
+
+Updates never delete. Each chunk carries enough metadata to be replaced without being erased:
+
+```json
+{
+  "id": "uuid",
+  "created_at": "2026-05-17",
+  "valid_from": "2026-05-17",
+  "superseded_by": null,
+  "domain": "self",
+  "compression_eligible_after": "2027-05-17",
+  "archived": false,
+  "source": "obsidian:daily/2026-05-17.md"
+}
+```
+
+When a fact is updated, the new chunk is created and the old one's `superseded_by` field points to it. Default retrieval filters `superseded_by IS NULL`, so users see only the current truth. Treebeard, however, can follow the chain backward when asked historical questions. Cost is negligible — Chroma stores this as plain metadata, embeddings are not duplicated.
+
+### Compression thresholds (tentative)
+
+These thresholds are starting points, not commitments. S.M.E.A.G.O.L.'s logs will reveal whether they're too aggressive or too loose.
+
+| Silos | Active window | Warm window | Compression strategy after warm |
+|---|---|---|---|
+| `kb_current` | 30 days | 60 days | Daily chunks → weekly summary → monthly summary |
+| `kb_interests` | 90 days | 180 days | Group by topic, one summary per topic per quarter |
+| `kb_conversations` | 180 days | 1 year | Keep summaries indefinitely, originals to cold storage |
+| `kb_knowledge` | 180 days | 1 year | Deduplicate; only compress if topic recurs |
+| `kb_projects` | 1 year | 2 years | Per-project rollup once project is marked closed |
+| `kb_relations` | 1 year | 3 years | Cautious — relationships need long context windows |
+| `kb_self` | 2 years | 5 years | Yearly snapshot ("who I was in 2024") |
+| `kb_finances` | never | never | SQL only; transaction history *is* the value |
+| `kb_archive` | n/a | n/a | Terminal tier; Treebeard is the only reader |
+
+The principle behind these numbers: **the further from "stable facts about me", the more aggressive the compression**. Daily logs are noise after a month; identity is signal for a decade.
+
+### Cost and growth — what to actually expect
+
+Realistic projections for an active user (daily notes, weekly bank import, occasional reading):
+
+| Component | Growth rate | After 1 year | Steady state (3+ years, post-Treebeard) |
+|---|---|---|---|
+| Vector DB (active) | ~0.5–1 MB/month | 10–15 MB | 30–50 MB (plateau) |
+| SQL databases | ~1 MB/month | 15–30 MB | ~50 MB/year (linear) |
+| Cold storage (raw files) | 50 MB – 1 GB/month | 5–20 GB | grows with reading habits |
+| `kb_archive` | starts year 2 | 0 | ~100 MB/year (compressed) |
+| Smeagol logs | 10–40 MB/month | 100–500 MB | rotated, kept summaries only |
+
+The headline number: **the active vector base plateaus**. Treebeard's compression ratio for noisy short-lived data (daily notes, captures) is roughly 50:1, which means linear ingest at the front turns into near-zero net growth at the back. Cold storage grows with how much you *read*, not how much the system stores about you — and cold storage is cheap.
+
+CPU and RAM are not bottlenecks at this scale. A single chunk embed on RPi 5 is ~200 ms; a month's ingest totals seconds. Treebeard's nightly pass takes 2–5 minutes. Power draw for the whole Pi running 24/7 is ~6 W — meaning the entire system costs roughly **the price of a coffee per month in electricity**, regardless of how heavily it's used.
+
+---
+
 ## 🛣️ Potential paths
 
 These are illustrative use cases — directions the system could be developed toward. Not all will be built, and others will likely emerge.
@@ -220,6 +313,7 @@ These are illustrative use cases — directions the system could be developed to
 - **Calendar & task management** — F.A.R.A.M.I.R. as a natural-language layer over calendar, reminders, and recurring tasks.
 - **Development delegation** — F.A.R.A.M.I.R. forwards implementation tasks to [`agentic-sdlc-forge`](https://github.com/Jarkendar/agentic-sdlc-forge), turning conversation into actual code changes.
 - **Knowledge gap detection** — S.M.E.A.G.O.L. surfaces patterns of failed queries, suggesting which silos or sources are missing.
+- **Historical self-reflection** — T.R.E.E.B.E.A.R.D. answers questions like *"how have my interests shifted over the last two years?"* from compressed archives.
 
 ---
 
@@ -252,8 +346,8 @@ The project is at **concept stage**. The intended build order:
 3. **Add S.M.E.A.G.O.L.** — query logging from day one, even if the dashboard comes later.
 4. **Add B.I.L.B.O.** — automate ingestion via watched folders.
 5. **Migrate to RPi 5** — observe what breaks, optimise model choice.
-6. **Add E.L.R.O.N.D.** — resource manager: model lifecycle on the Pi, Wake-on-LAN fallback to the desktop, idle suspension. Becomes necessary the moment a single request can't fit on the Pi's RAM.
-7. **Add L.E.G.O.L.A.S.** — web search for fact verification.
+6. **Add L.E.G.O.L.A.S.** — web search for fact verification.
+7. **Add T.R.E.E.B.E.A.R.D.** — once the active base has 3–6 months of data and compression becomes meaningful.
 8. **Add F.A.R.A.M.I.R.** — calendar, reminders, delegation to `agentic-sdlc-forge`.
 9. **Optional voice layer** — only if real usage proves it's wanted.
 
