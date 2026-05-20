@@ -31,6 +31,7 @@ All components in this system follow a `X.Y.Z.` acronym format, and yes — the 
 - The acronym always describes the component's **role** (e.g. `G.A.N.D.A.L.F.` = *Generative Agent Navigating Databases And Local Files*).
 - The character chosen reflects the component's **disposition** — Samwise carries weight, Gimli digs through structured data, Legolas scouts the outside world, Treebeard remembers everything from long ago.
 - The metaphor fits the hardware: a small Raspberry Pi shouldering a large workload, a fellowship of specialised agents instead of one all-knowing model.
+- **Skills** follow a different convention — they take their names from Tolkien **events or groups** (the *White Council*, the *Last Alliance*) rather than single characters, because a skill is plural by nature.
 
 If a name feels forced, the role probably needs rethinking.
 
@@ -38,65 +39,95 @@ If a name feels forced, the role probably needs rethinking.
 
 ## 🏛️ Architecture
 
-G.A.N.D.A.L.F. is built as a **router + specialised sub-agents** pattern. The main orchestrator does not try to know everything — it classifies incoming requests, delegates to the right sub-agent, and synthesises the final answer.
+G.A.N.D.A.L.F. is built as a **router + specialised sub-agents** pattern, with an optional **skills layer** for higher-order workflows that orchestrate multiple agents. The main orchestrator does not try to know everything — it classifies incoming requests, routes them to a single agent or a skill, and synthesises the final answer.
+
+The architecture is intentionally open to **multiple orchestrators** in the future. Gandalf is the first one — a generalist router for personal queries — but specialised orchestrators (for example, a dev-focused or a homelab-focused one) can co-exist and federate. For now there is one Gandalf and the rest is intentional headroom.
 
 ```mermaid
 flowchart TD
     User["👤 User<br/><i>text or voice</i>"]
     Gandalf["🧙 G.A.N.D.A.L.F.<br/><b>Orchestrator</b><br/><i>routing · synthesis · privacy gate</i>"]
 
-    Samwise["🧑‍🌾 S.A.M.W.I.S.E.<br/><i>RAG / embeddings</i>"]
-    Gimli["🪓 G.I.M.L.I.<br/><i>SQL agent</i>"]
-    Legolas["🏹 L.E.G.O.L.A.S.<br/><i>web search</i>"]
-    Bilbo["🎒 B.I.L.B.O.<br/><i>indexer</i>"]
-    Faramir["🛡️ F.A.R.A.M.I.R.<br/><i>calendar & delegation</i>"]
-    Smeagol["👁️ S.M.E.A.G.O.L.<br/><i>query logger</i>"]
-    Treebeard["🌳 T.R.E.E.B.E.A.R.D.<br/><i>archivist · compression</i>"]
+    subgraph Skills["⚪ Skills layer (higher-order workflows)"]
+        WhiteCouncil["🕊️ White Council<br/><i>multi-perspective deliberation</i>"]
+        OtherSkill["…"]
+    end
 
-    KBPublic[("kb_public<br/>vector DB")]
-    KBPrivate[("kb_private<br/>vector DB")]
-    KBArchive[("kb_archive<br/>cold vector + summaries")]
-    SQLData[("SQLite<br/>structured data")]
-    ColdStore[("Cold storage<br/>PDF · HTML · raw files<br/>+ manifest")]
-    Files[("Local files<br/>PDF · MD · CSV")]
+    subgraph Agents["🧝 Agents layer (single-responsibility specialists)"]
+        Samwise["🧑‍🌾 S.A.M.W.I.S.E.<br/><i>RAG / embeddings</i>"]
+        Gimli["🪓 G.I.M.L.I.<br/><i>SQL agent</i>"]
+        Legolas["🏹 L.E.G.O.L.A.S.<br/><i>web search</i>"]
+        Bilbo["🎒 B.I.L.B.O.<br/><i>indexer</i>"]
+        Faramir["🛡️ F.A.R.A.M.I.R.<br/><i>calendar & delegation</i>"]
+        Smeagol["👁️ S.M.E.A.G.O.L.<br/><i>query logger</i>"]
+        Treebeard["🌳 T.R.E.E.B.E.A.R.D.<br/><i>archivist · compression</i>"]
+    end
+
+    Brain[("🧠 brain repo<br/>markdown files<br/>+ SQL where it pays off")]
     External["🌐 Web · DuckDuckGo / SearXNG"]
-    Forge["⚒️ agentic-sdlc-forge<br/><i>development tasks</i>"]
+    Forge["⚒️ agentic-sdlc-forge"]
     N8N["🔗 n8n · webhooks · IoT"]
 
     User --> Gandalf
-    Gandalf -.routes.-> Samwise
-    Gandalf -.routes.-> Gimli
-    Gandalf -.routes.-> Legolas
-    Gandalf -.routes.-> Faramir
-    Gandalf -.historical queries.-> Treebeard
+    Gandalf -.routes.-> Skills
+    Gandalf -.routes.-> Agents
     Gandalf ==logs all queries==> Smeagol
 
-    Samwise --> KBPublic
-    Samwise --> KBPrivate
-    Gimli --> SQLData
+    Skills --> Agents
+
+    Samwise --> Brain
+    Gimli --> Brain
+    Bilbo --> Brain
+    Treebeard --> Brain
     Legolas --> External
-    Bilbo --> KBPublic
-    Bilbo --> KBPrivate
-    Bilbo --> ColdStore
-    Bilbo --> Files
     Faramir --> Forge
     Faramir --> N8N
-    Treebeard --> KBPublic
-    Treebeard --> KBPrivate
-    Treebeard --> KBArchive
-    Treebeard --> ColdStore
 
     N8N -.triggers.-> Bilbo
-    Smeagol -.feedback loop.-> Gandalf
 ```
 
-The user talks to Gandalf. Gandalf decides which agent (or combination) is needed, hands off the work, gathers the results, and produces the final answer. Every query — successful or not — flows through S.M.E.A.G.O.L. for logging. T.R.E.E.B.E.A.R.D. runs on a schedule, not on demand, but Gandalf calls him directly when a question explicitly concerns the past.
+### Engine layer
+
+Underneath the agents sits an **engine** — the actual LLM doing the work. The MVP commits to a single choice for speed of iteration, with a planned abstraction layer once the system stabilises:
+
+| Phase | Engine | Rationale |
+|---|---|---|
+| MVP | Claude Code / Claude API | Fast to build on, mature tool-calling, skills + sub-agents already work the way this project wants them to |
+| Phase 2 | Abstraction layer + local models (Ollama) | Model-agnostic interface so any agent can run on a local model, the cloud, or both depending on cost/privacy/latency |
+
+The local-first goal from the motivation is not abandoned — it's deferred. Getting the **shape** right first (skills, agents, knowledge base, routing) matters more than getting the engine right; engines are interchangeable, architecture is not.
 
 ---
 
-## 🧝 The Fellowship — agents
+## 🧝 The Fellowship — agents and skills
 
-Each agent has a single, well-defined responsibility. This is deliberate: small local models (Phi-3, Qwen2, Gemma) perform well on narrow tasks and poorly on generic "do everything" prompts.
+The fellowship splits into two layers:
+
+- **Agents** are single-responsibility specialists. Each owns one narrow job and is named after a Tolkien character with the matching disposition, with the role encoded as an acronym (e.g. G.I.M.L.I. — *Generative Intelligence Mining Local Information*). Small local models perform well on narrow tasks and poorly on generic "do everything" prompts, which is why this layer exists at all.
+- **Skills** are higher-order workflows that orchestrate multiple agents to deliver something none of them can deliver alone. Skills follow the event-or-group naming convention described above.
+
+### Roles — current and proposed
+
+The table below maps roles to the fellowship: what already exists, what could be added, and the proposed Tolkien naming. None of the *proposed* names are commitments — they're sketches showing the convention extends cleanly past the MVP.
+
+| Role | Type | Status | Tolkien proposal | Acronym / rationale |
+|---|---|---|---|---|
+| Orchestrator (router + synthesis) | — | exists | **G.A.N.D.A.L.F.** | *Generative Agent Navigating Databases And Local Files* |
+| Semantic search over notes | Agent | exists | **S.A.M.W.I.S.E.** | *SQL And Markdown Wading Into Semantic Embeddings* |
+| Structured-data querying | Agent | exists | **G.I.M.L.I.** | *Generative Intelligence Mining Local Information* |
+| Web search / outside world | Agent | exists | **L.E.G.O.L.A.S.** | *Local Engine Generating Outputs, Looking At Search* |
+| Background indexer | Agent | exists | **B.I.L.B.O.** | *Bot Indexing Local Binary Objects* |
+| Calendar / delegation / actions | Agent | exists | **F.A.R.A.M.I.R.** | *Forwarding Actions, Reminders And Meetings, Invoking Repositories* |
+| Query logging | Agent | exists | **S.M.E.A.G.O.L.** | *Storage Module Evaluating All Gandalf's Operational Logs* |
+| Archival / compression / historical retrieval | Agent | exists | **T.R.E.E.B.E.A.R.D.** | *Temporal Repository Engine Evaluating, Archiving And Reducing Data* |
+| Personal advisor (single voice) | Agent | proposed | **G.A.L.A.D.R.I.E.L.** | *Guidance Agent for Life Alignment: Decisions, Reflection, Insight, Evaluation, Lookahead* |
+| Content drafting (posts, articles, copy) | Agent | proposed | **L.I.N.D.I.R.** | *Language and Ideation Node for Drafting, Illustrating, Rewriting*. Minstrel of Rivendell — composes words for an audience. |
+| Outreach / external lead research | Agent | proposed | **H.A.L.D.I.R.** | *Handling Active Lead Discovery, Intelligence, Research*. Lothlórien border-warden — works at the edge of known territory. |
+| Multi-perspective deliberation | Skill | proposed | **White Council** | Orchestrates several advisor-agents (e.g. Galadriel + others) to surface multiple angles on a hard decision. Skill name follows the event-or-group convention. |
+| Log analysis & insight extraction | Agent or Skill | TBD | — | Reads Smeagol's logs to surface patterns, gaps, retro material. Persona deliberately not assigned yet. |
+| Development task execution | external | exists | [`agentic-sdlc-forge`](https://github.com/Jarkendar/agentic-sdlc-forge) via F.A.R.A.M.I.R. | Not part of the fellowship — an external executor invoked through Faramir. |
+
+The eight existing agents are described below. The proposed roles are placeholders to be revisited once Smeagol's logs reveal which gaps actually matter.
 
 ### 🧑‍🌾 S.A.M.W.I.S.E.
 
@@ -132,7 +163,7 @@ The executor and delegator. Manages calendars, reminders, and — most important
 
 **S**torage **M**odule **E**valuating **A**ll **G**andalf's **O**perational **L**ogs
 
-The query logger. Watches every interaction with the system, what got retrieved, what got routed where, how long it took, and whether the user was satisfied. Smeagol's data is what reveals which silos are missing, which agents are underused, and which queries consistently fail. The system improves by reading its own logs.
+Smeagol's job ends at *writing the log*. He doesn't analyse it. The system improves by reading its own logs, but the *reader* is intentionally a separate role (see the role table — a future log-analysis agent or skill, persona TBD). Keeping logging and analysis separate makes both replaceable.
 
 ### 🌳 T.R.E.E.B.E.A.R.D.
 
@@ -140,9 +171,9 @@ The query logger. Watches every interaction with the system, what got retrieved,
 
 The archivist. Old, slow, speaks at length, and remembers everything. Treebeard runs on a schedule (nightly or weekly) and performs three jobs that no other agent owns:
 
-1. **Compression.** Groups of stale chunks within the same silos are summarised by a local LLM into a single condensed chunk — fifty daily notes from March collapse into one *"March 2026: worked on X, read Y, opinions on Z shifted from A to B"* chunk. Originals move to `kb_archive`; the summary stays in the active silos.
-2. **Supersession resolution.** When a fact is updated (`superseded_by` pointer set), Treebeard decides whether the old version should remain individually retrievable (e.g. `kb_self`, `kb_relations`) or be folded into a periodic snapshot.
-3. **Archive retrieval.** When Gandalf receives an explicitly historical query (*"what did I think about X two years ago?"*, *"how were my finances in 2024?"*), Treebeard is called instead of Samwise — he is the one with access to `kb_archive`.
+1. **Compression.** Groups of stale chunks within the same silo are summarised by a local LLM into a single condensed chunk — fifty daily notes from March collapse into one *"March 2026: worked on X, read Y, opinions on Z shifted from A to B"* chunk. Originals move to `brain/archive/`; the summary stays in the source folder (Phase 2+: in the active vector collection).
+2. **Supersession resolution.** When a fact is updated (`superseded_by` pointer set), Treebeard decides whether the old version should remain individually retrievable (e.g. core profile or relationship history) or be folded into a periodic snapshot.
+3. **Archive retrieval.** When Gandalf receives an explicitly historical query (*"what did I think about X two years ago?"*, *"how were my finances in 2024?"*), Treebeard is called instead of Samwise — he is the one with access to `brain/archive/`.
 
 Treebeard is why the active knowledge base stops growing linearly after roughly two years of use. Without him, the system slowly drowns in its own past.
 
@@ -161,56 +192,74 @@ The knowledge base is the hardest part of the project. Not because storing data 
 - **Evolutionary schema.** The initial structure will be wrong in unexpected ways. The system must be easy to refactor as real usage reveals what's missing.
 - **Append-only with compression.** History has value, but unbounded growth does not. Old data is preserved as compressed summaries, not deleted.
 
-### Phase 1 — Two zones
+### Phase 1 — A markdown brain in a git repo
 
-The MVP collapses the design into the simplest viable structure: two collections separated by privacy level.
+The MVP knowledge base is a **separate `brain/` repository, mostly markdown files, version-controlled in git**. No vector database, no embeddings — at MVP scale they cost more than they pay back, and a flat tree of MD files is debuggable in a way Chroma never is.
 
-| Zone | Examples | Allowed models |
-|---|---|---|
-| `kb_public` | Project notes, articles, courses, technical documentation, reference material | Local + cloud (Claude API, etc.) |
-| `kb_private` | Personal facts, relationships, health, finances, journal entries | Local only — never sent to external APIs |
+```
+brain/
+├── core/
+│   ├── profile.md          # who I am, stable facts
+│   ├── goals.md            # current goals & horizons
+│   ├── projects.md         # active projects, status
+│   └── contacts.md         # people, relationships, context
+├── knowledge/              # topics, learning, references
+├── current/                # daily notes, recent activity
+├── conversations/          # exported AI conversations
+└── archive/                # Treebeard's compressed summaries (Phase 2+)
+```
 
-Within each zone, every chunk carries a `domain` metadata tag (`self`, `work`, `current`, `interests`, `finances`, `relationships`, `reference`, `future_ideas`, ...) so filtered retrieval is possible even with a flat structure.
+Two top-level rules:
 
-### Phase 2 — Domain silos (when justified)
+1. **Markdown by default.** If the data is text-shaped — notes, summaries, transcripts, profile info, project context — it goes into a `.md` file. Gandalf reads the files directly; no embedding layer needed at this scale.
+2. **SQL only when the shape demands it.** Structured, high-volume, schema-stable data — bank transactions, dev-tracker telemetry, media consumption logs — goes into SQLite. The rule is simple: if you'd answer the question with `GROUP BY`, it belongs in SQL.
 
-Once S.M.E.A.G.O.L.'s logs show which domains are actually queried, used, and useful, the public zone can be split into dedicated collections. Potential silos under consideration:
+This collapses the earlier *public / private* zone split into something simpler: **privacy is a folder-level concern**, enforced by which folders local-only models are allowed to read. `core/` and `current/` are private; `knowledge/` is public.
 
-- **`kb_self`** — stable facts about me (rarely changes)
-- **`kb_relations`** — relationships, social context (moderate change)
-- **`kb_interests`** — topics I'm currently engaged with (frequent change)
-- **`kb_knowledge`** — what I know, what I've learned, gaps (high change)
-- **`kb_current`** — what I read, did, practised recently (very high change)
-- **`kb_projects`** — projects and work (moderate change)
-- **`kb_finances`** — financial state and history (mostly structured → SQL)
-- **`kb_future`** — ideas, plans, things to explore (broad, fuzzy)
-- **`kb_conversations`** — exports of meaningful AI conversations
+### Phase 2 — Vectors, when they earn their keep
 
-This list is **a direction, not a specification**. Some silos may never materialise; others not on this list may emerge. The deciding factor is logged usage, not upfront design.
+Once the brain repo passes a few thousand markdown files and direct retrieval starts feeling slow or noisy, S.A.M.W.I.S.E. adds an embedding layer **over** the existing files. The markdown stays canonical; the vector DB is just an index pointing back at it. Each top-level folder in `brain/` becomes a vector collection of the same name prefixed with `kb_` (so `brain/current/` indexes into `kb_current`, `brain/knowledge/` into `kb_knowledge`, etc.) — this is the naming used in the *Memory hierarchy* section below. B.I.L.B.O.'s scheduled-indexer role is deferred until this phase — at MVP scale, files change rarely enough that re-reading on demand is fine.
 
-### Phase 3 — Hybrid structures (long-term)
+### Phase 3 — Domain silos & hybrid structures (when justified)
 
-Once domain silos stabilise, more sophisticated structures may be added selectively:
+Once S.M.E.A.G.O.L.'s logs show which folders are actually queried, used, and useful, dedicated silos can be carved out — and more sophisticated structures can be added selectively:
+
 - **Knowledge graph** layer for explicitly curated areas (projects, learning paths)
-- **Time-aware retrieval** with recency boosting for fast-changing silos
+- **Time-aware retrieval** with recency boosting for fast-changing folders
 - **Hierarchical retrieval** (search summaries first, fetch full content on demand)
 
-### Ingestion
+Splits are driven by logged usage, not upfront design.
 
-How data actually gets *into* the knowledge base. Multiple modes, complementary rather than competing:
+### Ingestion pipelines
 
-| Mode | Status | Description |
+Data has to get *into* the brain repo somehow, and almost none of it starts there. The pattern is the same in every case: an **external trigger** → an **n8n flow** → a **markdown file committed to `brain/`**. n8n is the glue; the brain repo is the destination. Concrete examples:
+
+| Source | Pipeline | Lands in |
 |---|---|---|
-| **Watched folders** | MVP | B.I.L.B.O. monitors configured directories (notes, downloads, exports) and ingests changes automatically. |
-| **Chat bot capture** | MVP | A Telegram/Signal bot acts as a quick-capture front-end — paste links, voice memos, files from anywhere. |
-| **Drop zone webhook** | Future | HTTP endpoint exposed over Tailscale for `curl`, share-sheet uploads, or n8n workflows. |
-| **Browser extension** | Future | One-click ingestion of articles, bookmarks, page snippets. |
+| **Voice notes** (phone, walking, dictation app) | recording → cloud sync → n8n watcher → Whisper STT → LLM summary → MD | `brain/current/voice/YYYY-MM-DD.md` |
+| **Email** (newsletters, receipts, threads worth keeping) | forwarded to a dedicated address → n8n IMAP poll → strip + summarise → MD | `brain/knowledge/email/<topic>.md` or `brain/current/email/` |
+| **Drive files** (PDFs, exports, scans) | new file in watched Drive folder → n8n download → text extraction → MD + cold file kept on disk | `brain/knowledge/<topic>/` + `brain/_blobs/` |
+| **GitHub activity** (commits, PRs, issues from my repos) | webhook → n8n → grouped daily digest → MD | `brain/current/dev/YYYY-MM-DD.md` |
+| **Quick capture** (links, thoughts, snippets from anywhere) | Telegram/Signal bot → n8n → MD with tags from the message | `brain/current/captures/YYYY-MM-DD.md` |
+| **Calendar events** (meetings, decisions, attendees) | calendar webhook → n8n → templated MD (attendees, notes placeholder) | `brain/current/meetings/YYYY-MM-DD-<slug>.md` |
+| **Watched folders** (Obsidian, Downloads) | direct filesystem sync — bypasses n8n | `brain/knowledge/` or `brain/current/` |
+| **Manual** (paste, drop into folder, commit) | human writes/pastes MD | anywhere |
+
+A few principles hold across all of them:
+
+- **One source → one folder.** No fan-out. Voice notes don't end up scattered across three places; one folder per pipeline, easy to audit, easy to delete.
+- **Raw + summary, never just summary.** When LLMs are involved (transcription, extraction), the original artifact is kept in `_blobs/` so summaries can be regenerated later.
+- **Date-prefixed filenames.** `YYYY-MM-DD-<slug>.md` makes Treebeard's compression and retro queries trivial.
+- **Idempotency.** Every n8n flow must be safe to re-run; the brain repo is git, conflicts are recoverable, but duplicate commits aren't.
+- **No silent failures.** If a pipeline fails, an entry lands in `brain/_errors/` — visible, not hidden.
+
+The deferred items (browser extension, drop-zone HTTP webhook) come later; they're variants on the same `→ n8n → MD` pattern, not new architecture.
 
 ---
 
 ## 🧬 Memory hierarchy
 
-A single flat vector database is fine at 1 000 chunks and disastrous at 100 000. The memory model below separates data by **what kind of question it answers** and **how fast it goes stale**, then layers compression on top to keep the active footprint bounded over time.
+A single flat vector database is fine at 1 000 chunks and disastrous at 100 000. The memory model below separates data by **what kind of question it answers** and **how fast it goes stale**, then layers compression on top to keep the active footprint bounded over time. The `kb_*` names below refer to Phase 2+ vector collections that mirror the `brain/` folder structure.
 
 ### Three storage tiers
 
@@ -222,7 +271,7 @@ Data lives in one of three tiers, chosen by the *shape of questions* you'd reali
 | **B — Semantic** | ChromaDB (vector) | *what did I think / how does X work / find similar* | Notes, conversation summaries, article digests, project context |
 | **C — Cold blobs** | Filesystem + SQLite manifest | *where is the original* | Full PDFs, course HTML, raw exports, source documents |
 
-The cold tier is critical and easy to underestimate. Vectorising a 400-page book produces hundreds of low-quality chunks that pollute retrieval. Storing the file in `kb_cold/` and indexing only a 200-word LLM-generated summary plus metadata in the manifest gives Gandalf enough to say *"this is in `sapiens.pdf`, chapter 3 covers your question"* — which is usually what you actually want.
+The cold tier is critical and easy to underestimate. Vectorising a 400-page book produces hundreds of low-quality chunks that pollute retrieval. Storing the file in `brain/_blobs/` and indexing only a 200-word LLM-generated summary plus metadata in the manifest gives Gandalf enough to say *"this is in `sapiens.pdf`, chapter 3 covers your question"* — which is usually what you actually want.
 
 ### Temporal layers — active, warm, archive
 
@@ -239,7 +288,7 @@ Inside the semantic tier, data also moves through age-based layers, managed by T
 │             │  → still retrievable, lower recency score     │
 ├─────────────────────────────────────────────────────────────┤
 │  ARCHIVE    │  compressed summaries + original chunks       │
-│             │  moved to kb_archive collection               │
+│             │  moved to brain/archive/                      │
 │             │  → only Treebeard reaches here                │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -259,7 +308,7 @@ Updates never delete. Each chunk carries enough metadata to be replaced without 
   "domain": "self",
   "compression_eligible_after": "2027-05-17",
   "archived": false,
-  "source": "obsidian:daily/2026-05-17.md"
+  "source": "brain/current/2026-05-17.md"
 }
 ```
 
@@ -269,7 +318,7 @@ When a fact is updated, the new chunk is created and the old one's `superseded_b
 
 These thresholds are starting points, not commitments. S.M.E.A.G.O.L.'s logs will reveal whether they're too aggressive or too loose.
 
-| Silos | Active window | Warm window | Compression strategy after warm |
+| Silo | Active window | Warm window | Compression strategy after warm |
 |---|---|---|---|
 | `kb_current` | 30 days | 60 days | Daily chunks → weekly summary → monthly summary |
 | `kb_interests` | 90 days | 180 days | Group by topic, one summary per topic per quarter |
@@ -278,8 +327,8 @@ These thresholds are starting points, not commitments. S.M.E.A.G.O.L.'s logs wil
 | `kb_projects` | 1 year | 2 years | Per-project rollup once project is marked closed |
 | `kb_relations` | 1 year | 3 years | Cautious — relationships need long context windows |
 | `kb_self` | 2 years | 5 years | Yearly snapshot ("who I was in 2024") |
-| `kb_finances` | never | never | SQL only; transaction history *is* the value |
-| `kb_archive` | n/a | n/a | Terminal tier; Treebeard is the only reader |
+| SQL (finances, dev-tracker) | never | never | Structured data is the value; transaction history doesn't compress |
+| `brain/archive/` | n/a | n/a | Terminal tier; Treebeard is the only reader |
 
 The principle behind these numbers: **the further from "stable facts about me", the more aggressive the compression**. Daily logs are noise after a month; identity is signal for a decade.
 
@@ -292,7 +341,7 @@ Realistic projections for an active user (daily notes, weekly bank import, occas
 | Vector DB (active) | ~0.5–1 MB/month | 10–15 MB | 30–50 MB (plateau) |
 | SQL databases | ~1 MB/month | 15–30 MB | ~50 MB/year (linear) |
 | Cold storage (raw files) | 50 MB – 1 GB/month | 5–20 GB | grows with reading habits |
-| `kb_archive` | starts year 2 | 0 | ~100 MB/year (compressed) |
+| `brain/archive/` | starts year 2 | 0 | ~100 MB/year (compressed) |
 | Smeagol logs | 10–40 MB/month | 100–500 MB | rotated, kept summaries only |
 
 The headline number: **the active vector base plateaus**. Treebeard's compression ratio for noisy short-lived data (daily notes, captures) is roughly 50:1, which means linear ingest at the front turns into near-zero net growth at the back. Cold storage grows with how much you *read*, not how much the system stores about you — and cold storage is cheap.
@@ -317,23 +366,38 @@ These are illustrative use cases — directions the system could be developed to
 
 ---
 
+## 🌐 Ecosystem
+
+G.A.N.D.A.L.F. does not stand alone — it sits inside a small constellation of personal projects, each with its own repository and lifecycle. The split is deliberate: each repo has one job, and the spine connecting them is plain files, git, n8n, and HTTP.
+
+| Repo | Role in the system |
+|---|---|
+| **G.A.N.D.A.L.F.** *(this repo)* | The orchestrator and agent code. Reads `brain/`, queries other repos' data, delegates work. |
+| **`brain/`** *(private)* | The knowledge base itself — markdown + selective SQLite. The thing Gandalf is *about*. |
+| [`prompt-vault`](https://github.com/Jarkendar/prompt-vault) | Library of skills and prompts. Agents and skills are sourced from here; Gandalf references them by path. |
+| [`dev-tracker`](https://github.com/Jarkendar/dev-tracker) | Structured-data source for G.I.M.L.I. — coding sessions, commits, time on task. |
+| [`agentic-sdlc-forge`](https://github.com/Jarkendar/agentic-sdlc-forge) | External executor for development tasks. F.A.R.A.M.I.R. delegates here. |
+| [`pi-automate`](https://github.com/Jarkendar/pi-automate) | Homelab infrastructure (Docker Compose, n8n flows, systemd units). The substrate everything else runs on, not a peer. |
+
+How they're connected is intentionally low-tech: `brain/` and `prompt-vault` are read as files on disk, `dev-tracker` is read as SQLite, `agentic-sdlc-forge` is triggered over HTTP/n8n, and `pi-automate` hosts the whole thing in Docker. No service mesh, no shared schema, no orchestrator-of-orchestrators. A separate document (`ARCHITECTURE.md`, planned) will cover the on-disk layout, the workspace pattern, and how a meta-repo ties the constellation together.
+
+---
+
 ## 🛠️ Tech stack
 
-All choices below are **tentative**. The stack will evolve as constraints become clearer through implementation.
-
-| Layer | Likely choice | Why |
-|---|---|---|
-| Orchestration | LangGraph or LlamaIndex | Mature multi-agent routing, good Python ecosystem |
-| Local LLM runtime | Ollama | Easy ARM support, model swapping, already in use |
-| Models (RPi 5) | Phi-3, Qwen2 7B, Gemma 3 | Small, capable, decent tool-calling |
-| Models (desktop fallback) | Larger Qwen / Llama via RTX 2070S | Heavy reasoning offloaded over Tailscale |
-| Vector DB | ChromaDB | Lightweight, runs in-process, no separate service |
-| Embeddings | `nomic-embed-text` via Ollama | Local, free, decent quality |
-| Structured data | SQLite | Lightweight, file-based, native Python support |
-| Background jobs | systemd timers | Already in use for `dev-tracker` |
-| External triggers | n8n | Already running on the homelab |
-| Networking | Tailscale | Already in use for remote access |
-| Optional: voice | Whisper.cpp + Piper TTS | Lightweight enough for RPi 5 |
+| Layer | MVP choice | Phase 2+ direction | Why |
+|---|---|---|---|
+| Orchestration runtime | Claude Code (skills + sub-agents) | Custom Python with LangGraph or LlamaIndex behind an engine abstraction | CC already implements the skill/agent split this project wants; rebuilding it from scratch in Python is later work. |
+| Engine | Claude API via CC | Model-agnostic: Claude, local Ollama, hosted OSS | Privacy & cost tuning happens here, once shape is stable. |
+| Local LLM runtime (Phase 2) | — | Ollama | ARM-friendly, model swapping, already in use. |
+| Models (Phase 2, RPi 5) | — | Phi-3, Qwen2 7B, Gemma 3 | Small, capable, decent tool-calling. |
+| Models (Phase 2, desktop fallback) | — | Larger Qwen / Llama via RTX 2070S | Heavy reasoning offloaded over Tailscale. |
+| Knowledge store (text) | Markdown files in `brain/` git repo | + ChromaDB index on top | Files first, vectors when they earn it. |
+| Knowledge store (structured) | SQLite | SQLite | Lightweight, file-based, plays well with git LFS or external mount. |
+| Ingestion glue | n8n | n8n + webhooks | Already running on the homelab. |
+| Background jobs | systemd timers | systemd timers | Already in use for `dev-tracker`. |
+| Networking | Tailscale | Tailscale | Already in use for remote access. |
+| Optional: voice | Whisper.cpp (STT) + Piper TTS | same | Lightweight enough for RPi 5. |
 
 ---
 
@@ -341,15 +405,19 @@ All choices below are **tentative**. The stack will evolve as constraints become
 
 The project is at **concept stage**. The intended build order:
 
-1. **MVP** — single-script Gandalf with G.I.M.L.I. only, running on desktop against `dev-tracker` SQLite. Validates the router pattern before adding complexity.
-2. **Add S.A.M.W.I.S.E.** — ChromaDB, embeddings, ingest a handful of existing PDFs and notes.
-3. **Add S.M.E.A.G.O.L.** — query logging from day one, even if the dashboard comes later.
-4. **Add B.I.L.B.O.** — automate ingestion via watched folders.
-5. **Migrate to RPi 5** — observe what breaks, optimise model choice.
-6. **Add L.E.G.O.L.A.S.** — web search for fact verification.
-7. **Add T.R.E.E.B.E.A.R.D.** — once the active base has 3–6 months of data and compression becomes meaningful.
-8. **Add F.A.R.A.M.I.R.** — calendar, reminders, delegation to `agentic-sdlc-forge`.
-9. **Optional voice layer** — only if real usage proves it's wanted.
+1. **MVP — Gandalf on Claude Code, brain repo as plain markdown.** Single orchestrator (Gandalf as a CC skill), G.I.M.L.I. against `dev-tracker` SQLite, plus direct markdown access for everything else. No embeddings, no Ollama, no Pi yet. Validates the router pattern and the shape of the brain repo.
+2. **Add S.M.E.A.G.O.L.** — query logging from day one, even before there's anything to analyse.
+3. **Add S.A.M.W.I.S.E. — minimal version.** Direct markdown retrieval first (grep + LLM read), embeddings only if that proves insufficient.
+4. **Add F.A.R.A.M.I.R.** — calendar, reminders, delegation to `agentic-sdlc-forge`.
+5. **Add L.E.G.O.L.A.S.** — web search for fact verification.
+6. **Add the first skill (White Council)** — proves the agent/skill split works in practice, not just on paper.
+7. **Add Ollama + engine abstraction.** Local models become an option, agents become model-portable. This is the point at which the project actually becomes local-first.
+8. **Migrate to RPi 5.** Observe what breaks, optimise model choice.
+9. **Add B.I.L.B.O.** — scheduled indexing & vector DB, once the brain repo grows past the "grep is fine" threshold.
+10. **Add T.R.E.E.B.E.A.R.D.** — once the active base has 6–12 months of data and compression becomes meaningful.
+11. **Optional voice layer** — only if real usage proves it's wanted.
+
+Order is a guess; Smeagol's logs will likely shuffle it.
 
 ---
 
