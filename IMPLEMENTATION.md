@@ -138,6 +138,50 @@ reshuffle it.**
 
 ---
 
+## Capability extensions (beyond the current roadmap)
+
+These capabilities complement steps 1–11 without replacing them. They are
+sequenced separately because they cut across multiple steps or depend on
+capabilities that do not exist yet. Detailed tasks will be written when the
+relevant prerequisites are in place. **Order is still a guess — Smeagol's logs
+reshuffle it.**
+
+- [ ] **E1 — Conversational gateway (multi-channel + voice in).** Two-way
+  interface: hold a conversation with Gandalf via Telegram, Signal, email, or
+  voice — one conversation thread that follows you across channels. Builds on the
+  existing n8n ingestion layer by adding a response path. Gateway dispatch is a
+  natural fit for a new agent (posłaniec/dispatcher role). Prerequisites: Step 2
+  (Smeagol, for per-session correlation) and a deployed n8n flow in `pi-automate`.
+- [ ] **E2 — Proactive scheduler (extends F.A.R.A.M.I.R.).** Natural-language
+  recurring tasks initiated by the system rather than the user — morning briefings,
+  weekly retros, bill-due reminders — delivered through the gateway (E1). Shifts
+  the system from purely reactive Q&A to an assistant that shows up unprompted.
+  Substrate: systemd timers and n8n already in `pi-automate`; scheduling logic
+  extends Step 4 (Faramir).
+- [ ] **E3 — Session and log retrieval (FTS5).** Concrete implementation for the
+  unassigned "log-analysis" role in the step table: SQLite FTS5 index over
+  Smeagol's logs and `brain/conversations/` enables natural-language queries over
+  past sessions (*"what did we discuss about X?"*, *"when did I last work on Y?"*).
+  Tightly coupled to Steps 2 and 3; inexpensive to add once the log format is
+  stable.
+- [ ] **E4 — Self-improving skills loop.** After a successful multi-agent workflow,
+  a reflection step asks whether the sequence generalises; if yes, it writes a
+  reusable skill file and exports it to `prompt-vault`. The fellowship's playbook
+  grows with use rather than requiring manual authoring. Requires a triggering
+  heuristic and a human-review gate to prevent skill noise. Logically dependent on
+  Step 6 (White Council validates the pattern first).
+- [ ] **E5 — Evolving user profile.** Agent-curated updates to `core/profile.md`
+  (and eventually G.A.L.A.D.R.I.E.L.'s model), append-only with `superseded_by`
+  pointers — the same mechanism used by T.R.E.E.B.E.A.R.D. Profile data stays in
+  private `core/`; the auto-update logic must not bypass the privacy gate.
+- [ ] **E6 — Programmatic tool calling (RPC).** Phase 2+ addition under the engine
+  abstraction layer (Step 7): the agent writes a short script that calls tools
+  procedurally, collapsing multi-step pipelines into a single inference turn.
+  Reduces per-query token cost on a Pi budget. Requires an execution sandbox. Not
+  meaningful before the engine abstraction exists.
+
+---
+
 ## Open decisions / parking lot
 
 These points need a decision before or during the relevant step. Documented here
@@ -151,3 +195,6 @@ so they don't get lost.
 | **Phase 2 orchestration framework** | Step 7 | LangGraph vs LlamaIndex vs custom thin wrapper. Decided when the engine abstraction layer is built. |
 | **Log-analysis role** | Step 2+ | Reads Smeagol's logs, surfaces gaps and patterns. Agent or skill? Tolkien persona? Deliberately unassigned until the logs exist. |
 | **`brain/` privacy in MVP** | Step 1–3 | In MVP (Claude API), private folders are read locally by the tool, but file contents may pass through the API in the context window. Decide explicit guardrails before Step 1 ships. |
+| **Gateway transport & channels** | E1 | Which messaging platforms to support first; how to correlate a conversation thread across channels; where session context is held between messages. |
+| **Skill-authoring heuristic** | E4 | What conditions trigger "this workflow should become a skill" — what qualifies, minimum reuse threshold, and who reviews before it is promoted to `prompt-vault`. |
+| **Profile self-update guardrails** | E5 | What the automated system is allowed to write or overwrite in `core/profile.md`; append-only vs field-specific rules; how proposed updates are surfaced for human review before committing. |
