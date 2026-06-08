@@ -28,6 +28,31 @@ Last updated: 2026-06-08
 
 ## Near-term (detailed)
 
+### Step 0 — brain/ scaffold + Gandalf configuration
+
+**Goal:** establish the `brain/` knowledge repository and wire it to Gandalf
+before any agent reads or writes data. Nothing else can be validated without this.
+
+**What it includes:**
+- `brain/` repo initialized with full folder structure and per-folder `CLAUDE.md` files.
+- `_meta/schema.md`, `_meta/queue.jsonl`, `_meta/manifest.json` in place.
+- `.claude/gandalf.env` configured with a valid `BRAIN_PATH`.
+- `init-brain` skill tested end-to-end (creation mode and validation mode).
+
+**Tasks:**
+- [ ] Copy `.claude/gandalf.env.example` → `.claude/gandalf.env`, set `BRAIN_PATH`.
+- [ ] Run `/init-brain` — verify scaffold is created correctly at the configured path.
+- [ ] Confirm each folder's `CLAUDE.md` is present and readable.
+- [ ] (Optional for MVP) Install pre-commit hook in `brain/` for frontmatter validation.
+
+**Done when:**
+- `brain/` exists at the configured path with correct folder structure.
+- Each folder has its own `CLAUDE.md` with correct privacy rules.
+- `_meta/schema.md` is in place and matches the spec.
+- Gandalf can resolve `BRAIN_PATH` at startup without error.
+
+---
+
 ### Step 1 — MVP: Gandalf + G.I.M.L.I. + `brain/` markdown
 
 **Goal:** validate the router pattern and the shape of the `brain/` repo before

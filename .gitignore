@@ -147,6 +147,9 @@ activemq-data/
 # SageMath parsed files
 *.sage.py
 
+# G.A.N.D.A.L.F. local config (contains machine-specific paths)
+.claude/gandalf.env
+
 # Environments
 .env
 .envrc
