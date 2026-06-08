@@ -1,0 +1,153 @@
+# IMPLEMENTATION.md — G.A.N.D.A.L.F. execution path
+
+**Relation to README.md:** README is the vision — *what* and *why*. This file is
+the execution path — *how* and *when*. README is the canon; this file is updated
+as work progresses without touching the canon.
+
+Last updated: 2026-06-08
+
+---
+
+## Guiding rules
+
+- **Shape before engine.** MVP runs on Claude Code (Gandalf as a skill, agents as
+  sub-agents, engine = Claude API). Local-first / Ollama is Phase 2 — consciously
+  deferred. Architecture is not interchangeable; engines are.
+- **One agent at a time.** Validate the router pattern before adding complexity.
+  The order below is a guess; Smeagol's logs will reshuffle it.
+- **Stack stays tentative** beyond the MVP runtime choice. Library decisions
+  (LangGraph vs LlamaIndex, ChromaDB vs alternatives) are made per step, not
+  upfront.
+- **Privacy enforced from day one.** Contents of private `brain/` folders (`core/`,
+  `current/`) never reach external APIs. Enforced by code, not convention.
+- **CC artefacts live here.** Claude Code skill and sub-agent definitions belong
+  in `.claude/` in this repo. New skills are *exported* to `prompt-vault` as
+  backup — that is the direction (this repo → vault), not the reverse.
+
+---
+
+## Near-term (detailed)
+
+### Step 1 — MVP: Gandalf + G.I.M.L.I. + `brain/` markdown
+
+**Goal:** validate the router pattern and the shape of the `brain/` repo before
+adding any further agents. No embeddings, no Ollama, no Pi.
+
+**What it includes:**
+- Gandalf implemented as a Claude Code skill (`.claude/skills/gandalf.md` or
+  equivalent).
+- G.I.M.L.I. implemented as a CC sub-agent: schema-aware SQL queries against a
+  SQLite database.
+- Direct markdown read access to `brain/` for unstructured queries (no vector DB —
+  Gandalf reads files directly or delegates to a simple grep step).
+
+**Tasks:**
+- [ ] Define Gandalf skill in `.claude/` — routing logic, privacy gate, synthesis.
+- [ ] Define G.I.M.L.I. sub-agent — schema discovery, query generation, result
+  formatting.
+- [ ] Connect to a SQLite database (see Open Decisions — which database to start with).
+- [ ] Smoke-test end-to-end: one structured query routed to Gimli, one markdown
+  query answered from `brain/`.
+
+**Done when:**
+- Gandalf correctly routes a `how much / when / count` question to Gimli.
+- Gandalf correctly reads a relevant markdown file from `brain/` for an
+  unstructured question.
+- No private `brain/` folder contents are passed to the Claude API.
+- The router pattern is observable (even if only via stdout logging for now).
+
+---
+
+### Step 2 — S.M.E.A.G.O.L.: query logging
+
+**Goal:** instrument every Gandalf interaction from day one, before there is
+anything to analyse. Smeagol's logs are the feedback loop that will reshuffle
+this roadmap.
+
+**What it includes:**
+- Smeagol sub-agent (or a lightweight hook) that writes a structured log entry
+  for every query: timestamp, route taken, agents called, latency, outcome flag.
+- Log destination: a file in `brain/` (e.g. `brain/current/smeagol/`) or a
+  local SQLite — TBD. Must not send private content to external APIs.
+- Smeagol **writes only**. Analysis is a separate, future role.
+
+**Tasks:**
+- [ ] Decide log format (JSONL vs append-only MD vs SQLite) and destination.
+- [ ] Implement Smeagol as a side-effect of every Gandalf call.
+- [ ] Verify: every Step 1 query produces a log entry.
+
+**Done when:**
+- Every Gandalf query produces a parseable log entry (route, agents, latency,
+  outcome).
+- Logs accumulate without blocking the main response path.
+
+---
+
+### Step 3 — S.A.M.W.I.S.E. (minimal): markdown retrieval
+
+**Goal:** let Gandalf answer unstructured questions about `brain/` content
+without a vector DB. Add embeddings only when direct retrieval proves insufficient.
+
+**What it includes:**
+- Samwise sub-agent with a two-mode design:
+  1. **Mode 1 (current):** grep / filename search + LLM-read of matching files.
+     No embedding infrastructure needed.
+  2. **Mode 2 (future):** ChromaDB index over `brain/` markdown files — layered on
+     top, markdown stays canonical. Activated when Mode 1 starts feeling slow or
+     noisy.
+- Privacy boundary: `core/` and `current/` folders accessible only to
+  local-model reads (Phase 2); in MVP, Gandalf reads them directly without
+  sending content to the API beyond what the user query requires.
+
+**Tasks:**
+- [ ] Define Samwise sub-agent — file search, relevance scoring, excerpt extraction.
+- [ ] Integrate with Gandalf routing: semantic / unstructured queries go to Samwise.
+- [ ] Test: "what do I know about X?" returns relevant excerpts from `brain/`.
+
+**Done when:**
+- Gandalf routes unstructured knowledge queries to Samwise.
+- Samwise returns relevant excerpts with source paths.
+- Performance is acceptable on the current `brain/` size (Mode 1).
+
+---
+
+## Long-term (condensed)
+
+Steps 4–11 from the README roadmap, condensed for orientation. Detailed tasks will
+be written here as each step becomes near-term. **Order is a guess; Smeagol's logs
+reshuffle it.**
+
+- [ ] **Step 4 — F.A.R.A.M.I.R.** — calendar integration, reminders, delegation
+  to `agentic-sdlc-forge` for dev tasks via n8n / HTTP.
+- [ ] **Step 5 — L.E.G.O.L.A.S.** — outbound web search (DuckDuckGo first,
+  self-hosted SearXNG later). Only agent with external network access.
+- [ ] **Step 6 — First skill: White Council** — multi-perspective deliberation
+  over a hard question; validates the agent/skill split in practice.
+- [ ] **Step 7 — Ollama + engine abstraction** — model-agnostic interface; agents
+  become portable across Claude API, local Ollama, and hosted OSS. This is the
+  point at which the system actually becomes local-first.
+- [ ] **Step 8 — Migrate to RPi 5** — observe what breaks under ARM + memory
+  constraints, optimise model choices.
+- [ ] **Step 9 — B.I.L.B.O. + vector DB** — scheduled indexer over `brain/`;
+  ChromaDB layer over markdown files; Samwise switches to Mode 2. Activated once
+  the brain repo grows past the "grep is fine" threshold.
+- [ ] **Step 10 — T.R.E.E.B.E.A.R.D.** — nightly compression pass, supersession
+  resolution, archive retrieval. Meaningful once 6–12 months of data accumulate.
+- [ ] **Step 11 — Optional voice layer** — Whisper.cpp (STT) + Piper TTS —
+  only if real usage proves it's wanted.
+
+---
+
+## Open decisions / parking lot
+
+These points need a decision before or during the relevant step. Documented here
+so they don't get lost.
+
+| Decision | Relevant at | Options / notes |
+|---|---|---|
+| **SQLite for MVP** | Step 1 | Realny `dev-tracker` SQLite (validates real data) vs a seeded synthetic DB (isolated, no external dependency). Decided at implementation. |
+| **Smeagol log destination** | Step 2 | JSONL file in `brain/current/smeagol/`, local SQLite next to this repo, or embedded in a dedicated log folder here. |
+| **Samwise Mode 1 → Mode 2 threshold** | Step 3 / Step 9 | No hard number yet. Signal: Smeagol logs show slow or irrelevant retrieval. |
+| **Phase 2 orchestration framework** | Step 7 | LangGraph vs LlamaIndex vs custom thin wrapper. Decided when the engine abstraction layer is built. |
+| **Log-analysis role** | Step 2+ | Reads Smeagol's logs, surfaces gaps and patterns. Agent or skill? Tolkien persona? Deliberately unassigned until the logs exist. |
+| **`brain/` privacy in MVP** | Step 1–3 | In MVP (Claude API), private folders are read locally by the tool, but file contents may pass through the API in the context window. Decide explicit guardrails before Step 1 ships. |
