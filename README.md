@@ -124,6 +124,7 @@ The table below maps roles to the fellowship: what already exists, what could be
 | Content drafting (posts, articles, copy) | Agent | proposed | **L.I.N.D.I.R.** | *Language and Ideation Node for Drafting, Illustrating, Rewriting*. Minstrel of Rivendell — composes words for an audience. |
 | Outreach / external lead research | Agent | proposed | **H.A.L.D.I.R.** | *Handling Active Lead Discovery, Intelligence, Research*. Lothlórien border-warden — works at the edge of known territory. |
 | Multi-perspective deliberation | Skill | proposed | **White Council** | Orchestrates several advisor-agents (e.g. Galadriel + others) to surface multiple angles on a hard decision. Skill name follows the event-or-group convention. |
+| Multi-channel gateway / dispatcher | Agent | proposed | **R.A.D.A.G.A.S.T.** | *Relaying Agent Dispatching And Gathering Across System Transports* — Radagast the Brown, friend to birds and beasts, carries messages across wild lands; disposition = multi-channel reach. |
 | Log analysis & insight extraction | Agent or Skill | TBD | — | Reads Smeagol's logs to surface patterns, gaps, retro material. Persona deliberately not assigned yet. |
 | Development task execution | external | exists | [`agentic-sdlc-forge`](https://github.com/Jarkendar/agentic-sdlc-forge) via F.A.R.A.M.I.R. | Not part of the fellowship — an external executor invoked through Faramir. |
 
@@ -363,6 +364,10 @@ These are illustrative use cases — directions the system could be developed to
 - **Development delegation** — F.A.R.A.M.I.R. forwards implementation tasks to [`agentic-sdlc-forge`](https://github.com/Jarkendar/agentic-sdlc-forge), turning conversation into actual code changes.
 - **Knowledge gap detection** — S.M.E.A.G.O.L. surfaces patterns of failed queries, suggesting which silos or sources are missing.
 - **Historical self-reflection** — T.R.E.E.B.E.A.R.D. answers questions like *"how have my interests shifted over the last two years?"* from compressed archives.
+- **Proactive briefs** — F.A.R.A.M.I.R. delivers scheduled, system-initiated summaries and reminders on a configured channel — morning briefings, weekly retros, bill-due nudges — without waiting to be asked.
+- **Reach-anywhere gateway** — converse with Gandalf from Telegram, Signal, email, or voice; one conversation thread that follows you across channels. Not just ingestion into `brain/` but a two-way dialogue interface.
+- **Self-improving skills** — when a successful multi-agent workflow generalises, it gets captured as a skill and exported to `prompt-vault`; the fellowship's playbook grows from use rather than manual authoring.
+- **Evolving self-model** — G.A.L.A.D.R.I.E.L. maintains a user profile that updates from accumulated context, not exclusively from manually maintained `core/profile.md`.
 
 ---
 
