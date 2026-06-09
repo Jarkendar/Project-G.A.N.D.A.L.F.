@@ -4,7 +4,29 @@
 the execution path — *how* and *when*. README is the canon; this file is updated
 as work progresses without touching the canon.
 
-Last updated: 2026-06-08
+Last updated: 2026-06-09
+
+---
+
+## Privacy in the Claude-API MVP
+
+**Decision (2026-06-09):** Private `brain/` content (`core/`, `current/`) **may
+enter the Claude API context window** in the MVP. This is a conscious, time-boxed
+exception. Reasons:
+
+- The MVP engine *is* the Claude API. Building a local redaction layer before the
+  router pattern is validated would optimise prematurely.
+- The user controls what enters the context by deciding which `brain/` files to
+  read and what queries to ask.
+- All content stays in this user's Claude account — it is not shared with others.
+
+**Phase 2 obligation:** when the engine abstraction layer and local models (Ollama)
+are introduced (Step 7), this exception is closed. Private folders route to
+local-only models; the API context window never sees their content.
+
+**Not affected:** the *architecture* of the privacy split (folder-level, enforced
+per `CLAUDE.md` in each folder) is set now, even though enforcement is relaxed for
+the MVP. This means Phase 2 tightening is a config/routing change, not a redesign.
 
 ---
 
@@ -18,8 +40,11 @@ Last updated: 2026-06-08
 - **Stack stays tentative** beyond the MVP runtime choice. Library decisions
   (LangGraph vs LlamaIndex, ChromaDB vs alternatives) are made per step, not
   upfront.
-- **Privacy enforced from day one.** Contents of private `brain/` folders (`core/`,
-  `current/`) never reach external APIs. Enforced by code, not convention.
+- **Privacy enforced from day one — Phase 2 target.** The goal is that private
+  `brain/` folders (`core/`, `current/`) never reach external APIs; enforced by code
+  in Phase 2. **MVP exception:** in the Claude-API MVP the engine may receive private
+  content in its context window — consciously accepted (see § "Privacy in the
+  Claude-API MVP" below) with the intent to tighten in Phase 2.
 - **CC artefacts live here.** Claude Code skill and sub-agent definitions belong
   in `.claude/` in this repo. New skills are *exported* to `prompt-vault` as
   backup — that is the direction (this repo → vault), not the reverse.
@@ -219,7 +244,7 @@ so they don't get lost.
 | **Samwise Mode 1 → Mode 2 threshold** | Step 3 / Step 9 | No hard number yet. Signal: Smeagol logs show slow or irrelevant retrieval. |
 | **Phase 2 orchestration framework** | Step 7 | LangGraph vs LlamaIndex vs custom thin wrapper. Decided when the engine abstraction layer is built. |
 | **Log-analysis role** | Step 2+ | Reads Smeagol's logs, surfaces gaps and patterns. Agent or skill? Tolkien persona? Deliberately unassigned until the logs exist. |
-| **`brain/` privacy in MVP** | Step 1–3 | In MVP (Claude API), private folders are read locally by the tool, but file contents may pass through the API in the context window. Decide explicit guardrails before Step 1 ships. |
+| ~~**`brain/` privacy in MVP**~~ | ~~Step 1–3~~ | **RESOLVED 2026-06-09.** Private content may enter the Claude API context window in MVP. See § "Privacy in the Claude-API MVP". Tightened in Phase 2 (Step 7). |
 | **Gateway transport & channels** | E1 | Which messaging platforms to support first; how to correlate a conversation thread across channels; where session context is held between messages. |
 | **Skill-authoring heuristic** | E4 | What conditions trigger "this workflow should become a skill" — what qualifies, minimum reuse threshold, and who reviews before it is promoted to `prompt-vault`. |
 | **Profile self-update guardrails** | E5 | What the automated system is allowed to write or overwrite in `core/profile.md`; append-only vs field-specific rules; how proposed updates are surfaced for human review before committing. |

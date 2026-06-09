@@ -144,7 +144,8 @@ be consistent with them.
 2. **Privacy is folder-level, not binary.** In the `brain/` repo: `core/` and
    `current/` are private (local-only models only); `knowledge/` is public. This
    split is **architectural**, not a convention to honour when convenient.
-   Private folder contents never go to external APIs.
+   Private folder contents never go to external APIs. *(Phase 2 target — see
+   IMPLEMENTATION.md § "Privacy in the Claude-API MVP" for the current exception.)*
 3. **Storage by question shape.** Markdown by default. SQL when the question is
    *how much / when / count* — i.e. when you'd write `GROUP BY`. Not the other
    way around.
@@ -180,9 +181,13 @@ be consistent with them.
 
 ### Never
 
-- Create or modify the `brain/` repo from this repo.
+- Curate content or manage git history in the `brain/` repo outside of sanctioned
+  writes (scaffolding via `/init-brain`, ingest via skills — these are explicitly
+  permitted; unilateral edits to owner-authored content are not).
 - Send contents of private `brain/` folders (`core/`, `current/`) to external
-  APIs — this is a hard architectural rule, not a preference.
+  APIs. *(This is the Phase 2 target. MVP exception: the Claude-API engine may
+  receive private content in its context window — consciously accepted, documented
+  in IMPLEMENTATION.md § "Privacy in the Claude-API MVP".)*
 
 ---
 

@@ -150,6 +150,9 @@ activemq-data/
 # G.A.N.D.A.L.F. local config (contains machine-specific paths)
 .claude/gandalf.env
 
+# Conversation drop folder — raw transcripts are private, never commit them
+data_providers/chats/incoming/
+
 # Environments
 .env
 .envrc
