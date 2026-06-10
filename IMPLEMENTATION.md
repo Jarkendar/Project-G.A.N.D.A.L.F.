@@ -4,7 +4,7 @@
 the execution path — *how* and *when*. README is the canon; this file is updated
 as work progresses without touching the canon.
 
-Last updated: 2026-06-09
+Last updated: 2026-06-10
 
 ---
 
@@ -65,9 +65,14 @@ before any agent reads or writes data. Nothing else can be validated without thi
 - `init-brain` skill tested end-to-end (creation mode and validation mode).
 
 **Tasks:**
-- [ ] Copy `.claude/gandalf.env.example` → `.claude/gandalf.env`, set `BRAIN_PATH`.
-- [ ] Run `/init-brain` — verify scaffold is created correctly at the configured path.
-- [ ] Confirm each folder's `CLAUDE.md` is present and readable.
+- [x] Copy `.claude/gandalf.env.example` → `.claude/gandalf.env`, set `BRAIN_PATH`.
+- [x] Run `/init-brain` — verify scaffold is created correctly at the configured path.
+- [x] Confirm each folder's `CLAUDE.md` is present and readable.
+- [x] Living document model for `core/` established: five template files in
+  `core/identity/`, `core/health/`, `core/finance/`; `core/CLAUDE.md` updated.
+  `/update-core` skill added for curated writes with privacy gate and user confirmation.
+- [ ] Seed `core/identity/profile.md`, `goals.md`, `contacts.md` with real data
+  (run `/update-core` interactively or fill manually).
 - [ ] (Optional for MVP) Install pre-commit hook in `brain/` for frontmatter validation.
 
 **Done when:**
@@ -220,10 +225,12 @@ reshuffle it.**
   grows with use rather than requiring manual authoring. Requires a triggering
   heuristic and a human-review gate to prevent skill noise. Logically dependent on
   Step 6 (White Council validates the pattern first).
-- [ ] **E5 — Evolving user profile.** Agent-curated updates to `core/profile.md`
-  (and eventually G.A.L.A.D.R.I.E.L.'s model), append-only with `superseded_by`
-  pointers — the same mechanism used by T.R.E.E.B.E.A.R.D. Profile data stays in
-  private `core/`; the auto-update logic must not bypass the privacy gate.
+- [ ] **E5 — Evolving user profile.** Manual foundation in place (2026-06-10):
+  living documents in `core/identity/` (`profile.md`, `goals.md`, `contacts.md`),
+  `/update-core` skill for curated human-confirmed writes. Next: agent-curated
+  updates (G.A.L.A.D.R.I.E.L.'s model), append-only with `superseded_by` pointers.
+  Profile data stays in private `core/`; auto-update logic must not bypass the
+  privacy gate. See parking lot: "Profile self-update guardrails".
 - [ ] **E6 — Programmatic tool calling (RPC).** Phase 2+ addition under the engine
   abstraction layer (Step 7): the agent writes a short script that calls tools
   procedurally, collapsing multi-step pipelines into a single inference turn.

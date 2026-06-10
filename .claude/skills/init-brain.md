@@ -86,6 +86,12 @@ Files:
 - `$BRAIN/_meta/queue.jsonl`
 - `$BRAIN/_meta/manifest.json`
 - `$BRAIN/core/CLAUDE.md`
+- `$BRAIN/core/identity/profile.md`
+- `$BRAIN/core/identity/goals.md`
+- `$BRAIN/core/identity/contacts.md`
+- `$BRAIN/core/health/health.md`
+- `$BRAIN/core/health/body.md`
+- `$BRAIN/core/finance/finance.md`
 - `$BRAIN/current/CLAUDE.md`
 - `$BRAIN/current/inbox/CLAUDE.md`
 - `$BRAIN/current/smeagol/CLAUDE.md`
@@ -239,33 +245,256 @@ and are deeply private.
 **PRIVATE** — contents never leave this machine. Never pass to external APIs.
 Never include in Claude API context window, even in summarised form.
 
+MVP exception: private content may enter the Claude API context window in the MVP.
+See IMPLEMENTATION.md § "Privacy in the Claude-API MVP". Tightened in Phase 2.
+
+## Document model
+`core/` uses **living documents** edited in place — not the timestamped-file
+append-only model used by `inbox/` or `conversations/`.
+
+| Convention | Value |
+|---|---|
+| File naming | `slug.md` (e.g. `profile.md`, `goals.md`) |
+| `date:` field | Last-updated timestamp, bumped on every edit |
+| Updates | Edit in place; preserve all other content verbatim |
+| Major revisions (opt-in) | Archive pre-edit copy to `archive/`; set `supersedes:` in new version |
+
+Supersession (`superseded_by:`) is written by T.R.E.E.B.E.A.R.D. only.
+
+## Living documents
+
+| File | Purpose |
+|---|---|
+| `identity/profile.md` | Who I am — name, location, role, languages, background, preferences |
+| `identity/goals.md` | Goals and horizons — long-term, current quarter, someday/maybe |
+| `identity/contacts.md` | People, relationships, context |
+| `health/health.md` | Medical state — conditions, allergies, meds, vaccinations, habits |
+| `health/body.md`   | Measurable body parameters — static stats + measurement log |
+| `finance/finance.md` | Financial overview and notes |
+
 ## Writers
 
 | Source | Allowed | Conditions |
 |---|---|---|
-| User (manual) | ✅ | Any file following `_meta/schema.md` |
+| User (manual) | ✅ | Any file; frontmatter required |
+| `/update-core` skill | ✅ | Only with explicit user confirmation at each write |
 | T.R.E.E.B.E.A.R.D. | ✅ | Supersession only — no new facts |
 | n8n automations | ❌ | Not allowed |
 | Other CC agents | ❌ | Read access only |
 
 ## Allowed
-- Creating new fact files with complete frontmatter
-- Updating facts via supersession (new file + `supersedes:` field)
+- Editing living documents in place via the `/update-core` skill
+- Creating new living documents from templates (via `/update-core`)
+- Optional archiving of major revisions to `archive/` with `supersedes:`
 
 ## Not allowed
 - Deleting any file
-- Overwriting existing files in place
 - Writing without frontmatter
-- Any automation writing here — manual only
+- Any automation writing here — manual / `/update-core` only
 
-## File format
-Naming: `YYYY-MM-DDTHH-MM-SS_manual_slug.md`
-Frontmatter: `privacy: private` mandatory.
+## Required frontmatter (all core/ files)
+```yaml
+date: <last-updated, ISO 8601>
+source: manual
+privacy: private
+status: active
+tags: [<at least one tag>]
+```
 
 ## Notes for Claude Code
 You are in a PRIVATE scope. Do not read files here and include their content
 in any prompt sent to an external API. Local model access only (Phase 2).
 In MVP: read locally, do not relay content to Claude API.
+To add or update facts, use the `/update-core` skill.
+```
+
+---
+
+### `$BRAIN/core/identity/profile.md`
+
+```markdown
+---
+date: YYYY-MM-DDTHH:MM:SS
+source: manual
+privacy: private
+status: active
+tags: [identity, profile]
+title: "Profile"
+---
+
+# Profile
+> Living document — edit in place. `date` = last updated.
+
+## Basics
+- Name:
+- Pronouns:
+- Location:
+- Languages:
+
+## Work / role
+
+## Background
+
+## Preferences & working style
+
+## Notes
+```
+
+---
+
+### `$BRAIN/core/identity/goals.md`
+
+```markdown
+---
+date: YYYY-MM-DDTHH:MM:SS
+source: manual
+privacy: private
+status: active
+tags: [identity, goals]
+title: "Goals"
+---
+
+# Goals
+> Living document — edit in place. `date` = last updated.
+
+## Horizons (3–5 year)
+
+## Active goals (current quarter)
+
+## Someday / maybe
+
+## Notes
+```
+
+---
+
+### `$BRAIN/core/identity/contacts.md`
+
+```markdown
+---
+date: YYYY-MM-DDTHH:MM:SS
+source: manual
+privacy: private
+status: active
+tags: [identity, contacts]
+title: "Contacts"
+---
+
+# Contacts
+> Living document — edit in place. `date` = last updated.
+> One entry per person. Format: `## First Last` then bullet list of context.
+
+## Template
+
+<!-- Copy and fill for each contact:
+
+## Full Name
+- Relationship:
+- Context:
+- Notes:
+
+-->
+```
+
+---
+
+### `$BRAIN/core/health/health.md`
+
+```markdown
+---
+date: YYYY-MM-DDTHH:MM:SS
+source: manual
+privacy: private
+status: active
+tags: [health]
+title: "Health"
+---
+
+# Health
+> Living document — edit in place. `date` = last updated.
+> Especially sensitive — populate only what you find useful to have here.
+> Measurable body parameters live in `body.md`; this file is medical state & habits.
+
+## Conditions
+> Chronic or ongoing conditions.
+
+## Allergies & intolerances
+
+## Medications & supplements
+
+## Vaccinations
+
+## Habits & routines
+> Sleep, exercise, diet.
+
+## Notes
+```
+
+---
+
+### `$BRAIN/core/health/body.md`
+
+```markdown
+---
+date: YYYY-MM-DDTHH:MM:SS
+source: manual
+privacy: private
+status: active
+tags: [health, body]
+title: "Body parameters"
+---
+
+# Body parameters
+> Living document — edit in place. `date` = last updated.
+> Especially sensitive — populate only what you find useful.
+> Medical state and habits live in `health.md`; this file is measurable parameters.
+
+## Static
+> Rarely changing.
+- Date of birth:
+- Height:
+- Blood type:
+
+## Current snapshot
+> Latest value per metric. `as of` = date of the measurement, not the file edit.
+- Weight:             (as of )
+- Body fat %:         (as of )
+- Resting heart rate: (as of )
+- Blood pressure:     (as of )
+
+## Measurement log
+> Append-only time-series store. Add one row per measurement; never edit or delete
+> past rows. Longitudinal queries ("trend", "average", "since") migrate to
+> `db/` + G.I.M.L.I. later (storage-by-question-shape, principle #3). Until then,
+> this table is the record.
+
+| Date | Metric | Value | Unit | Notes |
+|------|--------|-------|------|-------|
+
+## Notes
+```
+
+---
+
+### `$BRAIN/core/finance/finance.md`
+
+```markdown
+---
+date: YYYY-MM-DDTHH:MM:SS
+source: manual
+privacy: private
+status: active
+tags: [finance]
+title: "Finance"
+---
+
+# Finance
+> Living document — edit in place. `date` = last updated.
+> This is especially sensitive — populate only what you find useful to have here.
+
+## Overview
+
+## Notes
 ```
 
 ---
