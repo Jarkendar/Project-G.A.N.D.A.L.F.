@@ -1,7 +1,7 @@
 # update-core
 
 Add or update personal facts in `brain/core/`. Edits the appropriate living document
-in place — profile, goals, contacts, health, or finance.
+in place — profile, goals, contacts, health, body, or finance.
 
 ## When to use
 
@@ -10,7 +10,6 @@ in place — profile, goals, contacts, health, or finance.
 - Adding or changing a contact / relationship note
 - Recording a health datum — condition, allergy, medication, vaccination (only on explicit user request)
 - Recording a body parameter or a new measurement (height, weight, vitals) (only on explicit user request)
-- Initialising any of the five core living documents from a blank template
 
 ---
 
@@ -40,7 +39,7 @@ If missing: tell the user "Run `/init-brain` first to scaffold the brain/ repo."
 
 ### 3. Identify the target document
 
-Route the user's intent to one of five living documents:
+Route the user's intent to one of six living documents:
 
 | Category | Target file |
 |---|---|
@@ -53,8 +52,8 @@ Route the user's intent to one of five living documents:
 
 If the intent covers multiple documents, handle them one by one.
 
-If the target file does not exist: create it from the matching template in the
-**File templates** section below, then proceed to step 4.
+If the target file does not exist: tell the user to run `/init-brain` (validation
+mode) — it will scaffold the missing file from the skeleton template. Stop.
 
 ### 4. Read and gather
 
@@ -128,202 +127,6 @@ After writing, print:
 
 ---
 
-## File templates
-
-Use these when creating a document that does not yet exist.
-Write the file exactly as shown, then proceed with the update from step 4.
-
----
-
-### `$BRAIN/core/identity/profile.md`
-
-```markdown
----
-date: YYYY-MM-DDTHH:MM:SS
-source: manual
-privacy: private
-status: active
-tags: [identity, profile]
-title: "Profile"
----
-
-# Profile
-> Living document — edit in place. `date` = last updated.
-
-## Basics
-- Name:
-- Pronouns:
-- Location:
-- Languages:
-
-## Work / role
-
-## Background
-
-## Preferences & working style
-
-## Notes
-```
-
----
-
-### `$BRAIN/core/identity/goals.md`
-
-```markdown
----
-date: YYYY-MM-DDTHH:MM:SS
-source: manual
-privacy: private
-status: active
-tags: [identity, goals]
-title: "Goals"
----
-
-# Goals
-> Living document — edit in place. `date` = last updated.
-
-## Horizons (3–5 year)
-
-## Active goals (current quarter)
-
-## Someday / maybe
-
-## Notes
-```
-
----
-
-### `$BRAIN/core/identity/contacts.md`
-
-```markdown
----
-date: YYYY-MM-DDTHH:MM:SS
-source: manual
-privacy: private
-status: active
-tags: [identity, contacts]
-title: "Contacts"
----
-
-# Contacts
-> Living document — edit in place. `date` = last updated.
-> One entry per person. Format: `## First Last` then bullet list of context.
-
-## Template
-
-<!-- Copy and fill for each contact:
-
-## Full Name
-- Relationship:
-- Context:
-- Notes:
-
--->
-```
-
----
-
-### `$BRAIN/core/health/health.md`
-
-```markdown
----
-date: YYYY-MM-DDTHH:MM:SS
-source: manual
-privacy: private
-status: active
-tags: [health]
-title: "Health"
----
-
-# Health
-> Living document — edit in place. `date` = last updated.
-> Especially sensitive — populate only what you find useful to have here.
-> Measurable body parameters live in `body.md`; this file is medical state & habits.
-
-## Conditions
-> Chronic or ongoing conditions.
-
-## Allergies & intolerances
-
-## Medications & supplements
-
-## Vaccinations
-
-## Habits & routines
-> Sleep, exercise, diet.
-
-## Notes
-```
-
----
-
-### `$BRAIN/core/health/body.md`
-
-```markdown
----
-date: YYYY-MM-DDTHH:MM:SS
-source: manual
-privacy: private
-status: active
-tags: [health, body]
-title: "Body parameters"
----
-
-# Body parameters
-> Living document — edit in place. `date` = last updated.
-> Especially sensitive — populate only what you find useful.
-> Medical state and habits live in `health.md`; this file is measurable parameters.
-
-## Static
-> Rarely changing.
-- Date of birth:
-- Height:
-- Blood type:
-
-## Current snapshot
-> Latest value per metric. `as of` = date of the measurement, not the file edit.
-- Weight:             (as of )
-- Body fat %:         (as of )
-- Resting heart rate: (as of )
-- Blood pressure:     (as of )
-
-## Measurement log
-> Append-only time-series store. Add one row per measurement; never edit or delete
-> past rows. Longitudinal queries ("trend", "average", "since") migrate to
-> `db/` + G.I.M.L.I. later (storage-by-question-shape, principle #3). Until then,
-> this table is the record.
-
-| Date | Metric | Value | Unit | Notes |
-|------|--------|-------|------|-------|
-
-## Notes
-```
-
----
-
-### `$BRAIN/core/finance/finance.md`
-
-```markdown
----
-date: YYYY-MM-DDTHH:MM:SS
-source: manual
-privacy: private
-status: active
-tags: [finance]
-title: "Finance"
----
-
-# Finance
-> Living document — edit in place. `date` = last updated.
-> This is especially sensitive — populate only what you find useful to have here.
-
-## Overview
-
-## Notes
-```
-
----
-
 ## Notes
 
 - **Manual only.** No automation writes to `core/`. This skill is the only
@@ -338,3 +141,6 @@ title: "Finance"
   the full privacy rules and the MVP exception in IMPLEMENTATION.md.
 - **Supersession is opt-in.** The default path is always edit-in-place. Archiving
   the previous version is offered only for substantial, history-worthy changes.
+- **File templates.** The canonical templates for all `core/` documents live in
+  `.claude/brain-skeleton/` in the G.A.N.D.A.L.F. repo. This skill no longer
+  embeds them. To initialise a missing document, run `/init-brain` (validation mode).
