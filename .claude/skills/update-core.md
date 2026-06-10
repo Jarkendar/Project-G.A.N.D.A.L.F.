@@ -8,7 +8,8 @@ in place — profile, goals, contacts, health, or finance.
 - Recording a new personal fact (name, location, role, language, preference)
 - Updating a goal, horizon, or priority
 - Adding or changing a contact / relationship note
-- Recording a health or finance datum (only on explicit user request)
+- Recording a health datum — condition, allergy, medication, vaccination (only on explicit user request)
+- Recording a body parameter or a new measurement (height, weight, vitals) (only on explicit user request)
 - Initialising any of the five core living documents from a blank template
 
 ---
@@ -46,7 +47,8 @@ Route the user's intent to one of five living documents:
 | Identity — name, location, role, languages, background, preferences | `$BRAIN/core/identity/profile.md` |
 | Goals — horizons, active goals, someday/maybe | `$BRAIN/core/identity/goals.md` |
 | Contacts — people, relationships, context | `$BRAIN/core/identity/contacts.md` |
-| Health — medical notes, physical stats, habits | `$BRAIN/core/health/health.md` |
+| Health — conditions, allergies, meds, vaccinations, habits | `$BRAIN/core/health/health.md` |
+| Body parameters — height, weight, body composition, vitals, measurement log | `$BRAIN/core/health/body.md` |
 | Finance — accounts, budget, financial notes | `$BRAIN/core/finance/finance.md` |
 
 If the intent covers multiple documents, handle them one by one.
@@ -70,6 +72,10 @@ Rules:
 - Preserve all other sections and content verbatim.
 - Match the markdown style of the existing content (bullet lists, headers, etc.).
 - Do not delete existing content unless the user explicitly asks.
+- **`body.md` measurement log exception:** `## Current snapshot` fields are
+  edited in place (latest value replaces previous). Rows in `## Measurement log`
+  are **append-only** — never edit or delete a past row. This aligns with
+  principle #5 (append-only with supersession).
 
 ### 6. Bump frontmatter
 
@@ -231,11 +237,64 @@ title: "Health"
 
 # Health
 > Living document — edit in place. `date` = last updated.
-> This is especially sensitive — populate only what you find useful to have here.
+> Especially sensitive — populate only what you find useful to have here.
+> Measurable body parameters live in `body.md`; this file is medical state & habits.
 
-## General
+## Conditions
+> Chronic or ongoing conditions.
+
+## Allergies & intolerances
+
+## Medications & supplements
+
+## Vaccinations
 
 ## Habits & routines
+> Sleep, exercise, diet.
+
+## Notes
+```
+
+---
+
+### `$BRAIN/core/health/body.md`
+
+```markdown
+---
+date: YYYY-MM-DDTHH:MM:SS
+source: manual
+privacy: private
+status: active
+tags: [health, body]
+title: "Body parameters"
+---
+
+# Body parameters
+> Living document — edit in place. `date` = last updated.
+> Especially sensitive — populate only what you find useful.
+> Medical state and habits live in `health.md`; this file is measurable parameters.
+
+## Static
+> Rarely changing.
+- Date of birth:
+- Height:
+- Blood type:
+
+## Current snapshot
+> Latest value per metric. `as of` = date of the measurement, not the file edit.
+- Weight:             (as of )
+- Body fat %:         (as of )
+- Resting heart rate: (as of )
+- Blood pressure:     (as of )
+
+## Measurement log
+> Append-only time-series store. Add one row per measurement; never edit or delete
+> past rows. Longitudinal queries ("trend", "average", "since") migrate to
+> `db/` + G.I.M.L.I. later (storage-by-question-shape, principle #3). Until then,
+> this table is the record.
+
+| Date | Metric | Value | Unit | Notes |
+|------|--------|-------|------|-------|
 
 ## Notes
 ```

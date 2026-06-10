@@ -90,6 +90,7 @@ Files:
 - `$BRAIN/core/identity/goals.md`
 - `$BRAIN/core/identity/contacts.md`
 - `$BRAIN/core/health/health.md`
+- `$BRAIN/core/health/body.md`
 - `$BRAIN/core/finance/finance.md`
 - `$BRAIN/current/CLAUDE.md`
 - `$BRAIN/current/inbox/CLAUDE.md`
@@ -267,7 +268,8 @@ Supersession (`superseded_by:`) is written by T.R.E.E.B.E.A.R.D. only.
 | `identity/profile.md` | Who I am — name, location, role, languages, background, preferences |
 | `identity/goals.md` | Goals and horizons — long-term, current quarter, someday/maybe |
 | `identity/contacts.md` | People, relationships, context |
-| `health/health.md` | Health notes, habits, routines |
+| `health/health.md` | Medical state — conditions, allergies, meds, vaccinations, habits |
+| `health/body.md`   | Measurable body parameters — static stats + measurement log |
 | `finance/finance.md` | Financial overview and notes |
 
 ## Writers
@@ -410,11 +412,64 @@ title: "Health"
 
 # Health
 > Living document — edit in place. `date` = last updated.
-> This is especially sensitive — populate only what you find useful to have here.
+> Especially sensitive — populate only what you find useful to have here.
+> Measurable body parameters live in `body.md`; this file is medical state & habits.
 
-## General
+## Conditions
+> Chronic or ongoing conditions.
+
+## Allergies & intolerances
+
+## Medications & supplements
+
+## Vaccinations
 
 ## Habits & routines
+> Sleep, exercise, diet.
+
+## Notes
+```
+
+---
+
+### `$BRAIN/core/health/body.md`
+
+```markdown
+---
+date: YYYY-MM-DDTHH:MM:SS
+source: manual
+privacy: private
+status: active
+tags: [health, body]
+title: "Body parameters"
+---
+
+# Body parameters
+> Living document — edit in place. `date` = last updated.
+> Especially sensitive — populate only what you find useful.
+> Medical state and habits live in `health.md`; this file is measurable parameters.
+
+## Static
+> Rarely changing.
+- Date of birth:
+- Height:
+- Blood type:
+
+## Current snapshot
+> Latest value per metric. `as of` = date of the measurement, not the file edit.
+- Weight:             (as of )
+- Body fat %:         (as of )
+- Resting heart rate: (as of )
+- Blood pressure:     (as of )
+
+## Measurement log
+> Append-only time-series store. Add one row per measurement; never edit or delete
+> past rows. Longitudinal queries ("trend", "average", "since") migrate to
+> `db/` + G.I.M.L.I. later (storage-by-question-shape, principle #3). Until then,
+> this table is the record.
+
+| Date | Metric | Value | Unit | Notes |
+|------|--------|-------|------|-------|
 
 ## Notes
 ```
