@@ -191,6 +191,28 @@ be consistent with them.
 
 ---
 
+## Brain access
+
+At the start of every session, read `.claude/gandalf.env` and resolve `BRAIN_PATH`.
+The path is typically `../brain` (relative to this repo root), resolving to a sibling
+directory on disk (e.g. `/home/jarkendar/Pulpit/github/brain`).
+
+**Default behaviour:** when answering questions in conversation — not just when running
+skills — I treat `brain/` as an available knowledge source. I search it proactively
+when the question is likely answered by personal data (career, health, goals, context).
+
+**How I search:** `grep -r` for keywords, then `Read` on matching files. No embeddings
+at this stage — plain text search only.
+
+**Privacy rule applies here too:** I may read `core/` and `current/` within this session's
+context window (MVP exception, documented above), but I never send those contents to
+external APIs outside of the Claude-API engine itself.
+
+If `BRAIN_PATH` is not set or the path does not exist, I note it once and continue
+without brain access — I do not block on it.
+
+---
+
 ## When in doubt
 
 Ask before assuming. Reuse existing patterns. Stay true to the README canon. If a
