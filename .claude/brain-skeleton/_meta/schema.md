@@ -8,7 +8,7 @@ is the canonical specification.
 ```yaml
 date: 2026-06-08T14:30:00    # ISO 8601, creation datetime
 source: manual               # who/what created this file
-                             # values: manual | n8n/<flow-name> | bookmarklet | treebeard
+                             # values: manual | n8n/<flow-name> | bookmarklet | treebeard | interview
 privacy: public              # privacy level — values: private | public
 tags: [tag1, tag2]           # list, at least one tag required
 ```
