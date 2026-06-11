@@ -195,7 +195,7 @@ be consistent with them.
 
 At the start of every session, read `.claude/gandalf.env` and resolve `BRAIN_PATH`.
 The path is typically `../brain` (relative to this repo root), resolving to a sibling
-directory on disk (e.g. `/home/jarkendar/Pulpit/github/brain`).
+directory on disk.
 
 **Default behaviour:** when answering questions in conversation — not just when running
 skills — I treat `brain/` as an available knowledge source. I search it proactively
