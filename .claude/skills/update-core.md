@@ -1,7 +1,7 @@
 # update-core
 
 Add or update personal facts in `brain/core/`. Edits the appropriate living document
-in place — profile, goals, contacts, health, body, or finance.
+in place — profile, goals, contacts, health, body, fitness, or finance.
 
 ## When to use
 
@@ -10,6 +10,7 @@ in place — profile, goals, contacts, health, body, or finance.
 - Adding or changing a contact / relationship note
 - Recording a health datum — condition, allergy, medication, vaccination (only on explicit user request)
 - Recording a body parameter or a new measurement (height, weight, vitals) (only on explicit user request)
+- Adding or updating training equipment, wearables, or measurement devices
 
 ---
 
@@ -39,7 +40,7 @@ If missing: tell the user "Run `/init-brain` first to scaffold the brain/ repo."
 
 ### 3. Identify the target document
 
-Route the user's intent to one of six living documents:
+Route the user's intent to one of seven living documents:
 
 | Category | Target file |
 |---|---|
@@ -48,6 +49,7 @@ Route the user's intent to one of six living documents:
 | Contacts — people, relationships, context | `$BRAIN/core/identity/contacts.md` |
 | Health — conditions, allergies, meds, vaccinations, habits | `$BRAIN/core/health/health.md` |
 | Body parameters — height, weight, body composition, vitals, measurement log | `$BRAIN/core/health/body.md` |
+| Fitness — training equipment, wearables, measurement devices | `$BRAIN/core/health/fitness.md` |
 | Finance — accounts, budget, financial notes | `$BRAIN/core/finance/finance.md` |
 
 If the intent covers multiple documents, handle them one by one.
