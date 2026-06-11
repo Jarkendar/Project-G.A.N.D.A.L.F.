@@ -4,7 +4,7 @@
 the execution path — *how* and *when*. README is the canon; this file is updated
 as work progresses without touching the canon.
 
-Last updated: 2026-06-10
+Last updated: 2026-06-11
 
 ---
 
@@ -68,8 +68,9 @@ before any agent reads or writes data. Nothing else can be validated without thi
 - [x] Copy `.claude/gandalf.env.example` → `.claude/gandalf.env`, set `BRAIN_PATH`.
 - [x] Run `/init-brain` — verify scaffold is created correctly at the configured path.
 - [x] Confirm each folder's `CLAUDE.md` is present and readable.
-- [x] Living document model for `core/` established: six template files in
-  `core/identity/`, `core/health/`, `core/finance/`; `core/CLAUDE.md` updated.
+- [x] Living document model for `core/` established: seven template files in
+  `core/identity/`, `core/health/`, `core/finance/` (profile, goals, contacts,
+  health, body, fitness, finance); `core/CLAUDE.md` updated.
   `/update-core` skill added for curated writes with privacy gate and user confirmation.
   All templates extracted to `.claude/brain-skeleton/` (single source of truth);
   `/init-brain` copies the skeleton tree on creation and validates against it.
