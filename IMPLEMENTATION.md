@@ -239,6 +239,19 @@ reshuffle it.**
   procedurally, collapsing multi-step pipelines into a single inference turn.
   Reduces per-query token cost on a Pi budget. Requires an execution sandbox. Not
   meaningful before the engine abstraction exists.
+- [ ] **E7 — Finance layer (3 skills).** Structure in place (2026-06-12):
+  `core/finance/finance.md` (positions, accounts, strategy) +
+  `knowledge/finance/<TICKER>/` (dated report files) +
+  `knowledge/finance/analyses/` (pre-decision deliberations).
+  Three skills to build when the structure is populated:
+  1. **Report ingestion** — processes automated report summary from `current/inbox/`
+     → appends to `knowledge/finance/<TICKER>/YYYY-QQ.md` (or annual).
+  2. **Pre-investment analysis** — guided deliberation before a new position;
+     writes to `knowledge/finance/analyses/YYYY-MM-DD_<TICKER>_pre-investment.md`.
+  3. **Portfolio report** — periodic snapshot across all positions in `finance.md`
+     cross-referenced with latest reports; output to `analyses/` or `conversations/`.
+  Prerequisites: `finance.md` populated (personal data session), at least one
+  company folder with a report.
 
 ---
 
