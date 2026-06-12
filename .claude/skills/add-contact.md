@@ -1,14 +1,17 @@
 # add-contact
 
-Add a new person to `brain/core/contacts/`. Creates a row in the role index
-(`contacts.md`) and, if the contact has meaningful data, a per-person detail file
-(`<slug>.md`).
+Add a new person to `brain/core/contacts/`, or update an existing one.
+
+- **Add mode** (default): creates an index row and optionally a per-person detail file.
+- **Update mode** (auto-triggered when person already exists): edits the index row and/or
+  detail file in place; can also promote an index-only contact to a full detail file.
 
 ## When to use
 
-- Adding a new person to the contacts directory
-- Recording context about someone new after meeting them
-- Importing a contact you forgot to include in the initial CSV import
+- Adding a new person after meeting them
+- Importing a contact forgotten in the initial bulk import
+- Updating an existing contact — adding interests, notes, a birthday, fixing role
+- Promoting an index-only entry to a full per-person file
 
 ---
 
@@ -31,7 +34,7 @@ Check that `$BRAIN/core/contacts/contacts.md` exists.
 
 If missing:
 - Tell the user: "`core/contacts/contacts.md` not found. The contacts structure
-  hasn't been initialised. Run `/init-brain` or create it manually."
+  hasn't been initialised."
 - Stop.
 
 ### 3. Establish the name
@@ -43,7 +46,7 @@ that as the person's name. Otherwise ask:
 
 Call it `$NAME`.
 
-### 4. Generate the slug
+### 4. Generate slug + detect mode
 
 Derive `$SLUG` from `$NAME`:
 - Lowercase the full name
@@ -52,14 +55,29 @@ Derive `$SLUG` from `$NAME`:
 - Remove all remaining non-ASCII characters
 - Example: `Żaneta Kowalska` → `zaneta-kowalska`; `Krystian` (no surname) → `krystian`
 
-**Conflict check:** if `$BRAIN/core/contacts/$SLUG.md` already exists, or the index
-already has a row with `$NAME`, warn the user and ask whether to:
-- Update the existing contact instead (use `/update-core` on the file directly), or
-- Use a disambiguated slug (e.g. `jan-kowalski-wujek`).
+**Mode detection** — check both signals:
 
-### 5. Gather contact data
+```bash
+grep -i "$NAME" "$BRAIN/core/contacts/contacts.md"   # → $IN_INDEX
+test -f "$BRAIN/core/contacts/$SLUG.md"               # → $HAS_FILE
+```
 
-Ask in a single message, grouping related fields:
+| `$IN_INDEX` | `$HAS_FILE` | Mode |
+|---|---|---|
+| false | false | **Add** — new contact |
+| true | false | **Update** — index-only contact (promotion candidate) |
+| false | true | **Update** — file exists, index row missing (edge case; fix both) |
+| true | true | **Update** — full existing contact |
+
+Tell the user which mode is active before proceeding.
+
+---
+
+## Add mode (steps 5A–9A)
+
+### 5A. Gather contact data
+
+Ask in a single message:
 
 ```
 Podaj dane dla: <$NAME>
@@ -77,43 +95,31 @@ Opcjonalne:
 
 **Show existing groups** by reading the `## ` headings from `contacts.md`:
 ```
-Istniejące grupy: Rodzina | Partner | Przyjaciele | Znajomi — paczka / orlik | ...
+Istniejące grupy: Rodzina | Partner | Przyjaciele | ...
 Wpisz nazwę grupy lub nową nazwę:
 ```
 
-Accept free-text group name; reuse exact heading string if matching, otherwise create
-a new section.
+Accept free-text; reuse exact heading string if it matches, otherwise create a new section.
 
-### 6. Decide on a detail file
+### 6A. Decide on a detail file
 
-A per-person `<slug>.md` is created when **any** of these are true:
+Create `<slug>.md` when **any** of these are true:
 - `interests` is non-empty
 - `notes` is non-empty
-- `birthday` is set AND the group is Rodzina, Partner, or Przyjaciele
+- `birthday` is set AND group is Rodzina, Partner, or Przyjaciele
 
-If none apply: index-only entry (no file, `Plik` column = `—`).
+Otherwise: index-only entry (`Plik` = `—`). Confirm the decision; user can override.
 
-Confirm the decision with the user before proceeding; they can override either way.
+### 7A. Prepare changes
 
-### 7. Prepare changes
-
-**Index row** to append to the correct group table in `contacts.md`:
+**Index row:**
 ```
 | <$NAME> | <role> | <context or —> | [[<$SLUG>]] or — |
 ```
+Append to the bottom of the matching group table. If group doesn't exist, append a new
+`## <Group>` section with table header and row after the last existing section.
 
-If the group doesn't exist yet in the index: append a new section after the last
-table:
-```markdown
-## <Group>
-
-| Imię Nazwisko | Rola | Kontekst | Plik |
-|---|---|---|---|
-| <$NAME> | <role> | <context or —> | [[<$SLUG>]] or — |
-```
-
-**Detail file** template (if applicable):
-
+**Detail file** (if applicable):
 ```markdown
 ---
 date: <YYYY-MM-DDTHH:MM:SS>
@@ -127,21 +133,17 @@ title: "<$NAME> — <role>"
 # <$NAME>
 
 - **Rola:** <role>
-- **Urodziny:** <YYYY-MM-DD>          ← omit if empty
-- **Jak się znamy:** <context>         ← omit if empty
+- **Urodziny:** <YYYY-MM-DD>        ← omit if empty
+- **Jak się znamy:** <context>       ← omit if empty
 
 ## Zainteresowania
-<bullet list>                          ← omit section if empty
+<bullet list>                        ← omit section if empty
 
 ## Notatki
-<notes>                                ← omit section if empty
+<notes>                              ← omit section if empty
 ```
 
-Omit any field or section that has no data.
-
-### 8. Privacy gate — confirm before writing
-
-Show the user:
+### 8A. Privacy gate
 
 ```
 ── Proposed write ───────────────────────────────────────────────────────
@@ -150,31 +152,16 @@ Show the user:
 Index:  core/contacts/contacts.md
         + | <$NAME> | <role> | <context> | <[[slug]] or —> |
           (group: <Group>)
-```
-
-If a detail file is being created, add:
-```
-File:   core/contacts/<$SLUG>.md  (new)
-```
-
-```
-Write? [y / n / edit]
+[File:  core/contacts/<$SLUG>.md  (new)]    ← if applicable
 ────────────────────────────────────────────────────────────────────────
+Write? [y / n / edit]
 ```
 
-On `edit`: let the user correct the content, then re-show and ask again.
-
-### 9. Write
+### 9A. Write & report
 
 On `y`:
-
-1. **Edit `contacts.md` in place:** locate the correct group table and append the
-   new row at the bottom. Bump `date:` frontmatter to current ISO 8601 datetime.
-2. **Write detail file** (if applicable): create `$BRAIN/core/contacts/$SLUG.md`.
-
-On `n`: discard everything, stop.
-
-### 10. Report
+1. Edit `contacts.md` — append new row, bump `date:`.
+2. Write `<slug>.md` if applicable.
 
 ```
 ── Contact added ────────────────────────────────────────────────────────
@@ -185,17 +172,109 @@ On `n`: discard everything, stop.
 
 ---
 
+## Update mode (steps 5U–9U)
+
+### 5U. Show current state
+
+Read `contacts.md` and extract the existing index row for `$NAME` (group, role, context,
+whether file exists). If `$HAS_FILE=true`, read the detail file too.
+
+Display a summary before asking anything:
+
+```
+── Aktualny stan: <$NAME> ──────────────────────────────────────────────
+Grupa:      <Group>
+Indeks:     <role> | <context or —> | <[[slug]] or —>
+```
+If file exists, continue:
+```
+Plik:       core/contacts/<$SLUG>.md
+  Urodziny:      <value or —>
+  Zainteresowania: <list or —>
+  Notatki:       <text or —>
+────────────────────────────────────────────────────────────────────────
+```
+
+### 6U. Gather changes
+
+Ask which fields to update (number-based, supports multi-select):
+
+```
+Co chcesz zmienić? (wpisz numery, np. 1,3 lub 'all')
+
+1. Rola lub kontekst w indeksie
+2. Urodziny
+3. Zainteresowania (dodaj do listy)
+4. Notatki (dopisz)
+```
+
+If `$HAS_FILE=false` (index-only contact), add:
+```
+5. Awansuj na pełny wpis — stwórz plik core/contacts/<$SLUG>.md
+```
+
+Ask only about selected fields. For fields that already have a value:
+- **Interests** — default: append new items; say "replace" to overwrite
+- **Notes** — default: append new paragraph; say "replace" to overwrite
+- **Role, context, birthday** — default: replace; show old value first
+
+### 7U. Promotion (index-only → detail file)
+
+If option 5 selected, or if `$HAS_FILE=false` and user provides interests/notes/birthday:
+- Gather any missing fields not already collected in step 6U
+- Prepare new `<slug>.md` from template (same as step 7A)
+- Update the index row: change `—` in Plik column to `[[<$SLUG>]]`
+
+### 8U. Privacy gate
+
+```
+── Proposed changes ─────────────────────────────────────────────────────
+⚠️  core/contacts/ is PRIVATE. In MVP may enter Claude API context window.
+
+Index:  core/contacts/contacts.md
+        ~ | <$NAME> | <new role> | <new context> | ...   ← if changed
+          (no index change)                               ← if unchanged
+```
+If file changed/created:
+```
+File:   core/contacts/<$SLUG>.md
+        ~ Urodziny: <old> → <new>                        ← replaced field
+        + Zainteresowania: <added items>                 ← appended
+        + Notatki: <added text>                          ← appended
+[File:  core/contacts/<$SLUG>.md  (new — promoted)]     ← if promotion
+```
+```
+Write? [y / n / edit]
+────────────────────────────────────────────────────────────────────────
+```
+
+### 9U. Write & report
+
+On `y`:
+1. **Index changed** — edit the specific row in `contacts.md`, bump `date:`.
+2. **File changed** — edit `<slug>.md` in place (append or replace as agreed), bump `date:`.
+3. **Promotion** — write new `<slug>.md`, update index row Plik column `—` → `[[<slug>]]`.
+
+```
+── Contact updated ──────────────────────────────────────────────────────
+✅ Index:  core/contacts/contacts.md  (row updated)   ← if changed
+✅ File:   core/contacts/<$SLUG>.md   (updated)        ← if changed
+✅ File:   core/contacts/<$SLUG>.md   (created)        ← if promoted
+────────────────────────────────────────────────────────────────────────
+```
+
+---
+
 ## Notes
 
 - **Index is the single source of truth for roles.** Never create a detail file
   without a corresponding index row. The index is what Gandalf greps first.
-- **Slug uniqueness matters.** If two people share a name, disambiguate the slug
-  with a suffix: `jan-kowalski-wujek`, `jan-kowalski-kolega`. Document the
-  disambiguation in the `context` column of the index.
+- **Slug uniqueness.** Two people with the same name need disambiguation:
+  `jan-kowalski-wujek`, `jan-kowalski-kolega`. Document the suffix in the
+  `context` column.
 - **No invented facts.** Every field must come from the user. Unknown fields stay
-  empty — do not fill with assumptions or inferences.
-- **Updating existing contacts** (adding new interests, notes, a birthday discovered
-  later): use `/update-core` and target `core/contacts/<slug>.md` directly, or
-  `/interview` with the person's name as the topic.
+  empty.
+- **Append vs replace.** Interests and notes default to append — existing data is
+  never silently overwritten. The user must explicitly say "replace" to overwrite.
 - **Privacy.** All contacts are PRIVATE (`core/` scope). Content stays local.
   See `core/contacts/CLAUDE.md` for full privacy rules.
