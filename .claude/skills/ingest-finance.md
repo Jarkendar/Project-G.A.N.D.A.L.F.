@@ -17,8 +17,11 @@ company reports for each held ticker into `knowledge/finance/<TICKER>/`.
 Export the portfolio from myFund:
 **menu → Zarządzanie → Twoje portfele → Eksportuj wszystkie portfele**
 
-Save the resulting XML (or CSV) file into `brain/current/inbox/` using the naming
-convention: `YYYY-MM-DDTHH-MM-SS_myfund_portfolio.xml` (or `.csv`).
+Save the resulting XML file(s) into `brain/current/inbox/` using the naming
+convention: `YYYY-MM-DD_myfund_<portfel>.xml` (e.g. `2026-06-12_myfund_ike.xml`).
+
+One export per brokerage account is the recommended approach — myFund exports
+each portfolio separately.
 
 ---
 
@@ -39,25 +42,103 @@ Verify `$BRAIN/core/finance/finance.md` exists. If not: tell the user to run
 
 Inbox: `$BRAIN/current/inbox/`
 
-If an argument was passed (e.g. `/ingest-finance 2026-06-12_myfund.xml`):
+If an argument was passed (e.g. `/ingest-finance 2026-06-12_myfund_ike.xml`):
 - Target = that single file. If not found: report error and stop.
 
 Otherwise:
-- Target = all `.xml` and `.csv` files in inbox whose names contain `myfund` or
-  `portfel` (case-insensitive). If none found: report "Nothing to do — no myFund
-  export found in inbox." and stop.
+- Target = all `.xml` and `.md` files in inbox whose names contain `myfund` or
+  `portfel` (case-insensitive), excluding the `_processed/` subfolder.
+- If none found: report "Nothing to do — no myFund export found in inbox." and stop.
 - If multiple files found: list them and ask the user which one(s) to process.
+
+**Accepted formats:** `.xml` (raw myFund export) and `.md` (pre-converted readable
+export — see step 2a). Both carry the same position data; the skill auto-detects
+the format.
+
+### 2a. Convert XML → MD (if input is XML)
+
+If the target file is `.xml`, convert it to a human-readable `.md` before parsing.
+This makes the export auditable and browsable without tools.
+
+For each `.xml` file, produce `YYYY-MM-DD_myfund_<portfel>.md` alongside it in
+`_processed/` with this structure:
+
+```markdown
+---
+date: <export date>T<time>
+source: myfund-export
+privacy: private
+status: active
+tags: [finance, myFund, <portfel>]
+title: "myFund <Portfel> — eksport <YYYY-MM-DD>"
+---
+
+# myFund <Portfel> — eksport <YYYY-MM-DD>
+
+## Otwarte pozycje (<n>)
+
+| Ticker | Ilość | Śr. cena zakupu | Waluta | First buy |
+|---|---|---|---|---|
+| <TICKER> | <qty> | <avg_buy> | <waluta> | <first_buy> |
+
+## Zamknięte pozycje (<n>)
+
+| Ticker | Śr. cena zakupu | Waluta | First buy | Last sell |
+|---|---|---|---|---|
+
+## Historia transakcji
+
+| Data | Ticker | Typ | Ilość | Cena |
+|---|---|---|---|---|
+```
+
+The MD file is written to `$BRAIN/current/inbox/_processed/` (same folder where
+the XML lands after processing). If the MD already exists, overwrite it.
+
+If the input is already `.md` (user ran the conversion manually), skip this step.
 
 ### 3. Parse the export
 
-Read the file. Extract the position table. Each row must yield:
+Read the file. The myFund XML format uses `<operacje>` elements — one per transaction.
+Key fields per `<operacje>`:
+
+| XML field | Meaning |
+|---|---|
+| `TICKER` | Instrument identifier |
+| `LICZBAJEDNOSTEK` | Transaction quantity — **already signed**: positive = buy, negative = sell |
+| `CENA` | Price per unit (in `WALUTA`) |
+| `WALUTA` | Currency of the transaction |
+| `DATA` | Transaction date (`YYYY-MM-DD`) |
+| `TYP` | Transaction type: `Kupno`, `Sprzedaz`, `Konwersja Akcji nabycie`, etc. |
+
+**Parsing logic — net position per ticker:**
+
+```
+for each operacje where TICKER is non-empty:
+    qty += LICZBAJEDNOSTEK          # signed: always add (sells are already negative)
+    if LICZBAJEDNOSTEK > 0:         # buy
+        buy_cost += LICZBAJEDNOSTEK * CENA
+        buy_qty  += LICZBAJEDNOSTEK
+        first_buy = min(first_buy, DATA)
+    else:                           # sell / conversion out
+        last_sell = max(last_sell, DATA)
+
+open positions:   qty >  0.001
+closed positions: qty <= 0.001
+```
+
+Only open positions are written to `finance.md` and trigger report fetching.
+Closed positions are noted in the final report but not stored.
+
+Each open position must yield:
 
 | Field | Description |
 |---|---|
-| `TICKER` | Instrument identifier (e.g. `VWCE`, `CDR`, `REALTY`) |
-| `QTY` | Quantity held (number of units/shares) |
-| `AVG_BUY` | Average buy price (number + currency) |
-| `FIRST_BUY_DATE` | Date of the first purchase of this ticker (`YYYY-MM-DD`) |
+| `TICKER` | Instrument identifier |
+| `QTY` | Net quantity held |
+| `AVG_BUY` | `buy_cost / buy_qty` |
+| `WALUTA` | Currency |
+| `FIRST_BUY_DATE` | Date of first buy (`YYYY-MM-DD`) |
 | `ASSET_CLASS` | One of: `ETF`, `US`, `GPW` — see classification rules below |
 
 **Classification rules (step 3a):**
