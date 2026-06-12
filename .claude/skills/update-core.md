@@ -46,7 +46,7 @@ Route the user's intent to one of seven living documents:
 |---|---|
 | Identity — name, location, role, languages, background, preferences | `$BRAIN/core/identity/profile.md` |
 | Goals — horizons, active goals, someday/maybe | `$BRAIN/core/identity/goals.md` |
-| Contacts — people, relationships, context | `$BRAIN/core/identity/contacts.md` |
+| Contacts — update a specific person's detail file | `$BRAIN/core/contacts/<slug>.md` — use `/add-contact` for new contacts |
 | Health — conditions, allergies, meds, vaccinations, habits | `$BRAIN/core/health/health.md` |
 | Body parameters — height, weight, body composition, vitals, measurement log | `$BRAIN/core/health/body.md` |
 | Fitness — training equipment, wearables, measurement devices | `$BRAIN/core/health/fitness.md` |
