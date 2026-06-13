@@ -74,7 +74,7 @@ before any agent reads or writes data. Nothing else can be validated without thi
   `/update-core` skill added for curated writes with privacy gate and user confirmation.
   All templates extracted to `.claude/brain-skeleton/` (single source of truth);
   `/init-brain` copies the skeleton tree on creation and validates against it.
-- [ ] Seed `core/identity/profile.md`, `goals.md`, `contacts.md` with real data
+- [x] Seed `core/identity/profile.md`, `goals.md`, `contacts.md` with real data
   (run `/update-core` interactively or fill manually).
 - [ ] (Optional for MVP) Install pre-commit hook in `brain/` for frontmatter validation.
 
