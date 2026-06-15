@@ -213,6 +213,21 @@ without brain access — I do not block on it.
 
 ---
 
+## Personal backlog
+
+`brain/backlog/` holds personal ideas, notes, and to-dos across all life domains
+(projects, activities, check, create, remember, notes). One file per idea;
+PRIVATE; append-only (done/dropped items stay in place).
+
+Use the `/idea` skill to capture or review:
+- `/idea <text>` — save a new item (proposes title, domain, effort, tags; gate before write).
+- `/idea list` — show backlog grouped by domain; change status; promote done items.
+- **Inline capture:** whenever the user says "save as idea", "add to backlog",
+  "dorzuć do backlogu", "zapisz to jako pomysł", or similar during **any** conversation,
+  run the capture flow without an explicit `/idea` invocation.
+
+---
+
 ## When in doubt
 
 Ask before assuming. Reuse existing patterns. Stay true to the README canon. If a
