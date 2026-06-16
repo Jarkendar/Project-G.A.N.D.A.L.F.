@@ -325,7 +325,7 @@ Update the `Stage:` field in the header table as the process moves:
 | `interview-scheduled` | Interview booked |
 | `interviewed` | Interview done; awaiting outcome |
 | `closed-won` | Offer accepted |
-| `closed-lost` | Rejected or withdrawn |
+| `closed-lost` | Rejected by the company, withdrawn, **or user decided not to apply** |
 
 To update Stage: re-run `/analyze-offer <slug>` (update mode) and edit the header
 table, or edit the file manually.
@@ -333,6 +333,29 @@ table, or edit the file manually.
 **Archiving:** when Stage reaches `closed-won` or `closed-lost`, set frontmatter
 `status: archived`. T.R.E.E.B.E.A.R.D. will move the file to `archive/` in its next
 sweep. Do not delete dossiers — follow the append-only + supersession convention.
+
+### Compact mode — user decides not to apply
+
+When the user reports they will **not** apply to an offer that already has a
+dossier (Stage `researching`), do not leave the full 7-section dossier in place.
+Compact it on the same update pass:
+
+1. Set `Stage: closed-lost`, `Decision: not-applying`, bump `date:`.
+2. Collapse Sections 1–6 (offer analysis, fit, learning checklist, recruiter
+   questions, my questions, business analysis) into a single short paragraph
+   under a `## Summary` heading — 2–4 sentences max: what the offer was, why
+   skipped (deal-breaker, comp, stack mismatch, timing, etc.), anything worth
+   remembering if this company resurfaces.
+3. Keep **Section 7** ("what brain/ already knows") only if it found prior
+   data — otherwise drop it.
+4. Keep `## Log` as-is and append the compaction entry, e.g.
+   `<date> — Not applying (<short reason>). Dossier compacted.`
+5. Confirm the compaction in the privacy gate (step 9) same as any other write
+   — show a diff-style summary, not the full new file, since it's a trim.
+
+Goal: the dossier stays useful for future brain/ scans (dedup, "have we seen
+this company before") without carrying dead weight from an offer that was
+never pursued.
 
 ---
 
