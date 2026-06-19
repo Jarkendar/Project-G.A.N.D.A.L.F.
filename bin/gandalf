@@ -126,9 +126,25 @@ sync_repo() {
     fi
   fi
 
+  local before after
+  before="$(git -C "$repo_path" rev-parse HEAD 2>/dev/null || true)"
+
   echo "gandalf: syncing ${label} (${branch})..."
   if ! git -C "$repo_path" pull --ff-only >/dev/null 2>&1; then
     echo "gandalf: warning: pull failed for ${label} (offline or diverged?) — continuing anyway." >&2
+    return
+  fi
+
+  after="$(git -C "$repo_path" rev-parse HEAD 2>/dev/null || true)"
+  if [[ -n "$before" && -n "$after" && "$before" != "$after" ]]; then
+    local count stat
+    count="$(git -C "$repo_path" rev-list --count "${before}..${after}" 2>/dev/null || echo '?')"
+    stat="$(git -C "$repo_path" diff --shortstat "$before" "$after" 2>/dev/null || true)"
+    echo "gandalf: ${label} updated — ${count} new commit(s):"
+    git -C "$repo_path" log --oneline "${before}..${after}" 2>/dev/null | while IFS= read -r line; do
+      echo "  ${line}"
+    done
+    [[ -n "$stat" ]] && echo "  ${stat# }"
   fi
 }
 
