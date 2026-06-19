@@ -406,6 +406,29 @@ How they're connected is intentionally low-tech: `brain/` and `prompt-vault` are
 
 ---
 
+## 🚀 Running it
+
+The MVP has no separate Gandalf binary — the project working directory *is* Gandalf, and `CLAUDE.md` is what makes Claude Code behave like one. `bin/gandalf` is a small launcher that removes the manual `cd` + repo-sync dance:
+
+```bash
+./bin/gandalf --install   # one-time: symlinks `gandalf` and `brain` into ~/.local/bin
+gandalf                   # pulls this repo + brain/ on their current branch, then opens claude
+brain -c                  # same thing — `brain` is just a second name for muscle memory
+```
+
+`gandalf` and `brain` are identical; pick whichever you reach for. Common flags:
+
+| Flag | Effect |
+|---|---|
+| `-c` / `-r [id]` | continue or resume a previous Claude Code session (forwarded to `claude` as-is) |
+| `--model <m>` / `--effort <lvl>` | forwarded to `claude` |
+| `--yolo` | shorthand for `--dangerously-skip-permissions` |
+| `--no-sync` | skip the git pull / branch check, start immediately |
+
+Before launching, the script pulls both this repo and `brain/` on their current branch, and asks before switching either one to `main` if it's elsewhere — uncommitted changes are never discarded.
+
+---
+
 ## 🗺️ Roadmap
 
 The project is at **concept stage**. The intended build order:

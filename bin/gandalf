@@ -1,0 +1,187 @@
+#!/usr/bin/env bash
+# G.A.N.D.A.L.F. launcher.
+#
+# Invoked as either `gandalf` or `brain` (symlinks to this file) — both do the
+# same thing: sync the Gandalf + brain repos on git, then open a `claude`
+# session rooted in this repo with the brain/ sibling directory tool-accessible.
+#
+# See: .claude/plans (design doc) / IMPLEMENTATION.md for background.
+
+set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# Locate this repo, regardless of how the script was invoked (direct path,
+# or one of the ~/.local/bin symlinks).
+# ---------------------------------------------------------------------------
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+GANDALF_DIR="$(cd "$(dirname "$SCRIPT_PATH")/.." && pwd)"
+SCRIPT_NAME="$(basename "$0")"
+
+usage() {
+  cat <<EOF
+Usage: ${SCRIPT_NAME} [options] [prompt]
+
+Launches a Claude Code session rooted in the G.A.N.D.A.L.F. repo, with the
+brain/ sibling repo tool-accessible. Invokable as 'gandalf' or 'brain' —
+identical behaviour either way.
+
+Script-level options:
+  --no-sync, --no-pull   Skip git pull / branch check on both repos
+  --yolo                 Shorthand for --dangerously-skip-permissions
+  --install              (Re)create the gandalf/brain symlinks in ~/.local/bin
+  -h, --help              Show this help and exit
+
+All other options (incl. -c, -r/--resume, --model, --effort, and a free-text
+prompt) are forwarded to 'claude' as-is. See 'claude --help' for the full set.
+
+Examples:
+  ${SCRIPT_NAME}                         # sync + open a fresh session
+  ${SCRIPT_NAME} -c                      # continue the last conversation
+  ${SCRIPT_NAME} -r                      # pick a previous session to resume
+  ${SCRIPT_NAME} "summarize today"       # start with an initial prompt
+  ${SCRIPT_NAME} --no-sync --yolo        # fast start, skip permission prompts
+EOF
+}
+
+# ---------------------------------------------------------------------------
+# --install: create the two symlinks in ~/.local/bin and exit.
+# ---------------------------------------------------------------------------
+do_install() {
+  local bin_dir="$HOME/.local/bin"
+  mkdir -p "$bin_dir"
+  ln -sf "$GANDALF_DIR/bin/gandalf" "$bin_dir/gandalf"
+  ln -sf "$GANDALF_DIR/bin/gandalf" "$bin_dir/brain"
+  echo "Linked ${bin_dir}/gandalf -> $GANDALF_DIR/bin/gandalf"
+  echo "Linked ${bin_dir}/brain   -> $GANDALF_DIR/bin/gandalf"
+  case ":$PATH:" in
+    *":$bin_dir:"*) ;;
+    *) echo "Note: $bin_dir is not on your PATH. Add it in ~/.bashrc." ;;
+  esac
+}
+
+# ---------------------------------------------------------------------------
+# Resolve BRAIN_PATH from .claude/gandalf.env (read-only). Missing file/dir
+# is a warning, never a blocker.
+# ---------------------------------------------------------------------------
+resolve_brain_path() {
+  local env_file="$GANDALF_DIR/.claude/gandalf.env"
+  local raw=""
+
+  if [[ -f "$env_file" ]]; then
+    raw="$(grep -E '^BRAIN_PATH=' "$env_file" | tail -n1 | cut -d= -f2-)"
+  fi
+  raw="${raw:-../brain}"
+
+  local resolved
+  if [[ "$raw" = /* ]]; then
+    resolved="$raw"
+  else
+    resolved="$(cd "$GANDALF_DIR" 2>/dev/null && cd "$raw" 2>/dev/null && pwd || true)"
+  fi
+
+  if [[ -z "$resolved" || ! -d "$resolved" ]]; then
+    echo "gandalf: warning: BRAIN_PATH ('$raw') not found — continuing without brain access." >&2
+    BRAIN_PATH=""
+  else
+    BRAIN_PATH="$resolved"
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Sync one repo: pull on current branch; offer to switch to main if not on it.
+# Never blocks the launch on failure — warn and move on.
+# ---------------------------------------------------------------------------
+sync_repo() {
+  local repo_path="$1"
+  local label="$2"
+
+  if [[ -z "$repo_path" || ! -d "$repo_path/.git" ]]; then
+    echo "gandalf: warning: ${label} is not a git repo at '${repo_path}' — skipping sync." >&2
+    return
+  fi
+
+  local branch
+  branch="$(git -C "$repo_path" branch --show-current 2>/dev/null || true)"
+
+  if [[ -z "$branch" ]]; then
+    echo "gandalf: warning: ${label} has no current branch (detached HEAD?) — skipping sync." >&2
+    return
+  fi
+
+  if [[ "$branch" != "main" ]]; then
+    local dirty=""
+    [[ -n "$(git -C "$repo_path" status --porcelain 2>/dev/null)" ]] && dirty="1"
+
+    read -r -p "${label} is on '${branch}'. Switch to main? [y/N] " reply
+    if [[ "$reply" =~ ^[Yy]$ ]]; then
+      if [[ -n "$dirty" ]]; then
+        echo "gandalf: ${label} has uncommitted changes — not switching, staying on '${branch}'." >&2
+      else
+        if git -C "$repo_path" checkout main >/dev/null 2>&1; then
+          branch="main"
+        else
+          echo "gandalf: warning: failed to switch ${label} to main — staying on '${branch}'." >&2
+        fi
+      fi
+    fi
+  fi
+
+  echo "gandalf: syncing ${label} (${branch})..."
+  if ! git -C "$repo_path" pull --ff-only >/dev/null 2>&1; then
+    echo "gandalf: warning: pull failed for ${label} (offline or diverged?) — continuing anyway." >&2
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Argument parsing: consume script-level flags, forward everything else.
+# ---------------------------------------------------------------------------
+NO_SYNC=""
+CLAUDE_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --no-sync|--no-pull)
+      NO_SYNC="1"
+      shift
+      ;;
+    --yolo)
+      CLAUDE_ARGS+=("--dangerously-skip-permissions")
+      shift
+      ;;
+    --install)
+      do_install
+      exit 0
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      CLAUDE_ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+resolve_brain_path
+
+if [[ -z "$NO_SYNC" ]]; then
+  sync_repo "$GANDALF_DIR" "gandalf"
+  sync_repo "$BRAIN_PATH" "brain"
+fi
+
+cd "$GANDALF_DIR"
+
+if ! command -v claude >/dev/null 2>&1; then
+  echo "gandalf: error: 'claude' CLI not found on PATH." >&2
+  exit 1
+fi
+
+if [[ -n "$BRAIN_PATH" ]]; then
+  exec claude --add-dir "$BRAIN_PATH" "${CLAUDE_ARGS[@]}"
+else
+  exec claude "${CLAUDE_ARGS[@]}"
+fi
