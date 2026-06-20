@@ -76,6 +76,12 @@ before any agent reads or writes data. Nothing else can be validated without thi
   `/init-brain` copies the skeleton tree on creation and validates against it.
 - [x] Seed `core/identity/profile.md`, `goals.md`, `contacts.md` with real data
   (run `/update-core` interactively or fill manually).
+- [x] `/daily` skill added — general (non-dev) daily-note dispatcher. Parses a
+  free-form note, routes each item to the skill/convention that already owns
+  its target (`/update-core`, `/add-contact`, `/idea`), and keeps an
+  append-only journal under `current/daily/` (monthly digest + yearly index —
+  no per-day files, idempotent re-runs merge rather than duplicate). Folder
+  template added to `.claude/brain-skeleton/current/daily/`.
 - [ ] (Optional for MVP) Install pre-commit hook in `brain/` for frontmatter validation.
 
 **Done when:**
