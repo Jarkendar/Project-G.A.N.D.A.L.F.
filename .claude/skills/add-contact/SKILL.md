@@ -1,3 +1,13 @@
+---
+name: add-contact
+description: >-
+  Add a new person to brain/core/contacts/, or update an existing one — creates
+  or edits an index row and an optional per-person detail file. Use this skill
+  when adding a new person after meeting them, importing a contact forgotten in
+  the initial bulk import, updating an existing contact (interests, notes,
+  birthday, role), or promoting an index-only entry to a full detail file.
+---
+
 # add-contact
 
 Add a new person to `brain/core/contacts/`, or update an existing one.

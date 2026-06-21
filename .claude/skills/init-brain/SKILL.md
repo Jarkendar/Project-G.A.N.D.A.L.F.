@@ -1,3 +1,13 @@
+---
+name: init-brain
+description: >-
+  Initialize or validate the brain/ knowledge repository for G.A.N.D.A.L.F.
+  from the skeleton template at .claude/brain-skeleton/. Use this skill for
+  first-time setup when brain/ does not exist yet, after cloning this repo on
+  a new machine, to validate that an existing brain/ has the correct
+  structure, or to recover missing CLAUDE.md/_meta files.
+---
+
 # init-brain
 
 Initialize or validate the `brain/` knowledge repository for G.A.N.D.A.L.F.

@@ -1,3 +1,15 @@
+---
+name: ingest-conversation
+description: >-
+  Ingest AI chat transcripts from the drop folder
+  (data_providers/chats/incoming/) into brain/conversations/ — each transcript
+  becomes a frontmatter'd markdown file with an auto-generated summary and
+  tags, with dedup by content hash. Use this skill after exporting a
+  conversation with the Claude or Gemini bookmarklet and dropping the
+  clipboard output into the incoming folder, to process a single named file,
+  or to process all pending files in the drop folder.
+---
+
 # ingest-conversation
 
 Ingest AI chat transcripts from the drop folder into `brain/conversations/`.

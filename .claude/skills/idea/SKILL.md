@@ -1,3 +1,15 @@
+---
+name: idea
+description: >-
+  Capture a personal idea, note, or to-do item into brain/backlog/, or list and
+  manage the existing backlog (one file per idea, lightweight frontmatter).
+  Use this skill when saving any idea, thing-to-check, thing-to-create, or
+  reminder for later, when reviewing the backlog and deciding what to do next,
+  when changing an item's status (active/done/dropped), or whenever the user
+  says "save this as an idea" / "add to backlog" / "dorzuć do backlogu" /
+  "zapisz to jako pomysł" mid-conversation without an explicit /idea invocation.
+---
+
 # idea
 
 Capture a personal idea, note, or to-do item into `brain/backlog/`, or list and
