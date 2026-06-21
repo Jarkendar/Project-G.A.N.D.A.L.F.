@@ -1,3 +1,15 @@
+---
+name: daily
+description: >-
+  Process a free-form daily note covering any domain (health, finance, career,
+  projects, ideas, observations) and route each item into brain/, delegating to
+  the skill that already owns that target (update-core, add-contact, idea,
+  ingest-finance) while maintaining a lightweight, append-only daily journal.
+  Use this skill when capturing an end-of-day note, processing a note saved to
+  a file, or re-running for a day already processed to merge in new facts
+  without duplicating the day's journal entry.
+---
+
 # daily
 
 Process a free-form daily note — any domain, not just software (health, finance,

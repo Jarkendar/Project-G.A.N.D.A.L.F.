@@ -1,3 +1,16 @@
+---
+name: interview
+description: >-
+  Conduct a structured, adaptive Q&A session to elicit knowledge on any topic,
+  then store the result in the right place in brain/ — an existing core/
+  living document, an existing knowledge/ topic, or a new knowledge/ file.
+  Questions are generated from the topic at runtime, never hardcoded. Use this
+  skill to capture structured knowledge the user holds but hasn't written
+  down, to fill gaps in an existing brain/ document through conversation
+  rather than direct editing, or to record personal facts across any domain
+  (health, finances, projects, technical knowledge, people, experiences).
+---
+
 # interview
 
 Conduct a structured, adaptive Q&A session to elicit knowledge on any topic, then

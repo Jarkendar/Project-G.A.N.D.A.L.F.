@@ -1,3 +1,15 @@
+---
+name: ingest-finance
+description: >-
+  Process a myFund portfolio export from brain/current/inbox/ into the
+  finance knowledge base — updates portfolio positions in
+  core/finance/finance.md and fetches company reports for each held ticker
+  into knowledge/finance/<TICKER>/ (SEC EDGAR for US tickers, web fetch for
+  GPW). Use this skill after placing a myFund XML or CSV export in the inbox
+  (monthly cycle), to process a specific file, or to process all pending
+  finance exports in the inbox.
+---
+
 # ingest-finance
 
 Process a myFund portfolio export from `brain/current/inbox/` into the finance

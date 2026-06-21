@@ -1,3 +1,15 @@
+---
+name: update-core
+description: >-
+  Add or update personal facts in brain/core/ — profile, goals, contacts,
+  health, body, fitness, or finance — by editing the appropriate living
+  document in place. Use this skill when recording a new personal fact
+  (name, location, role, language, preference), updating a goal/horizon/
+  priority, adding or changing a contact note, recording a health datum or
+  body measurement (only on explicit user request), or adding/updating
+  training equipment, wearables, or measurement devices.
+---
+
 # update-core
 
 Add or update personal facts in `brain/core/`. Edits the appropriate living document

@@ -1,3 +1,17 @@
+---
+name: analyze-offer
+description: >-
+  Generate or update a structured job offer dossier in
+  brain/knowledge/career/offers/ — offer analysis, skill fit, learning
+  checklist, recruiter questions, the user's own questions, business/product
+  research, and a summary of everything brain/ already knows about the
+  company. Use this skill before applying (research company/stack/fit, build
+  the learning checklist), before an interview (review the dossier, add prep
+  notes), after an interview (update stage, log outcomes/feedback), or to
+  update a stale dossier — the skill detects an existing file and offers an
+  in-place update.
+---
+
 # analyze-offer
 
 Generate or update a structured job offer dossier for a single offer.
