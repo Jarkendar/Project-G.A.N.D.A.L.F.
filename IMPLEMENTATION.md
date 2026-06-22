@@ -28,6 +28,19 @@ local-only models; the API context window never sees their content.
 per `CLAUDE.md` in each folder) is set now, even though enforcement is relaxed for
 the MVP. This means Phase 2 tightening is a config/routing change, not a redesign.
 
+**Strava MCP (2026-06-22):** the project's first concrete MCP wiring. Uses the
+self-hosted `@r-huijts/strava-mcp-server` (the official hosted connector at
+`mcp.strava.com` requires a Strava subscription, which the user does not have).
+Activity/HR/GPS data returned by this server enters the Claude API context window
+under the same MVP exception above. Credentials (`STRAVA_CLIENT_ID`/`SECRET`) live
+only in gitignored `.claude/gandalf.env`; OAuth access/refresh tokens are managed by
+the server itself in `~/.config/strava-mcp/config.json`, outside this repo. The
+backlog's GPS→aggregate filtering (`brain/backlog/projects/mcp-strava-agent.md`) is
+deferred — meaningful once Phase 2 (Step 7, local-first) is reached, or sooner if a
+custom wrapper/fork is built. Revisit this server choice if a Strava subscription
+is ever acquired (the official connector then removes credential management
+entirely — see backlog note).
+
 ---
 
 ## Guiding rules

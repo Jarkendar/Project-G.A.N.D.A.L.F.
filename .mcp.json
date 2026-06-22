@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "strava": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "set -a; . ./.claude/gandalf.env 2>/dev/null; set +a; exec npx -y @r-huijts/strava-mcp-server"
+      ]
+    }
+  }
+}
