@@ -34,4 +34,12 @@ title: "Body parameters"
 | Date | Metric | Value | Unit | Notes |
 |------|--------|-------|------|-------|
 
+## Heart rate zones
+> Source: Strava-configured | estimated (Tanaka, age-based) — as of <date>.
+> Populated on first use by `/daily` (Strava sport-activity lookup) if absent;
+> re-derive/edit in place if it becomes stale (e.g. after a max-HR test).
+
+| Zone | Min bpm | Max bpm |
+|---|---|---|
+
 ## Notes
