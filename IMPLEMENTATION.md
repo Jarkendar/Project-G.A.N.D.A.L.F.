@@ -144,21 +144,26 @@ anything to analyse. Smeagol's logs are the feedback loop that will reshuffle
 this roadmap.
 
 **What it includes:**
-- Smeagol sub-agent (or a lightweight hook) that writes a structured log entry
-  for every query: timestamp, route taken, agents called, latency, outcome flag.
-- Log destination: a file in `brain/` (e.g. `brain/current/smeagol/`) or a
-  local SQLite — TBD. Must not send private content to external APIs.
+- Smeagol implemented as a lightweight Claude Code `Stop` hook
+  (`.claude/hooks/smeagol/log-turn.py`) rather than a sub-agent — fires once per
+  turn, reads only that turn's transcript slice, writes a structured log entry:
+  timestamp, route taken, agents called, latency, outcome flag.
+- Log destination: JSONL, one file per day, in `brain/current/smeagol/`. Schema
+  fixed by `brain/current/smeagol/CLAUDE.md`.
 - Smeagol **writes only**. Analysis is a separate, future role.
 
 **Tasks:**
-- [ ] Decide log format (JSONL vs append-only MD vs SQLite) and destination.
-- [ ] Implement Smeagol as a side-effect of every Gandalf call.
-- [ ] Verify: every Step 1 query produces a log entry.
+- [x] Decide log format (JSONL vs append-only MD vs SQLite) and destination —
+  JSONL in `brain/current/smeagol/YYYY-MM-DD.jsonl`.
+- [x] Implement Smeagol as a side-effect of every turn — Stop hook, not gated on
+  the (not-yet-built) Gandalf skill, so logging started ahead of Step 1.
+- [x] Verify: every turn produces a log entry (confirmed via real
+  `brain/current/smeagol/*.jsonl` output).
 
 **Done when:**
-- Every Gandalf query produces a parseable log entry (route, agents, latency,
-  outcome).
-- Logs accumulate without blocking the main response path.
+- Every turn produces a parseable log entry (route, agents, latency, outcome). ✅
+- Logs accumulate without blocking the main response path. ✅ (hook swallows
+  all exceptions, never fails the user's turn)
 
 ---
 
@@ -284,7 +289,7 @@ so they don't get lost.
 | Decision | Relevant at | Options / notes |
 |---|---|---|
 | **SQLite for MVP** | Step 1 | Realny `dev-tracker` SQLite (validates real data) vs a seeded synthetic DB (isolated, no external dependency). Decided at implementation. |
-| **Smeagol log destination** | Step 2 | JSONL file in `brain/current/smeagol/`, local SQLite next to this repo, or embedded in a dedicated log folder here. |
+| ~~**Smeagol log destination**~~ | ~~Step 2~~ | **RESOLVED 2026-06-24.** JSONL, one file per day, in `brain/current/smeagol/`, written by a Stop hook. See Step 2 above. |
 | **Samwise Mode 1 → Mode 2 threshold** | Step 3 / Step 9 | No hard number yet. Signal: Smeagol logs show slow or irrelevant retrieval. |
 | **Phase 2 orchestration framework** | Step 7 | LangGraph vs LlamaIndex vs custom thin wrapper. Decided when the engine abstraction layer is built. |
 | **Log-analysis role** | Step 2+ | Reads Smeagol's logs, surfaces gaps and patterns. Agent or skill? Tolkien persona? Deliberately unassigned until the logs exist. |
