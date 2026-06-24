@@ -4,7 +4,7 @@
 the execution path — *how* and *when*. README is the canon; this file is updated
 as work progresses without touching the canon.
 
-Last updated: 2026-06-11
+Last updated: 2026-06-24
 
 ---
 
@@ -95,7 +95,9 @@ before any agent reads or writes data. Nothing else can be validated without thi
   append-only journal under `current/daily/` (monthly digest + yearly index —
   no per-day files, idempotent re-runs merge rather than duplicate). Folder
   template added to `.claude/brain-skeleton/current/daily/`.
-- [ ] (Optional for MVP) Install pre-commit hook in `brain/` for frontmatter validation.
+- [x] (Optional for MVP) Install pre-commit hook in `brain/` for frontmatter validation.
+  Validator lives in `.claude/hooks/brain/pre-commit` (kept out of the data-only
+  `brain/` repo); `/init-brain` Step 5 points `brain/`'s `core.hooksPath` at it.
 
 **Done when:**
 - `brain/` exists at the configured path with correct folder structure.
