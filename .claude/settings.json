@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/smeagol/log-turn.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
