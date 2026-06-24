@@ -43,10 +43,11 @@ Call it `$BRAIN`.
 
 If `$BRAIN` exists:
 - Run **Validation mode** (Step 4).
+- Then run **Step 5** (hooks wiring).
 
 If `$BRAIN` does not exist:
 - Tell the user the resolved path and ask: "brain/ not found at `$BRAIN`. Create scaffold?"
-- On confirmation: run **Creation mode** (Step 3).
+- On confirmation: run **Creation mode** (Step 3), then **Step 5** (hooks wiring).
 - On refusal: stop.
 
 ### 3. Creation mode
@@ -83,6 +84,34 @@ and will diverge from the skeleton template intentionally. Do not check content.
 
 Print validation report: ✅ present / ❌ missing for each path.
 
+### 5. Hooks wiring
+
+`$BRAIN` is a separate git repo and is meant to hold data only — no executable
+code (see `brain/CLAUDE.md`). The frontmatter validator hook therefore lives in
+*this* repo, at `.claude/hooks/brain/pre-commit`, and `$BRAIN` must be pointed
+at it via `core.hooksPath`.
+
+Check the current value:
+
+```bash
+git -C "$BRAIN" config --get core.hooksPath
+```
+
+Resolve `<PROJECT_ROOT>` to the absolute path of this G.A.N.D.A.L.F. repo (same
+as Step 3) and compute the target: `<PROJECT_ROOT>/.claude/hooks/brain`.
+
+- If the current value already equals the target: report "git hooks already wired."
+- Otherwise, set it and report the change (mention the previous value if it was non-empty):
+
+```bash
+git -C "$BRAIN" config core.hooksPath "<PROJECT_ROOT>/.claude/hooks/brain"
+```
+
+This uses an absolute path on purpose — `core.hooksPath` isn't portable across
+machines as a relative path here ($BRAIN and this repo are independently
+located), and `$BRAIN`'s location is already re-resolved per machine via
+`gandalf.env` in Step 1. Re-running this step is idempotent.
+
 ---
 
 ## Notes
@@ -96,3 +125,6 @@ Print validation report: ✅ present / ❌ missing for each path.
 - **Validation scope.** Validation only checks structural completeness (all skeleton
   files present). It does not verify frontmatter, content, or that living documents
   match the template — they are not supposed to after the first edit.
+- **Hooks source.** The pre-commit frontmatter validator run via `core.hooksPath`
+  lives at `.claude/hooks/brain/pre-commit` in this repo, not in `brain/` — see
+  Step 5. It can always be bypassed per-commit with `git commit --no-verify`.
