@@ -4,7 +4,7 @@
 the execution path — *how* and *when*. README is the canon; this file is updated
 as work progresses without touching the canon.
 
-Last updated: 2026-06-24
+Last updated: 2026-06-25
 
 ---
 
@@ -278,6 +278,19 @@ reshuffle it.**
      cross-referenced with latest reports; output to `analyses/` or `conversations/`.
   Prerequisites: `finance.md` populated (personal data session), at least one
   company folder with a report.
+- [ ] **E8 — Cold storage offload (Google Drive) for `knowledge/` binaries.**
+  Large binary files in `knowledge/` (PDFs, reference docs — never `core/`/`current/`,
+  which stay local per the privacy split) move to Google Drive; a DB row holds the
+  link, with a short summary/manifest kept in `brain/` as the always-available
+  fallback. Indexing splits along the existing Bilbo/Samwise boundary: **Bilbo**
+  (background, non-reactive — see README) builds and maintains two index tiers —
+  a lightweight pointer/manifest index over the full files and a full embedding
+  index over the summaries; **Samwise** (reactive, query-time) compares the
+  incoming query against both tiers and decides whether the summary answers it or
+  whether to resolve the stored link and fetch the full file on demand. Keeps cold
+  blobs off the Pi's disk without losing them to opaque storage. Prerequisites:
+  Step 3 (Samwise Mode 1 — extend to query both tiers) and Step 9 (Bilbo + vector
+  DB — extend the write path to populate both tiers and store Drive links).
 
 ---
 
@@ -297,3 +310,4 @@ so they don't get lost.
 | **Gateway transport & channels** | E1 | Which messaging platforms to support first; how to correlate a conversation thread across channels; where session context is held between messages. |
 | **Skill-authoring heuristic** | E4 | What conditions trigger "this workflow should become a skill" — what qualifies, minimum reuse threshold, and who reviews before it is promoted to `prompt-vault`. |
 | **Profile self-update guardrails** | E5 | What the automated system is allowed to write or overwrite in `core/profile.md`; append-only vs field-specific rules; how proposed updates are surfaced for human review before committing. |
+| **Summary-sufficiency heuristic** | E8 | Bilbo/Samwise split is settled (matches README: Bilbo non-reactive indexer, Samwise reactive retriever). Still open: the actual rule Samwise uses to decide "summary is enough" vs "fetch full file from Drive" — similarity-score threshold, query-intent classification, or something else. Decided when Step 9 is implemented. |
