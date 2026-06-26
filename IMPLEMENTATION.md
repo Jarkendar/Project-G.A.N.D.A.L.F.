@@ -4,7 +4,7 @@
 the execution path — *how* and *when*. README is the canon; this file is updated
 as work progresses without touching the canon.
 
-Last updated: 2026-06-25
+Last updated: 2026-06-26
 
 ---
 
@@ -113,26 +113,30 @@ before any agent reads or writes data. Nothing else can be validated without thi
 adding any further agents. No embeddings, no Ollama, no Pi.
 
 **What it includes:**
-- Gandalf implemented as a Claude Code skill (`.claude/skills/gandalf.md` or
-  equivalent).
-- G.I.M.L.I. implemented as a CC sub-agent: schema-aware SQL queries against a
-  SQLite database.
+- Gandalf implemented as a Claude Code skill (`.claude/skills/gandalf/SKILL.md`).
+- G.I.M.L.I. implemented as a CC sub-agent (`.claude/agents/gimli.md`): schema-aware
+  SQL queries against a SQLite database registry (`brain/db/*.db` ∪ `GIMLI_EXTRA_DBS`).
+  GIMLI is source-agnostic — dev-tracker is one entry in the registry, not special-cased.
 - Direct markdown read access to `brain/` for unstructured queries (no vector DB —
-  Gandalf reads files directly or delegates to a simple grep step).
+  Gandalf reads files directly via grep + Read; Samwise is Step 3).
 
 **Tasks:**
-- [ ] Define Gandalf skill in `.claude/` — routing logic, privacy gate, synthesis.
-- [ ] Define G.I.M.L.I. sub-agent — schema discovery, query generation, result
-  formatting.
-- [ ] Connect to a SQLite database (see Open Decisions — which database to start with).
+- [x] Define Gandalf skill in `.claude/` — routing logic, privacy gate, synthesis.
+      → `.claude/skills/gandalf/SKILL.md`
+- [x] Define G.I.M.L.I. sub-agent — schema discovery, query generation, result
+      formatting, read-only enforcement. → `.claude/agents/gimli.md`
+- [x] Connect to a SQLite database registry: `brain/db/*.db` ∪ `GIMLI_EXTRA_DBS`
+      (real `dev_tracker.db` from `dev_activity_deamon` as the smoke-test fixture).
+      Configured in `.claude/gandalf.env`.
 - [ ] Smoke-test end-to-end: one structured query routed to Gimli, one markdown
-  query answered from `brain/`.
+      query answered from `brain/`.
 
 **Done when:**
 - Gandalf correctly routes a `how much / when / count` question to Gimli.
 - Gandalf correctly reads a relevant markdown file from `brain/` for an
   unstructured question.
-- No private `brain/` folder contents are passed to the Claude API.
+- No private `brain/` folder contents are passed to the Claude API beyond the
+  MVP exception window.
 - The router pattern is observable (even if only via stdout logging for now).
 
 ---
@@ -301,7 +305,7 @@ so they don't get lost.
 
 | Decision | Relevant at | Options / notes |
 |---|---|---|
-| **SQLite for MVP** | Step 1 | Realny `dev-tracker` SQLite (validates real data) vs a seeded synthetic DB (isolated, no external dependency). Decided at implementation. |
+| ~~**SQLite for MVP**~~ | ~~Step 1~~ | **RESOLVED 2026-06-26.** Real `dev_tracker.db` from `dev_activity_deamon` repo as smoke-test fixture; GIMLI is source-agnostic (registry: `brain/db/*.db` ∪ `GIMLI_EXTRA_DBS`). Postgres deferred to Phase 2 / Step 8. |
 | ~~**Smeagol log destination**~~ | ~~Step 2~~ | **RESOLVED 2026-06-24.** JSONL, one file per day, in `brain/current/smeagol/`, written by a Stop hook. See Step 2 above. |
 | **Samwise Mode 1 → Mode 2 threshold** | Step 3 / Step 9 | No hard number yet. Signal: Smeagol logs show slow or irrelevant retrieval. |
 | **Phase 2 orchestration framework** | Step 7 | LangGraph vs LlamaIndex vs custom thin wrapper. Decided when the engine abstraction layer is built. |
