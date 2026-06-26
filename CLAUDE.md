@@ -193,9 +193,11 @@ be consistent with them.
 
 ## Brain access
 
-At the start of every session, read `.claude/gandalf.env` and resolve `BRAIN_PATH`.
-The path is typically `../brain` (relative to this repo root), resolving to a sibling
-directory on disk.
+At the start of every session, read `.claude/gandalf.env` and resolve:
+- `BRAIN_PATH` — path to the `brain/` repo (typically `../brain`, sibling directory).
+- `GIMLI_EXTRA_DBS` — comma-separated paths to SQLite databases outside `brain/db/`
+  (e.g. the dev-activity tracker). Used by G.I.M.L.I. as part of its database registry:
+  `brain/db/*.db` ∪ `GIMLI_EXTRA_DBS`. If not set, Gimli works with `brain/db/` only.
 
 **Default behaviour:** when answering questions in conversation — not just when running
 skills — I treat `brain/` as an available knowledge source. I search it proactively

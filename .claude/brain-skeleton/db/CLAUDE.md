@@ -29,6 +29,14 @@ Add rows to this table as new databases are introduced.
 - Breaking changes require a new table + migration script in this folder
 
 ## Notes for Claude Code
-G.I.M.L.I. queries `db/` for structured data.
+G.I.M.L.I. queries `db/` for structured data, plus any external databases listed
+in `GIMLI_EXTRA_DBS` (set in `.claude/gandalf.env`). The full registry is:
+`brain/db/*.db` ∪ `GIMLI_EXTRA_DBS`. All sources are treated equally — none is
+special-cased.
+
+`dev_tracker.db` is currently an *external* database (lives in the `dev_activity_deamon`
+repo on disk, read from there via `GIMLI_EXTRA_DBS`). It is listed in this table for
+privacy tracking; it is **not** physically copied into `brain/db/`.
+
 Always check the database's privacy level before including query results in API context.
 `smeagol.db` is PRIVATE — results stay local.
