@@ -4,7 +4,7 @@
 the execution path — *how* and *when*. README is the canon; this file is updated
 as work progresses without touching the canon.
 
-Last updated: 2026-06-26
+Last updated: 2026-06-27
 
 ---
 
@@ -128,8 +128,11 @@ adding any further agents. No embeddings, no Ollama, no Pi.
 - [x] Connect to a SQLite database registry: `brain/db/*.db` ∪ `GIMLI_EXTRA_DBS`
       (real `dev_tracker.db` from `dev_activity_deamon` as the smoke-test fixture).
       Configured in `.claude/gandalf.env`.
-- [ ] Smoke-test end-to-end: one structured query routed to Gimli, one markdown
-      query answered from `brain/`.
+- [x] Smoke-test end-to-end: one structured query routed to Gimli, one markdown
+      query answered from `brain/`. (2026-06-27: structured → Gimli returned
+      active session counts from dev_tracker.db; markdown → goals.md read from
+      brain/core/identity/ via grep + Read; both routes observable, privacy gate
+      confirmed.)
 
 **Done when:**
 - Gandalf correctly routes a `how much / when / count` question to Gimli.
