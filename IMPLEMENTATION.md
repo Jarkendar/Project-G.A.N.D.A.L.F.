@@ -285,6 +285,18 @@ reshuffle it.**
      cross-referenced with latest reports; output to `analyses/` or `conversations/`.
   Prerequisites: `finance.md` populated (personal data session), at least one
   company folder with a report.
+- [ ] **E9 — Fitness DB sync (Strava → brain/db/fitness.db via /daily).**
+  Schema: `activities(strava_id PK, date, sport_type, name, distance_m,
+  moving_time_s, elapsed_time_s, elevation_m, average_hr, max_hr,
+  average_cadence, average_speed, average_watts, calories, suffer_score,
+  kilojoules, workout_type, synced_at)`. Written by `/daily` skill on every
+  Strava activity match (INSERT OR REPLACE — idempotent on strava_id).
+  Read exclusively through G.I.M.L.I. (access monopoly rule, documented in
+  `brain/db/CLAUDE.md`). Auto-discovered by Gimli via `brain/db/*.db` glob —
+  no configuration change needed. Enables: monthly/yearly distance totals,
+  HR-zone trends, sport-type breakdowns, cross-period comparisons.
+  Privacy: PRIVATE (same restriction as `smeagol.db`).
+
 - [ ] **E8 — Cold storage offload (Google Drive) for `knowledge/` binaries.**
   Large binary files in `knowledge/` (PDFs, reference docs — never `core/`/`current/`,
   which stay local per the privacy split) move to Google Drive; a DB row holds the

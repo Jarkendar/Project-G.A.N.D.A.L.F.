@@ -186,6 +186,19 @@ For each item classified as a sport-activity mention:
    activity. If the activity has no heart-rate stream, skip and flag
    "no HR data" rather than guessing.
 
+8. **Stage the fitness DB upsert** (executed in step 7, not here). Record the
+   following fields from the `get-activity-details` response for the upsert:
+   `strava_id`, `date` (YYYY-MM-DD from activity start), `sport_type`, `name`,
+   `distance_m` (metres), `moving_time_s` (seconds), `elapsed_time_s` (total
+   elapsed time including pauses), `elevation_m` (total elevation gain),
+   `average_hr` (integer, NULL if absent), `max_hr` (integer, NULL if absent),
+   `average_cadence` (steps/min or rpm, NULL if absent), `average_speed` (m/s,
+   NULL if absent), `average_watts` (NULL if absent — cycling power meter only),
+   `calories` (Strava calorie estimate, NULL if absent), `suffer_score` (integer,
+   NULL if absent), `kilojoules` (NULL if absent), `workout_type` (Strava enum
+   integer, NULL if absent — e.g. 1=race, 2=long run, 3=workout for Run).
+   Nullable fields use SQL NULL when absent from the API response — never 0.
+
 ### 5c. Resolve gaps before building the plan
 
 Some delegated formats need a field the note doesn't supply (e.g. `/add-contact`
@@ -217,6 +230,7 @@ Daily journal (always):
 Fitness journal (when a sport activity was matched in step 5b):
    current/fitness/<YYYY-MM>.md   <new entry | merge into existing>
    current/fitness/<YYYY>.md      <new month row | update existing row>
+   brain/db/fitness.db            upsert (INSERT OR REPLACE, keyed on strava_id)
 ────────────────────────────────────────────────────────────────────────
 ⚠️  Items targeting core/ or current/ are PRIVATE — stay on this machine.
     MVP exception: may enter the Claude API context window (see
@@ -397,6 +411,60 @@ Edit the current month's row in place (recomputed from the monthly file);
 never append a second row for a month already present. Leave the zones column
 `—` for months where no activity had HR-stream data.
 
+#### Fitness DB upsert (only when step 5b matched)
+
+For each matched Strava activity, write to `$BRAIN/db/fitness.db` using the
+fields staged in step 5b.8. This is the only direct SQLite write in this skill
+— reading/querying the database always goes through G.I.M.L.I., never here.
+
+```bash
+sqlite3 "$BRAIN/db/fitness.db" "
+CREATE TABLE IF NOT EXISTS activities (
+    strava_id      INTEGER PRIMARY KEY,
+    date           TEXT    NOT NULL,
+    sport_type     TEXT    NOT NULL,
+    name           TEXT,
+    distance_m     REAL,
+    moving_time_s  INTEGER,
+    elapsed_time_s INTEGER,
+    elevation_m    REAL,
+    average_hr     INTEGER,
+    max_hr         INTEGER,
+    average_cadence REAL,
+    average_speed  REAL,
+    average_watts  REAL,
+    calories       INTEGER,
+    suffer_score   INTEGER,
+    kilojoules     REAL,
+    workout_type   INTEGER,
+    synced_at      TEXT    NOT NULL
+);
+INSERT OR REPLACE INTO activities VALUES (
+    <strava_id>,
+    '<YYYY-MM-DD>',
+    '<sport_type>',
+    '<name or NULL>',
+    <distance_m or NULL>,
+    <moving_time_s or NULL>,
+    <elapsed_time_s or NULL>,
+    <elevation_m or NULL>,
+    <average_hr or NULL>,
+    <max_hr or NULL>,
+    <average_cadence or NULL>,
+    <average_speed or NULL>,
+    <average_watts or NULL>,
+    <calories or NULL>,
+    <suffer_score or NULL>,
+    <kilojoules or NULL>,
+    <workout_type or NULL>,
+    '<now ISO 8601>'
+);"
+```
+
+`INSERT OR REPLACE` is idempotent — re-running `/daily` for the same Strava ID
+overwrites the row, never creates a duplicate. The table is created on first run
+and is a no-op on subsequent runs (`IF NOT EXISTS`).
+
 #### HR zone boundaries — first-time save (plan row 6, when triggered)
 
 When step 5b.6 fell through to Strava's configured zones or the Tanaka
@@ -435,6 +503,7 @@ only ever reads it after that.
 ✅ current/daily/<YYYY>.md       <new row | row updated>
 ✅ current/fitness/<YYYY-MM>.md  <new entry | merged> (Strava ID <id>, zones: <source>)
 ✅ current/fitness/<YYYY>.md     <new month row | row updated>
+✅ brain/db/fitness.db           upserted (Strava ID <id>, <sport_type>, <dist> km)
 ✅ core/health/body.md           HR zones section added (<Strava | estimated>)
 ⏭️  <item>                        skipped (dropped in edit)
 ❓ <item>                         left unresolved — not written
@@ -492,3 +561,13 @@ only ever reads it after that.
   does not re-embed `/update-core`, `/add-contact`, `/idea`, or
   `/ingest-finance`'s templates beyond what's needed to route correctly — if
   those change, update them there, not here.
+- **fitness.db: write here, read via G.I.M.L.I.** This skill is the designated
+  writer for `brain/db/fitness.db` — it holds the only `INSERT OR REPLACE`
+  against that table. Any querying of fitness data (totals, trends, comparisons)
+  goes through G.I.M.L.I., never through a direct `sqlite3` call inside a skill.
+  The split is: skills write structured data, G.I.M.L.I. reads it.
+- **G.I.M.L.I. gains fitness queries automatically.** `brain/db/fitness.db` is
+  auto-discovered via the `brain/db/*.db` glob in Gimli's registry — no
+  configuration change needed. Once at least one activity is synced, queries
+  like "how many km did I run in June?" or "compare monthly totals" work
+  immediately.
