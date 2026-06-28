@@ -6,10 +6,13 @@ description: >-
   the skill that already owns that target (update-core, add-contact, idea,
   ingest-finance) while maintaining a lightweight, append-only daily journal.
   A mention of a sport activity (run, ride, swim, etc.) triggers a live lookup
-  via the Strava MCP, logged to a parallel monthly/yearly fitness digest. Use
-  this skill when capturing an end-of-day note, processing a note saved to a
-  file, or re-running for a day already processed to merge in new facts
-  without duplicating the day's journal entry.
+  via the Strava MCP, logged to a parallel monthly/yearly fitness digest.
+  Mentions of visited places (restaurants, bars, attractions, cities) route to
+  knowledge/places/; attended events (concerts, races, airshows, festivals,
+  trips, kayak trips) route to knowledge/events/. Use this skill when capturing
+  an end-of-day note, processing a note saved to a file, or re-running for a
+  day already processed to merge in new facts without duplicating the day's
+  journal entry.
 ---
 
 # daily
@@ -121,9 +124,19 @@ These are compressions of the day, independent of the itemised routing below.
 | Identity/goal change | `core/identity/*` | `/update-core` format |
 | Idea / to-do / "remember this" | `backlog/<domain>/` | `/idea` Mode A format |
 | Project status / working-state update | `current/context/<project>.md` | direct edit-in-place |
+| Visited place (restaurant, bar, café, attraction, venue, city) | `knowledge/places/<slug>.md` | new file or add visit row to existing (step 5d) |
+| Attended event (concert, race, festival, airshow, trip, kayak, etc.) | `knowledge/events/<YYYY-MM-DD>_<slug>.md` | new file; venue also gets a place entry (step 5d) |
 | General note, observation, learning (no other home) | `knowledge/notes/` | direct new file |
 | Day digest (always, regardless of other items) | `current/daily/` aggregates | direct append/merge (step 7) |
 | Unclear / not enough info | — | flag ❓, resolve in step 5c or skip |
+
+**Place vs event distinction:**
+- **Place** — the note describes visiting a location (restaurant, landmark, shop, city). No
+  programmatic itinerary; could be revisited multiple times. One living file accumulates visits.
+- **Event** — the note describes attending something with its own programme: concert, race,
+  airshow, multi-day trip, festival, guided kayak trip, etc. One file per edition/occurrence.
+  If the event has a physical venue, that venue also gets a `knowledge/places/` entry.
+- Gray area rule: if uncertain, ask the user in the step 5c batch question.
 
 If an item could fit more than one row, prefer the more specific target
 (e.g. a weight reading is health, not a general note).
@@ -211,6 +224,36 @@ contact group: ask user to pick from existing headings or default to a generic
 one; an unresolved Strava match falls back to narrative-only, per 5b; a
 missing DOB skips zone-time computation for this run) and flag it in the plan.
 
+For **place** items, gaps that warrant a batch question:
+- `type` if unclear from context (restaurant / bar / café / attraction / venue / city / other)
+- Rating if the note expresses an opinion but doesn't make it obvious (★★★★★ świetne →
+  ★☆☆☆☆ odradzam); skip if the note is neutral or purely factual.
+
+For **event** items, extract from the note what's available; batch-ask only what's
+missing and material:
+- `event_type` if unclear
+- `with` (who was there) — only if not mentioned and relevant
+- `travel` / `accommodation` — only if the event was out-of-town and the note is silent
+
+### 5d. Place / event file resolution
+
+Before building the routing plan, determine whether a place file already exists:
+
+```
+$BRAIN/knowledge/places/<slug>.md
+```
+
+where slug = `<name>-<city>` in kebab-case (diacritics stripped: ą→a, ę→e, ó→o,
+ś→s, ź/ż→z, ć→c, ń→n, ł→l). Search case-insensitively; also try just `<name>.md`
+if the city is already in the name.
+
+- **File exists** → `$PLACE_MODE = update` (add a visit row; do not rewrite the file).
+- **File does not exist** → `$PLACE_MODE = new` (create the full file from the schema).
+
+For event items, always `$EVENT_MODE = new` (events are one-off). Exception: if
+`/daily` is re-run for the same `$DATE` and a file `knowledge/events/<YYYY-MM-DD>_<slug>.md`
+already exists, treat it as `update` and merge new information in.
+
 ### 6. Build the routing plan — one proposal, shown once
 
 ```
@@ -276,6 +319,31 @@ written it directly:
   exists, ask once whether to create
   `current/context/<slug>.md` (`status: draft`) or route the item to
   `knowledge/notes/` instead.
+- **Place** — follow the schema in `knowledge/places/CLAUDE.md`:
+  - `$PLACE_MODE = new`: create `knowledge/places/<slug>.md` with full frontmatter
+    (`type`, `city`, `address` if known, `cuisine` if restaurant, `visited` list,
+    required brain/ fields) and body sections (Ogólna ocena + Wizyty table).
+    Rating scale: ★★★★★ świetne / ★★★★☆ dobre / ★★★☆☆ przeciętne /
+    ★★☆☆☆ słabe / ★☆☆☆☆ odradzam. Omit rating row if the note is neutral.
+  - `$PLACE_MODE = update`: read the existing file; append one row to the
+    `## Wizyty` table (date, occasion, rating if expressed, notes). Bump `updated:`.
+    Do not rewrite other sections.
+  - Always `privacy: private` (contains personal data — who was there, opinions).
+
+- **Event** — follow the schema in `knowledge/events/CLAUDE.md`:
+  - Create `knowledge/events/<YYYY-MM-DD>_<slug>.md` where the date is `date_start`
+    and slug is the event name in kebab-case (≤40 chars, diacritics stripped).
+  - Include all frontmatter fields extractable from the note (`event_type`, `city`,
+    `with`, `travel`, `accommodation`, `venue` pointer). Omit fields the note
+    doesn't mention — never guess.
+  - Body: write only the sections that have content from the note. Minimum: one
+    sentence in `## Wydarzenie`. Sections `## Jak dotarłem` and `## Nocleg` only
+    if the note mentions travel/overnight. `## Wrażenia` if the note includes
+    subjective impressions. `## Highlights` if there are clear standout moments.
+  - If the event has a physical venue, also create/update the corresponding
+    `knowledge/places/` entry (apply place write rules above for the venue).
+  - Always `privacy: private`.
+
 - **General note** — new file `knowledge/notes/<YYYY-MM-DDTHH-MM-SS>_daily_<slug>.md`:
   ```yaml
   date: <now, ISO 8601>
@@ -499,6 +567,8 @@ only ever reads it after that.
 ✅ backlog/check/<slug>.md       written
 ✅ current/context/job-search.md updated
 ✅ knowledge/notes/<slug>.md     written
+✅ knowledge/places/<slug>.md    <new file | visit row added>
+✅ knowledge/events/<YYYY-MM-DD>_<slug>.md   written
 ✅ current/daily/<YYYY-MM>.md    <new section | merged>
 ✅ current/daily/<YYYY>.md       <new row | row updated>
 ✅ current/fitness/<YYYY-MM>.md  <new entry | merged> (Strava ID <id>, zones: <source>)
@@ -571,3 +641,14 @@ only ever reads it after that.
   configuration change needed. Once at least one activity is synced, queries
   like "how many km did I run in June?" or "compare monthly totals" work
   immediately.
+- **Places and events routing (step 5d).** A place visit creates or updates
+  `knowledge/places/<slug>.md`; an attended event creates
+  `knowledge/events/<YYYY-MM-DD>_<slug>.md`. Schemas live in the respective
+  `CLAUDE.md` files. Place files are living documents (one per location,
+  accumulates visits); event files are one-per-occurrence. An event with a
+  physical venue triggers both writes. Step 5d resolves whether a place file
+  already exists before the plan is shown — no surprise new-vs-update in step 7.
+- **Place vs event in the routing plan.** Show the target path explicitly so the
+  user can see at a glance whether a new file will be created or an existing one
+  updated. For a place update, show the existing slug; for a new place or event,
+  show the proposed slug and ask in `edit` mode if the user wants to change it.
