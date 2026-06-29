@@ -559,6 +559,36 @@ always finds it first and the plan never proposes row 6 again. The user can
 still hand-edit the section later (e.g. after an updated max-HR test); `/daily`
 only ever reads it after that.
 
+#### Git commit (always, after all writes)
+
+After all files are written, stage and commit all changes to `$BRAIN` in one
+atomic commit.
+
+**Stage:**
+1. All files written in this skill run (daily journal, fitness journal, knowledge
+   files, core/ edits, backlog items, etc.).
+2. All modified or new `current/smeagol/*.jsonl` files — Smeagol's operational
+   logs for the session; they belong in the same commit as the daily note they
+   accompany.
+3. `db/fitness.db` — only if the upsert in step 5b.8 ran.
+
+**Do not stage:** `db/smeagol.db` (binary operational log, not a daily write).
+
+Commit message: `feat(daily): process <DATE> — <one-line summary>`
+The summary is the same text as the yearly-index row, ≤72 chars total subject line.
+
+```bash
+git -C "$BRAIN" add <all written files> current/smeagol/*.jsonl
+# conditionally:
+git -C "$BRAIN" add db/fitness.db   # only if fitness upsert ran
+git -C "$BRAIN" commit -m "feat(daily): process $DATE — <summary>
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+If `git commit` exits with "nothing to commit", skip silently. If it fails for
+any other reason, report the error in step 8 — do not abort the skill run.
+
 ### 8. Report
 
 ```
@@ -575,6 +605,7 @@ only ever reads it after that.
 ✅ current/fitness/<YYYY>.md     <new month row | row updated>
 ✅ brain/db/fitness.db           upserted (Strava ID <id>, <sport_type>, <dist> km)
 ✅ core/health/body.md           HR zones section added (<Strava | estimated>)
+✅ git commit                    feat(daily): process <DATE> — <summary>
 ⏭️  <item>                        skipped (dropped in edit)
 ❓ <item>                         left unresolved — not written
 ⚠️  No matching Strava activity for <DATE> — logged as narrative only
