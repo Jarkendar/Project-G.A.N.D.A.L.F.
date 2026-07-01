@@ -192,35 +192,50 @@ reshuffle the roadmap expects.
 - Analysis layer: trend/anomaly detection, period-over-period comparisons,
   quantified deltas — plus a mandatory **assessment** section, always distinct
   from the rendered data, in every report.
-- Output: every report is saved to `$BRAIN_PATH/knowledge/reports/<YYYY-MM-DD>_<slug>.md`
-  with frontmatter (schema in `.claude/brain-skeleton/knowledge/reports/CLAUDE.md`,
-  mirroring the `knowledge/places/` and `knowledge/events/` pattern); Radagast then
-  asks whether to open it (`xdg-open` on confirmation).
+- Output: the report is **always shown in the conversation first**. Saving is
+  opt-in — Radagast asks after rendering, and only writes to
+  `$BRAIN_PATH/knowledge/reports/<YYYY-MM-DD>_<slug>.md` (schema in
+  `.claude/brain-skeleton/knowledge/reports/CLAUDE.md`, mirroring the
+  `knowledge/places/` and `knowledge/events/` pattern) on explicit confirmation.
+  If declined, the report exists only in the conversation. **Revised 2026-07-01:**
+  the original design (always save, then offer to open the file) was dropped after
+  the open-file step proved unreliable in practice — snap-confined browsers
+  couldn't see the session's scratch paths, `xdg-open` mis-routed by MIME type, and
+  a stale browser tab didn't reload on re-save. Opening a file is now left to the
+  user entirely; Radagast only renders and (optionally) saves.
 - Wired into Gandalf's router (`.claude/skills/gandalf/SKILL.md` Step 2c): a
   report/chart/analysis-shaped request chains Step 2a/2b (fetch) → Radagast (render
-  + analyze + assess).
+  + analyze + assess + optional save).
 - Documented, not-yet-built extensions: PDF export (`pandoc` + a lightweight
   HTML→PDF engine, would add a scoped `Bash` use to the PDF toolchain) and deeper
   statistics via the Wolfram MCP tools, for when the analyst role needs them.
 
 **Tasks:**
 - [x] Define Radagast sub-agent — rendering conventions, analysis rules, hard
-      constraints (no SQL/DB access), save-and-open flow, fixed response format.
-      → `.claude/agents/radagast.md`
+      constraints (no SQL/DB access), render-then-optional-save flow, fixed
+      response format. → `.claude/agents/radagast.md`
 - [x] Add `knowledge/reports/` to the brain skeleton with its own `CLAUDE.md`.
       → `.claude/brain-skeleton/knowledge/reports/CLAUDE.md`
 - [x] Wire Gandalf's router: new dispatch row + Step 2c chained orchestration.
       → `.claude/skills/gandalf/SKILL.md`
-- [ ] Smoke-test end-to-end: a fitness report routed Gimli → Radagast, producing
-      a table + trend + distinct assessment section, saved under
-      `knowledge/reports/`, with the open-file prompt firing correctly.
-- [ ] Smoke-test the mermaid path: a chart request produces a valid ` ```mermaid `
-      block, validated via the Mermaid MCP tool.
+- [x] Smoke-test end-to-end: a fitness report routed Gimli → Radagast (2026-07-01,
+      Strava activity trends), producing a table + trend + distinct assessment
+      section, saved to `knowledge/reports/2026-07-01_fitness-trends-strava.md`
+      on confirmation.
+- [x] Smoke-test the mermaid path: the chart used `xychart-bar`, an invalid Mermaid
+      diagram type — caught when trying to view the rendered chart locally, fixed
+      to the correct `xychart-beta`. Mermaid MCP validation itself did not run
+      (blocked by the sandbox classifier for PRIVATE data going to an external
+      service — expected behavior, not a bug). Lesson: Radagast cannot rely on the
+      MCP validator for private-data charts and must get Mermaid syntax right
+      unassisted; `xychart-beta` (not `-bar`) is now called out explicitly in the
+      agent's rendering conventions.
 
 **Done when:**
 - Gandalf correctly chains a report-shaped request through Gimli/brain → Radagast.
 - Every Radagast report contains a distinct `## Radagast's assessment` section.
-- Reports are saved under `brain/knowledge/reports/` and the open-file prompt works.
+- The report always renders in the conversation; saving to `brain/knowledge/reports/`
+  only happens on explicit confirmation, and is skipped cleanly on decline.
 - Radagast never runs `sqlite3` or reads a database directly.
 
 ---

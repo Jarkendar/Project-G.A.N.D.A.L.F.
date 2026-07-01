@@ -78,9 +78,11 @@ Radagast never fetches its own data — this step always follows Step 2a and/or 
 2. Invoke the `radagast` sub-agent, handing it exactly that gathered data plus the
    original request (what kind of report/chart/document is wanted).
 3. Radagast renders (table / mermaid / sparkline), analyzes (trends, anomalies,
-   period comparisons), and appends its own assessment as a distinct section.
-4. Radagast saves the report to `$BRAIN_PATH/knowledge/reports/` and asks whether
-   to open it — relay that prompt to the user.
+   period comparisons), and appends its own assessment as a distinct section —
+   shown directly in the conversation first.
+4. Radagast asks whether to save the report to `$BRAIN_PATH/knowledge/reports/` —
+   relay that prompt to the user. If declined, the report exists only in this
+   conversation; nothing is written.
 5. Proceed to Step 3 with Radagast's full response.
 
 ---
@@ -92,7 +94,7 @@ Compose the final answer from the agent result or the markdown content:
 - If the answer came from Gimli: include the key numbers and the source database.
 - If the answer came from markdown: summarise what was found and cite the file path(s).
 - If the answer came from Radagast: pass through its full report, assessment, and
-  the "open it?" prompt — do not compress away the assessment section.
+  the save prompt — do not compress away the assessment section.
 - If nothing was found: say so clearly — do not hallucinate.
 
 ---
