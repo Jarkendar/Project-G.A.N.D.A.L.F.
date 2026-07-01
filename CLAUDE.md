@@ -77,6 +77,7 @@ The acronym must describe the component's **role**. The character must reflect i
 | **F.A.R.A.M.I.R.** (calendar & delegation) | *Forwarding Actions, Reminders And Meetings, Invoking Repositories* |
 | **S.M.E.A.G.O.L.** (query logger) | *Storage Module Evaluating All Gandalf's Operational Logs* |
 | **T.R.E.E.B.E.A.R.D.** (archivist) | *Temporal Repository Engine Evaluating, Archiving And Reducing Data* |
+| **R.A.D.A.G.A.S.T.** (reporting & visualization) | *Reporting Agent Delivering Analysis, Graphs, Assessments, Summaries & Trends* |
 
 ### Proposed agents (sketches, not commitments)
 

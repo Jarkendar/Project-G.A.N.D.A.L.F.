@@ -4,7 +4,7 @@
 the execution path — *how* and *when*. README is the canon; this file is updated
 as work progresses without touching the canon.
 
-Last updated: 2026-06-27
+Last updated: 2026-07-01
 
 ---
 
@@ -174,6 +174,57 @@ this roadmap.
 
 ---
 
+### Step 2.5 — R.A.D.A.G.A.S.T.: reporting & visualization
+
+**Goal:** give Gandalf a component that turns already-gathered data into a
+readable, *analyzed* report — not just raw rows. Built ahead of the original
+roadmap order (Samwise was next in sequence) at the user's request; per the
+"order is a guess, one agent at a time" discipline this is exactly the kind of
+reshuffle the roadmap expects.
+
+**What it includes:**
+- Radagast implemented as a CC sub-agent (`.claude/agents/radagast.md`): consumes
+  data handed to it by the orchestrator (G.I.M.L.I.'s SQL results and/or `brain/`
+  markdown excerpts) — it never queries a database itself, preserving Gimli's SQL
+  access monopoly and the "agents do not call agents directly" rule.
+- Rendering: markdown tables (default), mermaid charts (time series / breakdowns,
+  validated via the Mermaid MCP tool), ASCII sparklines for compact inline trends.
+- Analysis layer: trend/anomaly detection, period-over-period comparisons,
+  quantified deltas — plus a mandatory **assessment** section, always distinct
+  from the rendered data, in every report.
+- Output: every report is saved to `$BRAIN_PATH/knowledge/reports/<YYYY-MM-DD>_<slug>.md`
+  with frontmatter (schema in `.claude/brain-skeleton/knowledge/reports/CLAUDE.md`,
+  mirroring the `knowledge/places/` and `knowledge/events/` pattern); Radagast then
+  asks whether to open it (`xdg-open` on confirmation).
+- Wired into Gandalf's router (`.claude/skills/gandalf/SKILL.md` Step 2c): a
+  report/chart/analysis-shaped request chains Step 2a/2b (fetch) → Radagast (render
+  + analyze + assess).
+- Documented, not-yet-built extensions: PDF export (`pandoc` + a lightweight
+  HTML→PDF engine, would add a scoped `Bash` use to the PDF toolchain) and deeper
+  statistics via the Wolfram MCP tools, for when the analyst role needs them.
+
+**Tasks:**
+- [x] Define Radagast sub-agent — rendering conventions, analysis rules, hard
+      constraints (no SQL/DB access), save-and-open flow, fixed response format.
+      → `.claude/agents/radagast.md`
+- [x] Add `knowledge/reports/` to the brain skeleton with its own `CLAUDE.md`.
+      → `.claude/brain-skeleton/knowledge/reports/CLAUDE.md`
+- [x] Wire Gandalf's router: new dispatch row + Step 2c chained orchestration.
+      → `.claude/skills/gandalf/SKILL.md`
+- [ ] Smoke-test end-to-end: a fitness report routed Gimli → Radagast, producing
+      a table + trend + distinct assessment section, saved under
+      `knowledge/reports/`, with the open-file prompt firing correctly.
+- [ ] Smoke-test the mermaid path: a chart request produces a valid ` ```mermaid `
+      block, validated via the Mermaid MCP tool.
+
+**Done when:**
+- Gandalf correctly chains a report-shaped request through Gimli/brain → Radagast.
+- Every Radagast report contains a distinct `## Radagast's assessment` section.
+- Reports are saved under `brain/knowledge/reports/` and the open-file prompt works.
+- Radagast never runs `sqlite3` or reads a database directly.
+
+---
+
 ### Step 3 — S.A.M.W.I.S.E. (minimal): markdown retrieval
 
 **Goal:** let Gandalf answer unstructured questions about `brain/` content
@@ -324,7 +375,7 @@ so they don't get lost.
 | ~~**Smeagol log destination**~~ | ~~Step 2~~ | **RESOLVED 2026-06-24.** JSONL, one file per day, in `brain/current/smeagol/`, written by a Stop hook. See Step 2 above. |
 | **Samwise Mode 1 → Mode 2 threshold** | Step 3 / Step 9 | No hard number yet. Signal: Smeagol logs show slow or irrelevant retrieval. |
 | **Phase 2 orchestration framework** | Step 7 | LangGraph vs LlamaIndex vs custom thin wrapper. Decided when the engine abstraction layer is built. |
-| **Log-analysis role** | Step 2+ | Reads Smeagol's logs, surfaces gaps and patterns. Agent or skill? Tolkien persona? Deliberately unassigned until the logs exist. |
+| **Log-analysis role** | Step 2+ | **Partially resolved 2026-07-01.** R.A.D.A.G.A.S.T. (Step 2.5) covers the *reporting/analysis* half generically (trends, anomalies, comparisons over any data handed to it) — it could analyze Smeagol's logs like any other input, once something feeds them to it. Still open: whether a dedicated FTS5 retrieval layer over Smeagol's logs (E3) is needed before that's useful, or Radagast + ad-hoc `brain/current/smeagol/` reads suffice. |
 | ~~**`brain/` privacy in MVP**~~ | ~~Step 1–3~~ | **RESOLVED 2026-06-09.** Private content may enter the Claude API context window in MVP. See § "Privacy in the Claude-API MVP". Tightened in Phase 2 (Step 7). |
 | **Gateway transport & channels** | E1 | Which messaging platforms to support first; how to correlate a conversation thread across channels; where session context is held between messages. |
 | **Skill-authoring heuristic** | E4 | What conditions trigger "this workflow should become a skill" — what qualifies, minimum reuse threshold, and who reviews before it is promoted to `prompt-vault`. |

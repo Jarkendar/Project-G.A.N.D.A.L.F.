@@ -27,10 +27,13 @@ is set).
 |---|---|
 | "how much", "how many", "count", "sum", "total", "average", "compare", "when did I last", questions over structured time-series or log data | → **G.I.M.L.I.** (sub-agent) |
 | "what do I know about", "my goals", "tell me about", "notes on", "context on", open-ended personal knowledge | → **brain/ markdown** (direct read) |
+| "report", "raport", "chart", "wykres", "analyze the trend", "przeanalizuj", "compare periods", "porównaj okresy", "build my CV", "zbuduj CV" — anything asking for a rendered/analyzed deliverable | → **G.I.M.L.I. or brain/ markdown (data) → R.A.D.A.G.A.S.T.** (chained, see Step 2c) |
 | Ambiguous — could be both | Prefer markdown for qualitative, SQL for quantitative; if genuinely ambiguous, split: run both and merge. |
 
 Do not route to G.I.M.L.I. if no SQLite databases are available (registry empty).
 Do not route to brain/ markdown if BRAIN_PATH is not resolved.
+Do not route to Radagast without data in hand — always fetch first (Step 2a/2b),
+then chain into Step 2c.
 
 ---
 
@@ -66,12 +69,30 @@ Proceed to Step 3 once Gimli returns.
 
 ---
 
+## Step 2c — route to R.A.D.A.G.A.S.T. (report / visualization / analysis)
+
+Radagast never fetches its own data — this step always follows Step 2a and/or 2b.
+
+1. Run Step 2a and/or 2b first to gather the underlying data (Gimli's table +
+   SQL + source, and/or relevant markdown excerpts).
+2. Invoke the `radagast` sub-agent, handing it exactly that gathered data plus the
+   original request (what kind of report/chart/document is wanted).
+3. Radagast renders (table / mermaid / sparkline), analyzes (trends, anomalies,
+   period comparisons), and appends its own assessment as a distinct section.
+4. Radagast saves the report to `$BRAIN_PATH/knowledge/reports/` and asks whether
+   to open it — relay that prompt to the user.
+5. Proceed to Step 3 with Radagast's full response.
+
+---
+
 ## Step 3 — synthesise
 
 Compose the final answer from the agent result or the markdown content:
 - Be concise and direct.
 - If the answer came from Gimli: include the key numbers and the source database.
 - If the answer came from markdown: summarise what was found and cite the file path(s).
+- If the answer came from Radagast: pass through its full report, assessment, and
+  the "open it?" prompt — do not compress away the assessment section.
 - If nothing was found: say so clearly — do not hallucinate.
 
 ---
@@ -88,7 +109,7 @@ every turn automatically. **This skill does not call Smeagol** — do nothing.
 - Gandalf does not write to `brain/`. Writing is done by dedicated skills
   (`/update-core`, `/add-contact`, `/daily`, etc.) and their agents.
 - Gandalf does not query `brain/current/smeagol/` (log files are Smeagol's domain).
-- Gandalf does not spin up new agents beyond Gimli in Step 1.
+- Gandalf does not spin up new agents beyond Gimli and Radagast today.
   Samwise (semantic search) is Step 3 of the roadmap — not yet.
 
 ---
@@ -96,7 +117,8 @@ every turn automatically. **This skill does not call Smeagol** — do nothing.
 ## Roadmap note
 
 This is the **Step 1 MVP** implementation of Gandalf (router + Gimli + direct
-markdown read). Planned additions:
+markdown read), extended with **R.A.D.A.G.A.S.T.** as a chained reporting/analysis
+route (Step 2c). Planned additions:
 - **Step 3:** S.A.M.W.I.S.E. replaces direct grep for unstructured queries.
 - **Step 4:** F.A.R.A.M.I.R. added as a route for calendar/delegation queries.
 - **Step 5:** L.E.G.O.L.A.S. added as a route for web-search queries.
