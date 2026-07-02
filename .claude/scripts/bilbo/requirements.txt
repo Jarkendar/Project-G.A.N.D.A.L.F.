@@ -1,0 +1,12 @@
+# Pinned for reproducibility. The embedding model itself is pinned separately,
+# to a fixed Hugging Face Hub revision, inside index.py (see
+# DEFAULT_MODEL_REVISION / BILBO_EMBED_REVISION) — independent of these
+# library versions, so a future `pip install` here can never silently change
+# which model weights get downloaded.
+#
+# torch is deliberately left unpinned: it's a transitive dependency of
+# sentence-transformers, and hard-pinning it here risks an unresolvable
+# version conflict with sentence-transformers' own internal bounds. Let pip
+# resolve whichever torch version sentence-transformers==5.6.0 requires.
+sentence-transformers==5.6.0
+numpy==2.5.0

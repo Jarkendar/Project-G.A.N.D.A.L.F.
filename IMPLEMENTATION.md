@@ -4,7 +4,7 @@
 the execution path — *how* and *when*. README is the canon; this file is updated
 as work progresses without touching the canon.
 
-Last updated: 2026-07-01
+Last updated: 2026-07-02
 
 ---
 
@@ -268,6 +268,85 @@ without a vector DB. Add embeddings only when direct retrieval proves insufficie
 
 ---
 
+### Step 9 (pulled forward) — B.I.L.B.O.: embedding indexer
+
+**Goal:** give the future Samwise reader a real dense-vector index to query
+against, instead of building Samwise Mode 1 (grep) first and Mode 2
+(embeddings) later as originally sequenced. Built ahead of the original order
+(Samwise was next) at the user's request — the "order is a guess, Smeagol's
+logs reshuffle it" discipline applies here exactly as it did for Radagast
+(Step 2.5).
+
+**What it includes:**
+- Bilbo implemented as a **script**, not a conversational sub-agent —
+  `.claude/scripts/bilbo/index.py`. README is explicit that Bilbo is
+  *non-reactive*, scheduled, background — it doesn't fit the Gimli/Radagast/
+  Samwise sub-agent pattern.
+- Corpus: all markdown in `brain/`, excluding `current/smeagol/` (Smeagol's
+  logs), `index/` (Bilbo's own output), and per-folder `CLAUDE.md` files
+  (operating instructions, not retrievable knowledge).
+- Chunking by markdown heading, sub-split to stay under ~90 words per chunk
+  (the embedding model's effective window is ~128 tokens — larger chunks get
+  silently truncated, not erred on).
+- Embeddings via `sentence-transformers`, model
+  `paraphrase-multilingual-MiniLM-L12-v2` (same model as the `prompt-vault`
+  repo's `scripts/generate_embeddings.py`, for cross-project consistency) —
+  **pinned to a fixed HF Hub commit revision**, not the moving `main` branch,
+  so a future re-download can never silently swap in different weights. The
+  `(model, revision)` pair actually used is recorded in the index's `meta`
+  table; running with a different one without `--rebuild` aborts loudly
+  instead of silently mixing incompatible vector spaces.
+- Storage: `brain/index/bilbo.db` (SQLite, **gitignored** — derived,
+  regenerable data). Deliberately outside `brain/db/`, which is G.I.M.L.I.'s
+  access monopoly (`brain/db/CLAUDE.md`).
+- **Incremental by construction:** a per-file content hash is compared against
+  the index's manifest on every run; unchanged files are skipped entirely
+  (zero embedding cost), changed files are re-chunked/re-embedded, deleted
+  files have their chunks removed. This is the gap the `prompt-vault` script
+  it's modeled on doesn't close (that one re-embeds everything on every run).
+- Model + library versions pinned in `.claude/scripts/bilbo/requirements.txt`
+  (`sentence-transformers`, `numpy` exact-pinned; `torch` left unpinned to
+  avoid an unresolvable bound conflict) — the model weights themselves are
+  downloaded to the local HF cache outside the repo and never committed.
+
+**Tasks:**
+- [x] Write `.claude/scripts/bilbo/index.py` — discovery, hashing, chunking,
+      batched embedding, incremental SQLite upsert, `--rebuild`/`--path`/
+      `--dry-run`/`--model` flags, model-consistency guard.
+- [x] Pin the embedding model to a fixed HF Hub revision + record it in the
+      index's `meta` table with a hard-fail on mismatch.
+- [x] Pin `sentence-transformers`/`numpy` versions in `requirements.txt`.
+- [x] Add `brain/index/` to `brain/.gitignore`.
+- [x] Document Bilbo's scope, the Bilbo/Samwise write/read boundary, and how
+      to run it in `.claude/scripts/bilbo/README.md`.
+- [x] Smoke-test end-to-end on the real `brain/` (2026-07-02): first run built
+      `brain/index/bilbo.db` from 153 files (17 `CLAUDE.md` files correctly
+      excluded) into 1101 chunks in ~52s; a no-op re-run finished in ~0.05s
+      touching 0 files (lazy-import skipped the model entirely); editing one
+      file re-embedded only that file (6 chunks, ~7s); deleting a file removed
+      its chunks and manifest row; a simulated revision mismatch without
+      `--rebuild` aborted with exit code 1 instead of silently mixing vector
+      spaces; a cosine sanity check confirmed two finance chunks score higher
+      similarity (0.50) than a finance/recipe pair (0.27); confirmed the
+      458 MB model cache lives in `~/.cache/huggingface` (outside both repos)
+      and `git status` in both repos shows no model weights, no `.venv`, no
+      `brain/index/`.
+
+**Done when:**
+- `python index.py` builds `brain/index/bilbo.db` from the real `brain/`.
+- A second run with no filesystem changes re-embeds nothing.
+- Editing one file re-embeds only that file's chunks; deleting a file removes
+  its chunks and manifest row.
+- No model weights or `.venv` are ever committed to either repo.
+- A deliberate model/revision change without `--rebuild` fails loudly rather
+  than corrupting the index.
+
+**Not yet done:** no scheduler (systemd/n8n) wired up — run manually for now;
+no privacy gate (documented MVP exception, same as elsewhere); no reader —
+Samwise's query-time cosine-ranking side is separate, follow-on work.
+
+---
+
 ## Long-term (condensed)
 
 Steps 4–11 from the README roadmap, condensed for orientation. Detailed tasks will
@@ -285,9 +364,10 @@ reshuffle it.**
   point at which the system actually becomes local-first.
 - [ ] **Step 8 — Migrate to RPi 5** — observe what breaks under ARM + memory
   constraints, optimise model choices.
-- [ ] **Step 9 — B.I.L.B.O. + vector DB** — scheduled indexer over `brain/`;
-  ChromaDB layer over markdown files; Samwise switches to Mode 2. Activated once
-  the brain repo grows past the "grep is fine" threshold.
+- [x] **Step 9 — B.I.L.B.O. + vector DB** — indexer over `brain/`, pulled forward
+  ahead of Samwise (see detailed section above, right after Step 3). Still open:
+  scheduling (systemd/n8n) and the Samwise reader side (Mode 2 query-time
+  cosine ranking) that actually consumes this index.
 - [ ] **Step 10 — T.R.E.E.B.E.A.R.D.** — nightly compression pass, supersession
   resolution, archive retrieval. Meaningful once 6–12 months of data accumulate.
 - [ ] **Step 11 — Optional voice layer** — Whisper.cpp (STT) + Piper TTS —
