@@ -3,11 +3,16 @@
 # plus semantic threshold calibration — the core deliverable of Samwise's
 # Part 3 (see IMPLEMENTATION.md Step 3 and the plan this was built from).
 #
-# Loads eval/golden.jsonl (hand-labeled query -> expected file), runs all
+# Loads eval/golden.jsonl (hand-labeled query -> expected file(s)) — a mix of
+# single-answer point-lookup queries and genuinely multi-file topical queries
+# (e.g. "my side-projects" -> 3 files, "my family" -> 3 contacts) — runs all
 # three ../search.py strategies IN-PROCESS (single model load for the whole
 # run, not one subprocess per query x strategy), and reports:
-#   - per-strategy hit@1 / hit@3 / hit@5 / MRR / precision@5 / recall@5
-#   - a per-query "who picked what" table (grep vs semantic vs hybrid top-1)
+#   - per-strategy hit@1/3/5, MRR, precision@5, recall@5, full-recall@5
+#     (recall/precision are set-based: they credit partial matches on
+#     multi-file queries rather than assuming one relevant document)
+#   - a per-query table: how many of the expected files each strategy found
+#     in its top-5, plus the top-1 pick
 #   - the score distribution of correct vs incorrect semantic hits, and the
 #     F1-optimal cosine threshold over that distribution
 #   - a recommended default strategy + --min-score for search.py / samwise.md
@@ -20,6 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import search  # noqa: E402
 
 TOP_K = 10
+PRECISION_RECALL_K = 5
 GOLDEN_PATH = Path(__file__).resolve().parent / "golden.jsonl"
 
 
@@ -46,23 +52,47 @@ def evaluate_strategy(strategy: str, golden: list[dict], brain_dir: Path,
     per_query = []
     for item in golden:
         results = search.search(brain_dir, item["query"], strategy, TOP_K, -1.0, idx=idx)
+        expected = set(item["expected_paths"])
         rank = rank_of_first_relevant(results, item["expected_paths"])
+
+        top_k_paths = [r["path"] for r in results[:PRECISION_RECALL_K]]
+        # dedupe while preserving order (semantic results are per-chunk, so
+        # the same file can appear more than once in a raw top-k slice)
+        seen: set[str] = set()
+        top_k_unique = [p for p in top_k_paths if not (p in seen or seen.add(p))]
+        found = set(top_k_unique) & expected
+
         per_query.append({
             "query": item["query"],
             "expected": item["expected_paths"],
             "rank": rank,
             "top1": results[0]["path"] if results else None,
+            "found_at_5": found,
+            "n_expected": len(expected),
         })
+
     n = len(golden)
-    hit_at = lambda k: sum(1 for pq in per_query if pq["rank"] is not None and pq["rank"] <= k) / n
+    hit_at = lambda k: sum(
+        1 for pq in per_query if pq["rank"] is not None and pq["rank"] <= k
+    ) / n
     mrr = sum(1.0 / pq["rank"] if pq["rank"] else 0.0 for pq in per_query) / n
-    # This golden set has exactly one relevant file per query, so recall@5 is
-    # just hit@5, and precision@5 = hit@5 / 5 (one relevant item retrieved
-    # out of 5 slots, if found at all within the top 5).
-    hit5 = hit_at(5)
+
+    # Set-based precision/recall @5, generalized for multi-file queries:
+    # recall = |retrieved ∩ expected| / |expected|; precision = |retrieved ∩
+    # expected| / 5. full_recall@5 = fraction of queries where ALL expected
+    # files were retrieved within the top 5 (the strict multi-file bar).
+    recall_vals = [len(pq["found_at_5"]) / pq["n_expected"] for pq in per_query]
+    precision_vals = [len(pq["found_at_5"]) / PRECISION_RECALL_K for pq in per_query]
+    full_recall = sum(
+        1 for pq in per_query if len(pq["found_at_5"]) == pq["n_expected"]
+    ) / n
+
     metrics = {
-        "hit@1": hit_at(1), "hit@3": hit_at(3), "hit@5": hit5,
-        "mrr": mrr, "precision@5": hit5 / 5, "recall@5": hit5,
+        "hit@1": hit_at(1), "hit@3": hit_at(3), "hit@5": hit_at(5),
+        "mrr": mrr,
+        "precision@5": sum(precision_vals) / n,
+        "recall@5": sum(recall_vals) / n,
+        "full_recall@5": full_recall,
     }
     return metrics, per_query
 
@@ -70,7 +100,8 @@ def evaluate_strategy(strategy: str, golden: list[dict], brain_dir: Path,
 def calibrate_threshold(golden: list[dict], idx: "search.SamwiseIndex") -> tuple[dict, list[tuple]]:
     """Sweep cosine thresholds over semantic top-20 hits, each labeled relevant
     (1) or irrelevant (0) by whether its path is in that query's
-    expected_paths. Returns the threshold maximizing F1."""
+    expected_paths (single- or multi-file queries both contribute pairs).
+    Returns the threshold maximizing F1."""
     pairs: list[tuple[float, int]] = []
     for item in golden:
         results = search.semantic_search(idx, item["query"], top_k=20, min_score=-1.0)
@@ -100,7 +131,9 @@ def main():
     golden = load_golden()
     idx = search.load_index(brain_dir)
 
-    print(f"SAMWISE eval — {len(golden)} golden queries, top-{TOP_K}\n")
+    n_multi = sum(1 for item in golden if len(item["expected_paths"]) > 1)
+    print(f"SAMWISE eval — {len(golden)} golden queries "
+          f"({len(golden) - n_multi} single-file, {n_multi} multi-file), top-{TOP_K}\n")
 
     summary = {}
     details = {}
@@ -110,24 +143,27 @@ def main():
         details[strategy] = per_query
 
     print("## Strategy comparison\n")
-    header = f"{'strategy':<10} {'hit@1':>6} {'hit@3':>6} {'hit@5':>6} {'MRR':>6} {'P@5':>6} {'R@5':>6}"
+    header = (f"{'strategy':<10} {'hit@1':>6} {'hit@3':>6} {'hit@5':>6} {'MRR':>6} "
+              f"{'P@5':>6} {'R@5':>6} {'fullR@5':>8}")
     print(header)
     print("-" * len(header))
     for strategy, m in summary.items():
         print(f"{strategy:<10} {m['hit@1']:>6.2f} {m['hit@3']:>6.2f} {m['hit@5']:>6.2f} "
-              f"{m['mrr']:>6.2f} {m['precision@5']:>6.2f} {m['recall@5']:>6.2f}")
+              f"{m['mrr']:>6.2f} {m['precision@5']:>6.2f} {m['recall@5']:>6.2f} "
+              f"{m['full_recall@5']:>8.2f}")
 
-    print("\n## Per-query top-1 pick (grep vs semantic vs hybrid)\n")
+    print("\n## Per-query top-1 pick + found/expected@5 (grep vs semantic vs hybrid)\n")
     for i, item in enumerate(golden):
-        expected = item["expected_paths"][0]
-        grep_top1 = details["grep"][i]["top1"]
-        sem_top1 = details["semantic"][i]["top1"]
-        hyb_top1 = details["hybrid"][i]["top1"]
-        print(f"Q: {item['query']}")
+        expected = item["expected_paths"]
+        n_exp = len(expected)
+        marker = " [multi]" if n_exp > 1 else ""
+        print(f"Q: {item['query']}{marker}")
         print(f"   expected:  {expected}")
-        print(f"   grep:      {grep_top1}{'  OK' if grep_top1 == expected else ''}")
-        print(f"   semantic:  {sem_top1}{'  OK' if sem_top1 == expected else ''}")
-        print(f"   hybrid:    {hyb_top1}{'  OK' if hyb_top1 == expected else ''}")
+        for strategy in ("grep", "semantic", "hybrid"):
+            pq = details[strategy][i]
+            top1_ok = " OK" if pq["top1"] == expected[0] else ""
+            print(f"   {strategy:<10} top1={pq['top1']}{top1_ok}  "
+                  f"found {len(pq['found_at_5'])}/{n_exp} in top-5")
         print()
 
     print("## Semantic threshold calibration (F1-optimal over golden set)\n")

@@ -38,11 +38,20 @@ EXCLUDED_DIR_PARTS = {"index"}
 EXCLUDED_SUBPATHS = ("current/smeagol",)
 EXCLUDED_FILENAMES = {"CLAUDE.md"}
 
-# Calibrated by eval/run_eval.py against the 15-query golden set (F1-optimal
-# threshold: F1=0.7291, precision=0.645, recall=0.8385 — see eval/README or
+# Calibrated by eval/run_eval.py against a 20-query golden set — 15 single-
+# file point-lookup queries plus 5 genuinely multi-file topical queries
+# (F1-optimal threshold: F1=0.7224, precision=0.6648, recall=0.7908; see
 # IMPLEMENTATION.md Step 3 for the full run). Re-run the eval and update this
 # constant if the corpus or model changes meaningfully.
-DEFAULT_MIN_SCORE = 0.4887
+#
+# Known limitation (measured, not theoretical): this threshold is tuned on a
+# mix of point-lookup and broad queries, but broad "list everything about X"
+# queries can still legitimately score below it on every relevant chunk (the
+# golden-set eval found 0/3 recall for "my side-projects" and "my cycling
+# trips" across ALL strategies, not just semantic). A fixed score cutoff
+# cannot fully solve this — see samwise.md's workflow for the mitigation
+# (widen --top-k / relax --min-score for enumerative-sounding questions).
+DEFAULT_MIN_SCORE = 0.5047
 DEFAULT_TOP_K = 8
 RRF_K = 60  # standard Reciprocal Rank Fusion constant
 

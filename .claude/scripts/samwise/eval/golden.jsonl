@@ -13,3 +13,8 @@
 {"query": "gdzie zjadłem dobry obiad w Poznaniu", "lang": "pl", "expected_paths": ["knowledge/places/kitchen-229-poznan.md"]}
 {"query": "opowiedz o mojej wyprawie rowerowej nad Bałtyk", "lang": "pl", "expected_paths": ["knowledge/events/2023-08-07_wyprawa-rowerowa-wybrzeze.md"]}
 {"query": "what is XTB's business profile", "lang": "en", "expected_paths": ["knowledge/finance/XTB/profile.md"]}
+{"query": "opowiedz o moich projektach programistycznych poza pracą (side-projectach)", "lang": "pl", "expected_paths": ["knowledge/projects/androidlab.md", "knowledge/projects/photovault.md", "knowledge/projects/gandalf.md"]}
+{"query": "co wiem o mojej najbliższej rodzinie", "lang": "pl", "expected_paths": ["core/contacts/mama.md", "core/contacts/tata.md", "core/contacts/michal-skrzypczak.md"]}
+{"query": "jakie mam warunki zatrudnienia i benefity w Capgemini", "lang": "pl", "expected_paths": ["core/career/umowy/capgemini-uop-2026.md", "core/career/capgemini-benefits.md"]}
+{"query": "jakie spółki z sektora medycznego/farmaceutycznego mam w portfelu", "lang": "pl", "expected_paths": ["knowledge/finance/SYNEKTIK/profile.md", "knowledge/finance/SYN2BIO/profile.md"]}
+{"query": "what cycling races or trips have I done", "lang": "en", "expected_paths": ["knowledge/events/2021-09-12_gran-fondo-poznan.md", "knowledge/events/2022-05-15_gran-fondo-gdynia.md", "knowledge/events/2023-08-07_wyprawa-rowerowa-wybrzeze.md"]}

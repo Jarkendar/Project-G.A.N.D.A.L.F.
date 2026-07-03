@@ -40,30 +40,53 @@ yourself.
    source .claude/gandalf.env 2>/dev/null || true
    # BRAIN_PATH is now available.
    ```
-2. **Query the index** — run `search.py` through Bilbo's virtualenv (Samwise
-   has no separate Python environment; the reader and writer deliberately
-   share one set of embedding dependencies rather than installing torch
-   twice):
+2. **Judge whether the question is a point-lookup or a broad/enumerative
+   one** before choosing flags — this distinction matters (see step 2a/2b):
+   - **Point-lookup** ("what do I know about my CV gaps", "XTB's business
+     profile") — one document is the expected answer.
+   - **Broad/enumerative** ("what are my side-projects", "what cycling trips
+     have I done", "tell me about my family") — plural nouns, "all", "every",
+     or a category name are the signal. Multiple distinct documents are the
+     expected answer.
+2a. **Point-lookup — use the calibrated default:**
    ```bash
    .claude/scripts/bilbo/.venv/bin/python .claude/scripts/samwise/search.py \
      "<the user's question>" --strategy semantic --top-k 8
    ```
-   `search.py`'s default `--min-score` (0.4887) is F1-optimal, calibrated
-   against a 15-query golden set (`eval/run_eval.py`; precision 0.645,
-   recall 0.8385 at that cutoff — see `IMPLEMENTATION.md` Step 3). Semantic
-   also beat both grep and hybrid outright on this corpus (hit@1 0.80 vs.
-   0.47 / 0.73, MRR 0.85 vs. 0.58 / 0.81) — hybrid's grep component pulls in
-   enough false positives via rank fusion to make pure semantic the better
-   default. Override `--min-score` explicitly only for a deliberate reason.
+   `search.py`'s default `--min-score` (0.5047) is F1-optimal, calibrated
+   against a 20-query golden set (`eval/run_eval.py`, mixing point-lookup and
+   multi-file queries; precision 0.665, recall 0.791 at that cutoff — see
+   `IMPLEMENTATION.md` Step 3). Semantic also beat both grep and hybrid
+   outright in aggregate (hit@1 0.70 vs. 0.40 / 0.60, MRR 0.75 vs. 0.50 /
+   0.70) — hybrid's grep component pulls in enough false positives via rank
+   fusion to make pure semantic the better default.
+2b. **Broad/enumerative — widen the net, then use your own judgment:**
+   ```bash
+   .claude/scripts/bilbo/.venv/bin/python .claude/scripts/samwise/search.py \
+     "<the user's question>" --strategy semantic --top-k 20 --min-score 0.0
+   ```
+   **Known, measured limitation:** the calibration eval found that broad
+   topical queries can score *every* relevant chunk below the default
+   threshold — "my side-projects" and "my cycling trips" both scored 0/3
+   expected files in the top-5 even at `--min-score 0.0`, because per-chunk
+   embeddings favor documents whose vocabulary literally overlaps the query
+   over documents that are merely topically related. A fixed score cutoff
+   cannot fix this. Your judgment is the actual mitigation: scan the wider,
+   unfiltered candidate list yourself, group hits by path, and pull in any
+   file that's plausibly on-topic even at a middling score — then confirm by
+   reading it. Say explicitly when you've done this (widened net, judged by
+   eye) so the user knows the answer isn't a clean threshold cut.
 3. **If the index is missing, empty, or the script errors:** fall back to
    direct `grep -ri "<keywords>" "$BRAIN_PATH"` + `Read` (Gandalf's old Step
    2b path) and say explicitly that you fell back — do not silently degrade.
-4. **Read the top 1–3 ranked files** with the `Read` tool for full context —
-   the chunk snippet is a locator, not the final answer. Quote from the real
-   file content in your response.
+4. **Read the top few ranked files** (1–3 for a point-lookup, more for a
+   broad query) with the `Read` tool for full context — the chunk snippet is
+   a locator, not the final answer. Quote from the real file content in your
+   response.
 5. **Return ranked results**: path, similarity score, and a short excerpt for
-   each hit above the threshold — plus what you learned from reading the
-   full file(s).
+   each hit you're including — plus what you learned from reading the full
+   file(s). For a broad query, say how many distinct files you found and
+   whether you widened the search to find them.
 
 ## Hard constraints — READ-ONLY, no exceptions
 
@@ -105,7 +128,7 @@ knowledge) — you will never see it as a hit.
 
 ```
 **Query:** <as received>
-**Strategy:** semantic (min-score 0.4887) — or "grep fallback" if the index was unavailable
+**Strategy:** semantic (min-score 0.5047) — or "semantic, widened net (broad query)" — or "grep fallback" if the index was unavailable
 
 | score | path | excerpt |
 |-------|------|---------|
