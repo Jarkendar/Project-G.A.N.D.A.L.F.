@@ -4,11 +4,12 @@ The indexer. Per README.md: *"Not a reactive agent — runs in the background as
 a scheduled task. Walks watched directories, detects new or modified files,
 chunks them, and stores them in the knowledge base."*
 
-Bilbo **writes** the embedding index. It never answers a query — that's the
-future **S.A.M.W.I.S.E.** reader's job: encode the query with the same pinned
-model, rank `brain/` chunks by cosine similarity against `chunks.vector`, and
-return ranked paths + snippets for Claude to `Read` deeper. Bilbo builds the
-index; Samwise reads it. Neither role crosses into the other.
+Bilbo **writes** the embedding index. It never answers a query — that's
+**S.A.M.W.I.S.E.**'s job (`.claude/scripts/samwise/search.py` +
+`.claude/agents/samwise.md`): encode the query with the same pinned model,
+rank `brain/` chunks by cosine similarity against `chunks.vector`, and return
+ranked paths + snippets for Claude to `Read` deeper. Bilbo builds the index;
+Samwise reads it. Neither role crosses into the other.
 
 ## What it does
 
@@ -73,5 +74,7 @@ conflict with sentence-transformers' own version bounds.
   n8n trigger in `pi-automate` (README: `N8N -.triggers.-> Bilbo`).
 - No privacy gate — the index includes `core/`/`current/` content today, same
   as the rest of the MVP's documented privacy exception.
-- No reader — Samwise (query-time cosine ranking over this index) is a
-  separate, later piece of work.
+
+The reader is no longer outstanding — see `.claude/scripts/samwise/README.md`
+for how Samwise queries this index, including its own known limitation
+(a fixed similarity threshold under-recalls broad, many-document queries).

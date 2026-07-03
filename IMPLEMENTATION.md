@@ -240,31 +240,105 @@ reshuffle the roadmap expects.
 
 ---
 
-### Step 3 — S.A.M.W.I.S.E. (minimal): markdown retrieval
+### Step 3 — S.A.M.W.I.S.E.: semantic retrieval over B.I.L.B.O.'s index
 
-**Goal:** let Gandalf answer unstructured questions about `brain/` content
-without a vector DB. Add embeddings only when direct retrieval proves insufficient.
+**Goal:** let Gandalf answer unstructured questions about `brain/` content by
+querying the dense-vector index. Originally scoped as "Mode 1 grep first, Mode
+2 embeddings later" — but since Bilbo (Step 9) was pulled forward and already
+built a real embedding index, Samwise shipped **Mode 2 directly**. Mode 1
+(grep) survives only as the explicit fallback for when the index is
+unavailable, not as a transitional phase.
 
 **What it includes:**
-- Samwise sub-agent with a two-mode design:
-  1. **Mode 1 (current):** grep / filename search + LLM-read of matching files.
-     No embedding infrastructure needed.
-  2. **Mode 2 (future):** ChromaDB index over `brain/` markdown files — layered on
-     top, markdown stays canonical. Activated when Mode 1 starts feeling slow or
-     noisy.
-- Privacy boundary: `core/` and `current/` folders accessible only to
-  local-model reads (Phase 2); in MVP, Gandalf reads them directly without
-  sending content to the API beyond what the user query requires.
+- `.claude/scripts/samwise/search.py` — the query-time reader. Encodes the
+  query with the exact `(model, revision)` recorded in `brain/index/bilbo.db`'s
+  `meta` table, cosine-ranks chunks (vectors are pre-normalized, so cosine ==
+  dot product), and returns ranked paths + scores + snippets. Opens the index
+  via a `mode=ro` URI connection — never a writer of `brain/index/`, that stays
+  Bilbo's job exclusively. Three strategies share this one script: `semantic`
+  (Samwise proper), `grep` (the keyword baseline — what Gandalf did before
+  Samwise existed), and `hybrid` (Reciprocal Rank Fusion of the two) — built
+  this way so the same code backs both the live agent and the comparative eval.
+- `.claude/agents/samwise.md` — the sub-agent, Gimli-shaped (`Bash` + `Read`,
+  no `model:` pin). Workflow: resolve `BRAIN_PATH` → run `search.py` via
+  Bilbo's venv (no separate Python env — reader and writer share one set of
+  embedding deps rather than installing torch twice) → fall back to direct
+  grep if the index is missing/broken → `Read` the top files for real excerpts
+  → return ranked results. Judges point-lookup vs. broad/enumerative questions
+  and adjusts `--top-k`/`--min-score` + applies its own relevance judgment for
+  the latter (see the measured limitation below).
+- Gandalf routing (`.claude/skills/gandalf/SKILL.md`): unstructured queries now
+  route to Samwise (Step 2d); direct grep (old Step 2b) demoted to the
+  explicit fallback; Radagast (Step 2c) can chain off Gimli, Samwise, or the
+  grep fallback.
+- **Access model rescoped, not expanded:** Gimli's "sole SQLite reader"
+  monopoly narrowed from "all of SQLite" to specifically `brain/db/` — his own
+  world. Samwise (paired with Bilbo as writer) got an explicit, separate
+  monopoly over `brain/index/bilbo.db` — a domain of its own. Principle: the
+  system grows in **depth** (new, narrow, per-domain monopolies), not
+  **breadth** (one monopoly expanding to cover more ground). Documented in
+  both `gimli.md` and `samwise.md`.
+- **Comparative eval** (`.claude/scripts/samwise/eval/`): `golden.jsonl` (20
+  hand-labeled PL/EN queries — 15 single-file point lookups + 5 genuinely
+  multi-file topical queries, approved before measuring) and `run_eval.py`
+  (runs grep/semantic/hybrid in-process — one model load for the whole run —
+  and reports hit@1/3/5, MRR, precision@5, recall@5, full-recall@5, a
+  per-query "who picked what" table, and an F1-optimal cosine threshold swept
+  over the score distribution of correct vs. incorrect semantic hits).
+- Privacy: folder-level, same rule as everywhere else — `core/`/`current/` are
+  PRIVATE (MVP exception: may enter the Claude API context window);
+  `knowledge/` is PUBLIC. `current/smeagol/` is excluded from the index
+  entirely, so Samwise never surfaces it.
 
 **Tasks:**
-- [ ] Define Samwise sub-agent — file search, relevance scoring, excerpt extraction.
-- [ ] Integrate with Gandalf routing: semantic / unstructured queries go to Samwise.
-- [ ] Test: "what do I know about X?" returns relevant excerpts from `brain/`.
+- [x] Define Samwise sub-agent — query-time search, relevance ranking (via
+      B.I.L.B.O.'s index), excerpt extraction. → `.claude/agents/samwise.md`
+- [x] Integrate with Gandalf routing: unstructured queries go to Samwise
+      (Step 2d); grep demoted to fallback. → `.claude/skills/gandalf/SKILL.md`
+- [x] Test: "what do I know about X?" returns relevant excerpts from `brain/`
+      with source paths and similarity scores. → smoke-tested below and via
+      the golden-set eval.
+- [x] Build a comparative eval: grep vs. semantic vs. hybrid, calibrate a
+      similarity threshold. → `.claude/scripts/samwise/eval/`
+
+**Smoke-test (2026-07-03):** Bilbo's index was refreshed first (6 files
+changed since the 2026-07-02 build; 156 files / index current after sync).
+`eval/run_eval.py` against the 20-query golden set:
+
+| strategy | hit@1 | hit@3 | hit@5 | MRR | P@5 | R@5 | full-recall@5 |
+|---|---|---|---|---|---|---|---|
+| grep | 0.40 | 0.60 | 0.65 | 0.50 | 0.14 | 0.65 | 0.65 |
+| **semantic** | **0.70** | 0.75 | 0.85 | **0.75** | 0.19 | 0.82 | 0.80 |
+| hybrid | 0.60 | 0.75 | 0.85 | 0.70 | 0.19 | 0.82 | 0.80 |
+
+Semantic wins outright and is the default strategy. Hybrid underperforms pure
+semantic here — RRF fusion folds in enough of grep's false positives
+(especially on Polish queries against English-language notes, where literal
+keyword matching fails outright, e.g. `core/identity/goals.md`) to drag it
+down rather than help. F1-optimal threshold: **0.5047** (precision 0.665,
+recall 0.791), wired into `search.py`'s `DEFAULT_MIN_SCORE`.
+
+**Measured limitation, not just a threshold-tuning gap:** two of the five
+multi-file queries in the golden set ("what are my side-projects", "what
+cycling trips have I done") scored **0/3 expected files in the top-5 across
+all three strategies — even fully ungated at `--min-score 0.0`**. Per-chunk
+embeddings favor literal vocabulary overlap over topical relatedness (e.g.
+"projekt" is heavily overloaded by career/job documents, burying the actual
+`knowledge/projects/` files for a plural, category-shaped query). No fixed
+score cutoff fixes this; the mitigation lives in `samwise.md`'s workflow
+(widen `--top-k`/`--min-score` for enumerative-sounding questions, then apply
+judgment over the wider candidate list) rather than in the retrieval math.
+Two-file multi-queries (Capgemini contract+benefits, medical/pharma tickers)
+worked fine — the failure mode is specific to broad, many-document,
+low-lexical-overlap categories.
 
 **Done when:**
 - Gandalf routes unstructured knowledge queries to Samwise.
-- Samwise returns relevant excerpts with source paths.
-- Performance is acceptable on the current `brain/` size (Mode 1).
+- Samwise returns relevant excerpts with source paths and scores.
+- Performance is acceptable on the current `brain/` size (~8ms warm per-query;
+  ~6.6s cold for the one-time model load).
+- A committed, reproducible eval shows semantic ≥ grep, with a calibrated
+  threshold — not just an impression that it's better.
 
 ---
 
@@ -342,8 +416,9 @@ logs reshuffle it" discipline applies here exactly as it did for Radagast
   than corrupting the index.
 
 **Not yet done:** no scheduler (systemd/n8n) wired up — run manually for now;
-no privacy gate (documented MVP exception, same as elsewhere); no reader —
-Samwise's query-time cosine-ranking side is separate, follow-on work.
+no privacy gate (documented MVP exception, same as elsewhere). The reader side
+is no longer outstanding: S.A.M.W.I.S.E. (Step 3, above) now queries this
+index at query time.
 
 ---
 
@@ -365,9 +440,9 @@ reshuffle it.**
 - [ ] **Step 8 — Migrate to RPi 5** — observe what breaks under ARM + memory
   constraints, optimise model choices.
 - [x] **Step 9 — B.I.L.B.O. + vector DB** — indexer over `brain/`, pulled forward
-  ahead of Samwise (see detailed section above, right after Step 3). Still open:
-  scheduling (systemd/n8n) and the Samwise reader side (Mode 2 query-time
-  cosine ranking) that actually consumes this index.
+  ahead of Samwise (see detailed section above, right after Step 3). Reader
+  side (Samwise, Step 3) is now built and consuming this index. Still open:
+  scheduling (systemd/n8n) to run Bilbo automatically instead of manually.
 - [ ] **Step 10 — T.R.E.E.B.E.A.R.D.** — nightly compression pass, supersession
   resolution, archive retrieval. Meaningful once 6–12 months of data accumulate.
 - [ ] **Step 11 — Optional voice layer** — Whisper.cpp (STT) + Piper TTS —
@@ -468,11 +543,11 @@ so they don't get lost.
 |---|---|---|
 | ~~**SQLite for MVP**~~ | ~~Step 1~~ | **RESOLVED 2026-06-26.** Real `dev_tracker.db` from `dev_activity_deamon` repo as smoke-test fixture; GIMLI is source-agnostic (registry: `brain/db/*.db` ∪ `GIMLI_EXTRA_DBS`). Postgres deferred to Phase 2 / Step 8. |
 | ~~**Smeagol log destination**~~ | ~~Step 2~~ | **RESOLVED 2026-06-24.** JSONL, one file per day, in `brain/current/smeagol/`, written by a Stop hook. See Step 2 above. |
-| **Samwise Mode 1 → Mode 2 threshold** | Step 3 / Step 9 | No hard number yet. Signal: Smeagol logs show slow or irrelevant retrieval. |
+| ~~**Samwise Mode 1 → Mode 2 threshold**~~ | ~~Step 3 / Step 9~~ | **RESOLVED 2026-07-03 — moot.** Mode 2 (semantic, via Bilbo's index) shipped directly since Bilbo already existed; there was no Mode-1-first phase to graduate from. Mode 1 (grep) survives only as Samwise's fallback when the index is unavailable. |
 | **Phase 2 orchestration framework** | Step 7 | LangGraph vs LlamaIndex vs custom thin wrapper. Decided when the engine abstraction layer is built. |
 | **Log-analysis role** | Step 2+ | **Partially resolved 2026-07-01.** R.A.D.A.G.A.S.T. (Step 2.5) covers the *reporting/analysis* half generically (trends, anomalies, comparisons over any data handed to it) — it could analyze Smeagol's logs like any other input, once something feeds them to it. Still open: whether a dedicated FTS5 retrieval layer over Smeagol's logs (E3) is needed before that's useful, or Radagast + ad-hoc `brain/current/smeagol/` reads suffice. |
 | ~~**`brain/` privacy in MVP**~~ | ~~Step 1–3~~ | **RESOLVED 2026-06-09.** Private content may enter the Claude API context window in MVP. See § "Privacy in the Claude-API MVP". Tightened in Phase 2 (Step 7). |
 | **Gateway transport & channels** | E1 | Which messaging platforms to support first; how to correlate a conversation thread across channels; where session context is held between messages. |
 | **Skill-authoring heuristic** | E4 | What conditions trigger "this workflow should become a skill" — what qualifies, minimum reuse threshold, and who reviews before it is promoted to `prompt-vault`. |
 | **Profile self-update guardrails** | E5 | What the automated system is allowed to write or overwrite in `core/profile.md`; append-only vs field-specific rules; how proposed updates are surfaced for human review before committing. |
-| **Summary-sufficiency heuristic** | E8 | Bilbo/Samwise split is settled (matches README: Bilbo non-reactive indexer, Samwise reactive retriever). Still open: the actual rule Samwise uses to decide "summary is enough" vs "fetch full file from Drive" — similarity-score threshold, query-intent classification, or something else. Decided when Step 9 is implemented. |
+| **Summary-sufficiency heuristic** | E8 | Bilbo/Samwise split is settled (matches README: Bilbo non-reactive indexer, Samwise reactive retriever). Step 3 established a precedent worth reusing here: a fixed similarity threshold (0.5047, F1-calibrated) works for point-lookup queries but measurably fails broad/enumerative ones (0/3 recall on two golden-set queries even ungated) — so E8's "summary vs. fetch full file" rule should not be a bare score cutoff either. Still open: the actual decision rule (threshold + query-intent classification, most likely) and whether it needs the same point-lookup/broad-query judgment split Samwise now does. Decided when E8 is implemented. |
