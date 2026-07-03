@@ -84,7 +84,7 @@ Per-chunk embeddings favor literal vocabulary overlap over topical
 relatedness — e.g. "projekt" is heavily overloaded by career/job documents in
 this corpus, burying the actual `knowledge/projects/` files for a plural,
 category-shaped query. No fixed score cutoff fixes this; a two-file multi-hit
-query (Capgemini contract + benefits) worked fine, so the failure mode is
+query (employment contract + benefits) worked fine, so the failure mode is
 specific to broad, many-document, low-lexical-overlap categories, not
 multi-file queries generally.
 

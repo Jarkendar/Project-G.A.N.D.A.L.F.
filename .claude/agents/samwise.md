@@ -42,8 +42,8 @@ yourself.
    ```
 2. **Judge whether the question is a point-lookup or a broad/enumerative
    one** before choosing flags — this distinction matters (see step 2a/2b):
-   - **Point-lookup** ("what do I know about my CV gaps", "XTB's business
-     profile") — one document is the expected answer.
+   - **Point-lookup** ("what do I know about my CV gaps", "a broker's
+     business profile") — one document is the expected answer.
    - **Broad/enumerative** ("what are my side-projects", "what cycling trips
      have I done", "tell me about my family") — plural nouns, "all", "every",
      or a category name are the signal. Multiple distinct documents are the

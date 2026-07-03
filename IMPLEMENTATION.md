@@ -328,8 +328,8 @@ embeddings favor literal vocabulary overlap over topical relatedness (e.g.
 score cutoff fixes this; the mitigation lives in `samwise.md`'s workflow
 (widen `--top-k`/`--min-score` for enumerative-sounding questions, then apply
 judgment over the wider candidate list) rather than in the retrieval math.
-Two-file multi-queries (Capgemini contract+benefits, medical/pharma tickers)
-worked fine — the failure mode is specific to broad, many-document,
+Two-file multi-queries (employment contract+benefits, sector-specific stock
+tickers) worked fine — the failure mode is specific to broad, many-document,
 low-lexical-overlap categories.
 
 **Done when:**
