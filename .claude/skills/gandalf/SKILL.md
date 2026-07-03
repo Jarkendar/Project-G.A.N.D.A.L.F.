@@ -26,13 +26,13 @@ is set).
 | Signal | Route |
 |---|---|
 | "how much", "how many", "count", "sum", "total", "average", "compare", "when did I last", questions over structured time-series or log data | → **G.I.M.L.I.** (sub-agent) |
-| "what do I know about", "my goals", "tell me about", "notes on", "context on", open-ended personal knowledge | → **brain/ markdown** (direct read) |
-| "report", "raport", "chart", "wykres", "analyze the trend", "przeanalizuj", "compare periods", "porównaj okresy", "build my CV", "zbuduj CV" — anything asking for a rendered/analyzed deliverable | → **G.I.M.L.I. or brain/ markdown (data) → R.A.D.A.G.A.S.T.** (chained, see Step 2c) |
-| Ambiguous — could be both | Prefer markdown for qualitative, SQL for quantitative; if genuinely ambiguous, split: run both and merge. |
+| "what do I know about", "my goals", "tell me about", "notes on", "context on", "find something like", open-ended personal knowledge | → **S.A.M.W.I.S.E.** (sub-agent, see Step 2d) |
+| "report", "raport", "chart", "wykres", "analyze the trend", "przeanalizuj", "compare periods", "porównaj okresy", "build my CV", "zbuduj CV" — anything asking for a rendered/analyzed deliverable | → **G.I.M.L.I. and/or S.A.M.W.I.S.E. (data) → R.A.D.A.G.A.S.T.** (chained, see Step 2c) |
+| Ambiguous — could be both | Prefer Samwise for qualitative, SQL for quantitative; if genuinely ambiguous, split: run both and merge. |
 
 Do not route to G.I.M.L.I. if no SQLite databases are available (registry empty).
-Do not route to brain/ markdown if BRAIN_PATH is not resolved.
-Do not route to Radagast without data in hand — always fetch first (Step 2a/2b),
+Do not route to S.A.M.W.I.S.E. if BRAIN_PATH is not resolved.
+Do not route to Radagast without data in hand — always fetch first (Step 2a/2b/2d),
 then chain into Step 2c.
 
 ---
@@ -52,7 +52,11 @@ Proceed to Step 3 once Gimli returns.
 
 ---
 
-## Step 2b — route to brain/ markdown (knowledge query)
+## Step 2b — route to brain/ markdown (fallback: direct grep)
+
+This is now the **fallback path** for when Step 2d (Samwise) can't run — the
+embedding index missing, empty, or stale, or Samwise itself reports a fallback.
+For normal unstructured queries, prefer Step 2d.
 
 1. **Search:** `grep -ri "<keywords>" "$BRAIN_PATH"` — use 2–3 keywords from the query.
    Exclude `brain/current/smeagol/` (log files, not knowledge).
@@ -69,12 +73,30 @@ Proceed to Step 3 once Gimli returns.
 
 ---
 
+## Step 2d — route to S.A.M.W.I.S.E. (semantic knowledge query)
+
+Invoke the `samwise` sub-agent with the original query plus the resolved
+`BRAIN_PATH`.
+
+Samwise will:
+1. Encode the query and cosine-rank it against B.I.L.B.O.'s embedding index
+   (`brain/index/bilbo.db`).
+2. Read the top-ranked files for real excerpts.
+3. Return ranked results (path, score, excerpt) — or explicitly report a
+   fallback to grep if the index is unavailable.
+
+If Samwise reports a fallback, that already covers Step 2b — do not also run
+grep yourself. Proceed to Step 3 once Samwise returns.
+
+---
+
 ## Step 2c — route to R.A.D.A.G.A.S.T. (report / visualization / analysis)
 
-Radagast never fetches its own data — this step always follows Step 2a and/or 2b.
+Radagast never fetches its own data — this step always follows Step 2a, 2b,
+and/or 2d.
 
-1. Run Step 2a and/or 2b first to gather the underlying data (Gimli's table +
-   SQL + source, and/or relevant markdown excerpts).
+1. Run Step 2a and/or 2d (or 2b as fallback) first to gather the underlying
+   data (Gimli's table + SQL + source, and/or Samwise's ranked excerpts).
 2. Invoke the `radagast` sub-agent, handing it exactly that gathered data plus the
    original request (what kind of report/chart/document is wanted).
 3. Radagast renders (table / mermaid / sparkline), analyzes (trends, anomalies,
@@ -92,7 +114,10 @@ Radagast never fetches its own data — this step always follows Step 2a and/or 
 Compose the final answer from the agent result or the markdown content:
 - Be concise and direct.
 - If the answer came from Gimli: include the key numbers and the source database.
-- If the answer came from markdown: summarise what was found and cite the file path(s).
+- If the answer came from Samwise: summarise what was found and cite the ranked
+  file path(s) + scores.
+- If the answer came from a direct markdown fallback (Step 2b): summarise what
+  was found and cite the file path(s).
 - If the answer came from Radagast: pass through its full report, assessment, and
   the save prompt — do not compress away the assessment section.
 - If nothing was found: say so clearly — do not hallucinate.
@@ -111,8 +136,9 @@ every turn automatically. **This skill does not call Smeagol** — do nothing.
 - Gandalf does not write to `brain/`. Writing is done by dedicated skills
   (`/update-core`, `/add-contact`, `/daily`, etc.) and their agents.
 - Gandalf does not query `brain/current/smeagol/` (log files are Smeagol's domain).
-- Gandalf does not spin up new agents beyond Gimli and Radagast today.
-  Samwise (semantic search) is Step 3 of the roadmap — not yet.
+- Gandalf does not run direct grep over `brain/` as the primary path for
+  unstructured queries anymore — that's Step 2d (S.A.M.W.I.S.E.); direct grep
+  (Step 2b) is now the explicit fallback only.
 
 ---
 
@@ -120,7 +146,8 @@ every turn automatically. **This skill does not call Smeagol** — do nothing.
 
 This is the **Step 1 MVP** implementation of Gandalf (router + Gimli + direct
 markdown read), extended with **R.A.D.A.G.A.S.T.** as a chained reporting/analysis
-route (Step 2c). Planned additions:
-- **Step 3:** S.A.M.W.I.S.E. replaces direct grep for unstructured queries.
+route (Step 2c) and **S.A.M.W.I.S.E.** as the semantic-search route (Step 2d,
+querying B.I.L.B.O.'s embedding index — Step 3 of the roadmap, done). Planned
+additions:
 - **Step 4:** F.A.R.A.M.I.R. added as a route for calendar/delegation queries.
 - **Step 5:** L.E.G.O.L.A.S. added as a route for web-search queries.

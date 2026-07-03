@@ -73,7 +73,7 @@ If no argument is given, ask:
 `<slug>` = `<company>-<role-keywords>` in lowercase kebab-case, max 50 chars, no
 special characters. Strip common stop words (e.g. "developer", "engineer" can be
 shortened). Examples:
-- Capgemini DCX · Android Developer (mid) → `capgemini-dcx-android-mid`
+- Nimbus Software DCX · Android Developer (mid) → `nimbus-software-dcx-android-mid`
 - LUX MED · Android Developer → `lux-med-android`
 - Collinson Group · Android Developer → `collinson-group-android`
 
