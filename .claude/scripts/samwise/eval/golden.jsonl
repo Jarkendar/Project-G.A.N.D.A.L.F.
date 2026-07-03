@@ -1,0 +1,15 @@
+{"query": "jakie mam cele na ten rok", "lang": "pl", "expected_paths": ["core/identity/goals.md"]}
+{"query": "jakie mam luki kompetencyjne jako Android Developer", "lang": "pl", "expected_paths": ["knowledge/career/gap-plan.md"]}
+{"query": "jaka jest moja macierz kompetencji / samoocena umiejętności Android", "lang": "pl", "expected_paths": ["knowledge/career/skills-matrix.md"]}
+{"query": "mam pomysł na skilla do dostosowywania CV pod oferty", "lang": "pl", "expected_paths": ["backlog/projects/tailor-cv-skill.md"]}
+{"query": "jakie wnioski mam z rozmów rekrutacyjnych", "lang": "pl", "expected_paths": ["knowledge/career/interview-log.md"]}
+{"query": "jakie mam nawyki i uzależnienia behawioralne", "lang": "pl", "expected_paths": ["core/health/addictions.md"]}
+{"query": "what are my body measurements", "lang": "en", "expected_paths": ["core/health/body.md"]}
+{"query": "what is the philosophy behind AndroidLab", "lang": "en", "expected_paths": ["knowledge/projects/androidlab.md"]}
+{"query": "how is G.A.N.D.A.L.F. architected", "lang": "en", "expected_paths": ["knowledge/projects/gandalf.md"]}
+{"query": "what technology stack does PhotoVault use", "lang": "en", "expected_paths": ["knowledge/projects/photovault.md"]}
+{"query": "jak wygląda mój plan nauki Jetpack Compose", "lang": "pl", "expected_paths": ["knowledge/tech/jetpack-compose-learning-path.md"]}
+{"query": "jak zrobić naleśniki", "lang": "pl", "expected_paths": ["knowledge/recipes/nalesniki.md"]}
+{"query": "gdzie zjadłem dobry obiad w Poznaniu", "lang": "pl", "expected_paths": ["knowledge/places/kitchen-229-poznan.md"]}
+{"query": "opowiedz o mojej wyprawie rowerowej nad Bałtyk", "lang": "pl", "expected_paths": ["knowledge/events/2023-08-07_wyprawa-rowerowa-wybrzeze.md"]}
+{"query": "what is XTB's business profile", "lang": "en", "expected_paths": ["knowledge/finance/XTB/profile.md"]}

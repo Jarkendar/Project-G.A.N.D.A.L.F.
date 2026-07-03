@@ -38,9 +38,11 @@ EXCLUDED_DIR_PARTS = {"index"}
 EXCLUDED_SUBPATHS = ("current/smeagol",)
 EXCLUDED_FILENAMES = {"CLAUDE.md"}
 
-# Calibrated in Part 3 (eval/run_eval.py) against the golden set. 0.0 = no
-# filtering, i.e. always return top-k regardless of score, until calibrated.
-DEFAULT_MIN_SCORE = 0.0
+# Calibrated by eval/run_eval.py against the 15-query golden set (F1-optimal
+# threshold: F1=0.7291, precision=0.645, recall=0.8385 — see eval/README or
+# IMPLEMENTATION.md Step 3 for the full run). Re-run the eval and update this
+# constant if the corpus or model changes meaningfully.
+DEFAULT_MIN_SCORE = 0.4887
 DEFAULT_TOP_K = 8
 RRF_K = 60  # standard Reciprocal Rank Fusion constant
 

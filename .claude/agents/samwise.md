@@ -46,10 +46,15 @@ yourself.
    twice):
    ```bash
    .claude/scripts/bilbo/.venv/bin/python .claude/scripts/samwise/search.py \
-     "<the user's question>" --strategy semantic --top-k 8 --min-score 0.30
+     "<the user's question>" --strategy semantic --top-k 8
    ```
-   The `--min-score 0.30` cutoff is a placeholder pending Part 3's golden-set
-   calibration — update this value (and this doc) once that eval lands.
+   `search.py`'s default `--min-score` (0.4887) is F1-optimal, calibrated
+   against a 15-query golden set (`eval/run_eval.py`; precision 0.645,
+   recall 0.8385 at that cutoff — see `IMPLEMENTATION.md` Step 3). Semantic
+   also beat both grep and hybrid outright on this corpus (hit@1 0.80 vs.
+   0.47 / 0.73, MRR 0.85 vs. 0.58 / 0.81) — hybrid's grep component pulls in
+   enough false positives via rank fusion to make pure semantic the better
+   default. Override `--min-score` explicitly only for a deliberate reason.
 3. **If the index is missing, empty, or the script errors:** fall back to
    direct `grep -ri "<keywords>" "$BRAIN_PATH"` + `Read` (Gandalf's old Step
    2b path) and say explicitly that you fell back — do not silently degrade.
@@ -100,7 +105,7 @@ knowledge) — you will never see it as a hit.
 
 ```
 **Query:** <as received>
-**Strategy:** semantic (min-score 0.30) — or "grep fallback" if the index was unavailable
+**Strategy:** semantic (min-score 0.4887) — or "grep fallback" if the index was unavailable
 
 | score | path | excerpt |
 |-------|------|---------|
