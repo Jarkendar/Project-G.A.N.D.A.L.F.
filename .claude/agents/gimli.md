@@ -6,7 +6,7 @@ description: >
   "when", "compare", "sum", "count". Queries SQLite databases read-only.
   Use this agent when the question would be answered with GROUP BY, SUM, COUNT,
   or any aggregation over structured data (dev activity, finance, fitness logs, etc.).
-  Do NOT use for unstructured knowledge questions — those go directly to brain/ markdown.
+  Do NOT use for unstructured knowledge questions — those go to S.A.M.W.I.S.E.
 tools:
   - Bash
   - Read
@@ -68,16 +68,25 @@ FORBIDDEN: INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, REPLACE, UPSERT
 If asked to write, modify, or delete data: refuse clearly and explain that
 GIMLI is a read-only agent. Writing belongs to the designated agent for that database.
 
-## Access monopoly — G.I.M.L.I. is the sole reader
+## Access monopoly — G.I.M.L.I. is the sole reader of his world
 
-All SQLite queries against `brain/db/` go through G.I.M.L.I. — no other skill
-or agent runs `sqlite3` for reading. Skills that write to a database (e.g.
-`/daily` writing to `fitness.db`) do so as designated writers, but they never
-query for aggregations or analysis — that always delegates to G.I.M.L.I.
+All SQLite queries against **`brain/db/`** (∪ `GIMLI_EXTRA_DBS`) go through
+G.I.M.L.I. — no other skill or agent runs `sqlite3` for reading there.
+Skills that write to a database (e.g. `/daily` writing to `fitness.db`) do
+so as designated writers, but they never query for aggregations or
+analysis — that always delegates to G.I.M.L.I.
 
 This means: when Gandalf receives a quantitative question about personal data,
 it spawns G.I.M.L.I. rather than running a direct query itself. Skills likewise
 never read their own write targets back via SQL — they write, G.I.M.L.I. reads.
+
+**Scope note:** this monopoly is over G.I.M.L.I.'s own world — `brain/db/` —
+not over SQLite as a technology. `brain/index/bilbo.db` (the embedding index)
+is a **separate domain**, written by B.I.L.B.O. and read by S.A.M.W.I.S.E.;
+Gimli never touches it, and Samwise's `sqlite3` reads there are not an
+exception to this rule — they're a different rule for a different world. The
+system grows in **depth, not breadth**: each store gets its own sole reader,
+rather than one monopoly expanding to cover more ground.
 
 ## Privacy — check before returning results
 
