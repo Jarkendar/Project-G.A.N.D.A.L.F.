@@ -244,3 +244,7 @@ proposed name feels forced, rethink the role.
   current step, criteria for "done", open decisions. Updated as work progresses.
 - **`ARCHITECTURE.md`** (planned, owner-authored) — on-disk layout, workspace
   pattern, how the ecosystem repos connect physically.
+
+## Local OpenACP Workspace
+
+The `.openacp/` directory contains a local OpenACP workspace with secrets (bot tokens, API keys). Do not read, commit, or reference files inside it.

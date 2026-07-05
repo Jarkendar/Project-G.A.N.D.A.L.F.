@@ -150,6 +150,12 @@ activemq-data/
 # G.A.N.D.A.L.F. local config (contains machine-specific paths)
 .claude/gandalf.env
 
+# OpenACP PoC — journal may capture secrets in transit, never commit it
+poc-notes.md
+
+# Any env file under infra/ (OpenACP config, bot tokens) stays local
+infra/*.env
+
 # Claude Code machine-local MCP/settings overrides (may carry secrets)
 .claude/settings.local.json
 
@@ -225,3 +231,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# OpenACP local workspace (contains secrets)
+.openacp

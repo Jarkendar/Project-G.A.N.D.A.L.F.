@@ -1,0 +1,31 @@
+# Sketch only — NOT installed, NOT enabled. Based on the working PoC
+# command observed on 2026-07-05 (dev machine, not the target RPi 5).
+# Before real use on the Pi: adjust paths for the Pi's node/nvm install,
+# confirm the workspace path, and decide on the "auto" permission-mode
+# concern documented in poc-notes.md / openacp.config.template before
+# ever running this unattended.
+#
+# Install (when ready, NOT now):
+#   cp openacp.service ~/.config/systemd/user/openacp-gandalf.service
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now openacp-gandalf.service
+
+[Unit]
+Description=OpenACP bridge for Project-G.A.N.D.A.L.F. (Telegram channel)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/jarkendar/Pulpit/github/Project-G.A.N.D.A.L.F.
+ExecStart=/home/jarkendar/.nvm/versions/node/v24.14.1/bin/openacp --dir /home/jarkendar/Pulpit/github/Project-G.A.N.D.A.L.F.
+Restart=on-failure
+RestartSec=5
+
+# NOTE: openacp already self-restarts on transient Telegram polling
+# failures (observed during PoC after a token rotation: 401 -> auto
+# respawn within ~35s). This unit's Restart=on-failure is a second,
+# outer safety net for the whole process dying, not a replacement for it.
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,63 @@
+# OpenACP config template — Project-G.A.N.D.A.L.F.
+#
+# Sanitized from the working .openacp/config.json produced during the PoC
+# (2026-07-05). Real secrets (bot token, tunnel/jwt/api secrets, chat_id)
+# live only in the git-ignored .openacp/ workspace dir — never here.
+#
+# envsubst-ready: `envsubst < openacp.config.template > config.json`
+# with the variables below exported first.
+#
+# Required env vars:
+#   TELEGRAM_BOT_TOKEN   — from @BotFather, rotate if ever exposed
+#   TELEGRAM_CHAT_ID     — negative int, the private supergroup's chat_id
+#                          (NOT a personal user_id — see poc-notes.md for why
+#                          OpenACP requires a supergroup with Topics/Forum
+#                          mode enabled and the bot promoted to admin,
+#                          not a plain 1:1 DM)
+
+{
+  "instanceName": "Project-G.A.N.D.A.L.F.",
+  "defaultAgent": "claude",
+  "workspace": {
+    "allowExternalWorkspaces": true,
+    "security": {
+      "allowedPaths": [],
+      "envWhitelist": []
+    }
+  },
+  "logging": {
+    "level": "info",
+    "maxFileSize": "10m",
+    "maxFiles": 7,
+    "sessionLogRetentionDays": 30
+  },
+  "runMode": "foreground",
+  "autoStart": false,
+  "sessionStore": {
+    "ttlDays": 30
+  },
+  "integrations": {},
+  "agentSwitch": {
+    "labelHistory": true
+  }
+}
+
+# NOTE — permission mode (see poc-notes.md Faza 4 finding):
+# The session-level "mode" (auto / default / acceptEdits / plan / dontAsk /
+# bypassPermissions) is NOT set here — it's a per-session ACP config option
+# (visible in .openacp/sessions.json → acpState.configOptions), defaulting
+# to "auto" (a model classifier approves/denies with no visible prompt).
+# PoC testing showed "auto" lets the agent write ANYWHERE on the filesystem
+# (confirmed: /tmp, $HOME, Desktop) without asking. Before production use,
+# explicitly force "default" or "dontAsk" for any session driven by this
+# channel — do not rely on the "auto" default.
+
+# NOTE — the telegram/identity/security plugin settings (bot token, chatId,
+# topic IDs, access-control config) live in:
+#   .openacp/plugins/data/@openacp/telegram/settings.json
+#   .openacp/plugins/data/@openacp/security/settings.json
+# and are configured interactively via `openacp onboard` — there is no
+# documented way to set them via `openacp config set` at the time of this
+# PoC (2026-07-05), and the upstream GitHub source
+# (github.com/Open-ACP/OpenACP) was returning 404 during this PoC, so this
+# could not be verified against authoritative docs.
