@@ -182,21 +182,3 @@ comprehension gap into a normal clarification, not a stall.
 
 Only include this block for real-call prep, not drill sessions — drills don't
 need an audio checklist.
-
----
-
-## Notes
-
-- **Read-only, no gate.** This skill never writes to `brain/`; `english.md` and
-  `english-scenarios.md` are only created here if missing (scenario bank) or read
-  (the log) — the log itself is only ever written by `/english-review`.
-- **Never invents weak spots.** Every category surfaced traces back to
-  `## Recurring errors` or `## Current focus` in the log — if the log is empty,
-  say so plainly rather than guessing at generic ESL advice.
-- **Real-call vs drill split matters.** A drill session prompt targets
-  production (speaking); a real-call pre-flight targets the actual risk from the
-  Yassin-style failure — comprehension under bad audio — which a Gemini Live
-  drill can't rehearse.
-- **Scenario bank is a living document**, not owned exclusively by this skill —
-  `/english-review` or a manual edit may add scenarios later; this skill only
-  seeds it if absent and reads from it otherwise.
