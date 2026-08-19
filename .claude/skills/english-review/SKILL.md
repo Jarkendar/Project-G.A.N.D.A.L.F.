@@ -267,33 +267,3 @@ Then apply the writes:
    canonical, immutable transcript store; this skill only extracts signal.
 ────────────────────────────────────────────────────────────────────────
 ```
-
----
-
-## Notes
-
-- **No invented scores.** A single 0–100 "fluency score" from a chat assistant
-  measures nothing reproducible across sessions — this skill tracks errors/100
-  words and per-category counts instead, which actually trend.
-- **Technical terms are checked even if the conversation partner accepted them.**
-  A conversational assistant grading general fluency will often praise a
-  confidently-wrong domain term (e.g. accepting "online-first" when the
-  described behavior is offline-first) — step 4's Part 1b exists specifically
-  to catch that class of error.
-- **Debrief mode exists because the highest-value miss might not be a language
-  problem.** A bad call caused by the other side's microphone is not a fluency
-  gap — the listening-miss log records the cause honestly rather than always
-  blaming the user's English.
-- **`## Current focus` is derived, not append-only.** It's recomputed each run
-  from the current top error categories — unlike `## Recurring errors` and
-  `## Session log`, which only grow.
-- **Does not touch `brain/conversations/`.** Raw transcript archiving with
-  dedup-by-hash is `/ingest-conversation`'s job; this skill only reads input,
-  it never writes to `conversations/`.
-- **No git commit.** Unlike `/daily`, this skill does not commit to `$BRAIN` —
-  writes and stops, consistent with every other skill except `/daily`.
-- **Migration note.** If `## Recurring errors` grows large enough that trend
-  queries (e.g. "how has articles-category count changed over the last 10
-  sessions") become worth asking, that's a `GROUP BY` question — move it to
-  `brain/db/` and G.I.M.L.I. per storage-by-question-shape (principle #3).
-  Markdown is the right tool while the log is still small.
