@@ -8,8 +8,11 @@ description: >-
   Use this skill when packing for any trip (holiday, business delegation, city
   break, mountains, festival, race), when a trip involves more than one person
   and the list must account for their individual needs, when reviewing what was
-  actually used after coming back so the catalogue learns, or when adding items
-  and conditions to the catalogue or to someone's packing profile.
+  actually used after coming back so the catalogue learns, when adding items
+  and conditions to the catalogue or to someone's packing profile, or whenever
+  the user says "co zabrać na <wyjazd>" / "spakuj mnie na" / "zrób listę na
+  wyjazd" / "lista rzeczy do zabrania" / "what should I take to" mid-conversation
+  without an explicit /pack invocation.
 ---
 
 # pack
@@ -78,6 +81,12 @@ If `catalogue.md` does not exist, say so and offer to create it from the skeleto
 - `/pack` (no argument) → ask "Dokąd i kiedy?" then Mode A.
 - `/pack review [<trip>]` → **Mode B: post-trip review**.
 - `/pack catalogue` / `/pack profile <person>` → **Mode C: edit data**.
+- **Inline trigger** (no `/pack`, but the user asks mid-conversation): "co zabrać na
+  <wyjazd>", "spakuj mnie na", "zrób listę na wyjazd", "lista rzeczy do zabrania",
+  "what should I take to" → **Mode A**, using the trip already described in the
+  conversation. Do not re-ask for parameters that were just discussed.
+  A question *about* an existing list ("czy mam tam powerbank?") is not a trigger —
+  read the trip file and answer.
 
 ---
 
@@ -395,6 +404,8 @@ statusem `?`.
 
 ## Notes
 
+- **Inline trigger jest zawsze aktywny** — nie trzeba wpisywać `/pack`. „Co zabrać na
+  wyjazd do Krakowa?" w środku rozmowy odpala tryb A.
 - **Katalog jest wspólny, profile są osobiste.** Rzecz, którą bierze każdy — do
   katalogu. Rzecz specyficzna dla osoby (leki, soczewki, kosmetyki) — do profilu
   w `core/`. Danych zdrowotnych nigdy nie przenoś do `knowledge/`.
