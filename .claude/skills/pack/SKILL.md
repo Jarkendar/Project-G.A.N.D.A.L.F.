@@ -196,19 +196,19 @@ Jadą: <osoby>
 
 | Rzecz | Prio | Kto pakuje | ✓ |
 |---|---|---|---|
-| ładowarka USB-C 65W | must | Jarek | ☐ |
-| apteczka podręczna | base | Ania | ☐ |
+| ładowarka USB-C 65W | must | <Osoba 1> | ☐ |
+| apteczka podręczna | base | <Osoba 2> | ☐ |
 
 ## Osobiste
 
 ### Dokumenty
-| Rzecz | Prio | Jarek | Ania |
+| Rzecz | Prio | <Osoba 1> | <Osoba 2> |
 |---|---|---|---|
 | ID | must | x | x |
 | paszport | must | x | x |
 
 ### Elektronika
-| Rzecz | Prio | Jarek | Ania |
+| Rzecz | Prio | <Osoba 1> | <Osoba 2> |
 |---|---|---|---|
 | powerbank | base | x | |
 
@@ -283,7 +283,7 @@ type: packing-list
 trip: "<Miasto> <YYYY-MM-DD>"
 date_start: YYYY-MM-DD
 date_end: YYYY-MM-DD
-people: [jarek, ania-marciniak]
+people: [<slug-1>, <slug-2>]
 conditions: [purpose:city, transport:plane, nights:1-3, stay:hotel, season:shoulder]
 tags: [travel, packing, <city-slug>, <YYYY>]
 title: "Pakowanie — <Miasto> <YYYY-MM-DD>"
@@ -386,7 +386,7 @@ title: "Profil pakowania — <Imię>"
 | Rzecz | Ma | Uwagi |
 |---|---|---|
 | powerbank | tak | 20 000 mAh |
-| walizka kabinowa | nie | pożycza od rodziców |
+| walizka kabinowa | nie | pożycza |
 
 Brak wiersza = nie wiadomo. Nie zgaduj — brak wiedzy trafia do "Do zdobycia" ze
 statusem `?`.
@@ -405,7 +405,7 @@ statusem `?`.
 ## Notes
 
 - **Inline trigger jest zawsze aktywny** — nie trzeba wpisywać `/pack`. „Co zabrać na
-  wyjazd do Krakowa?" w środku rozmowy odpala tryb A.
+  wyjazd do <miasto>?" w środku rozmowy odpala tryb A.
 - **Katalog jest wspólny, profile są osobiste.** Rzecz, którą bierze każdy — do
   katalogu. Rzecz specyficzna dla osoby (leki, soczewki, kosmetyki) — do profilu
   w `core/`. Danych zdrowotnych nigdy nie przenoś do `knowledge/`.
