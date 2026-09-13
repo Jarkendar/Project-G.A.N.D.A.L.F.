@@ -4,7 +4,7 @@
 the execution path — *how* and *when*. README is the canon; this file is updated
 as work progresses without touching the canon.
 
-Last updated: 2026-07-02
+Last updated: 2026-09-13
 
 ---
 
@@ -531,6 +531,24 @@ reshuffle it.**
   blobs off the Pi's disk without losing them to opaque storage. Prerequisites:
   Step 3 (Samwise Mode 1 — extend to query both tiers) and Step 9 (Bilbo + vector
   DB — extend the write path to populate both tiers and store Drive links).
+
+- [x] **E10 — `develop-idea` skill (2026-09-13).** Turns one raw project idea
+  (pasted text, or a `backlog/projects/<slug>.md` reference) into a researched
+  dossier at `knowledge/projects/<slug>.md`: feasibility assessment, web
+  research on existing solutions/prior art, a proposed execution scenario,
+  future expansion ideas, and a skill-growth assessment personalized against
+  `core/identity/profile.md`/`goals.md`. Formalises and supersedes the
+  raw-copy "promote" action in `/idea list` for ideas worth researching before
+  starting; that raw-copy path still exists for trivial items. Structural
+  precedent: `analyze-offer` (multi-section dossier, Stage/Decision lifecycle,
+  update-in-place, compact-on-abandon). One new wrinkle worth noting: the real
+  `brain/knowledge/projects/` already held 10 hand-written reference pages for
+  shipped repos before this skill existed — a different, simpler content type
+  (no `kind` field, typically `privacy: public`) now sharing the folder with
+  this skill's dossiers (`kind: idea-dossier`, always `privacy: private`).
+  Resolved with a `kind` field plus a hard-stop collision check rather than
+  reshuffling the folder. → `.claude/skills/develop-idea/SKILL.md`,
+  `.claude/brain-skeleton/knowledge/projects/CLAUDE.md`.
 
 ---
 
