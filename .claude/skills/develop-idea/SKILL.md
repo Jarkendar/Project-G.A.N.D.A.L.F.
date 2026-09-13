@@ -76,6 +76,19 @@ terse one-liner, a multi-paragraph note, or already-structured output from the
 user's personal n8n automation — no fixed input schema is assumed. Extract
 title/summary/context heuristically from whatever arrives (Mode A).
 
+If the input arrives pre-structured by the user's n8n automation (a goal/title
+statement plus a numbered action plan with time estimates), treat the
+goal/title as the actual idea and the numbered plan as that tool's own
+elaboration — useful context for step 10 (dossier synthesis), not a binding
+scope to copy verbatim. Section 4 of the dossier ("Proposed execution
+scenario") is always synthesised independently, informed by but not dictated
+by an input action plan.
+
+If the pasted text bundles more than one distinct, unrelated goal (common in
+n8n output — e.g. a tooling fix plus an unrelated strategy task), do not
+force them into one dossier. Surface the split and ask which one to develop;
+"one file per idea" (see § Notes) applies to the input, not just the output.
+
 If no argument is given, ask:
 > "Paste the idea, or give me a backlog slug or title to develop (e.g. `desktop-brain-viewer`)."
 
@@ -84,7 +97,34 @@ If raw text is terse (fewer than ~15 words), ask one brief follow-up:
 
 If the user declines or it's already clear, proceed with what you have.
 
-### 3. Duplicate-idea check (Mode A only)
+### 3. Scale check
+
+Before doing any research, judge whether the idea actually warrants a full
+dossier. Full research (steps 7–10) is expensive and most of the value is in
+sections 2–6 having something real to say — a small, well-understood,
+low-effort item usually doesn't.
+
+Signals it's too small for a full dossier: the idea is a scoped fix or tuning
+pass on an existing system (not a new capability), the implied effort is
+small (roughly `S`, and often `M`), or there's no real feasibility/prior-art
+question to answer (nothing to decide, just something to do).
+
+When those signals are present, say so and ask:
+> "This reads more like a quick `/idea` capture than something needing full
+> research — develop it as a full dossier anyway, or capture it as a plain
+> backlog item instead?"
+
+- **Full dossier** → continue to step 4.
+- **Plain backlog item** → switch to the `idea` skill's capture flow (title,
+  domain `projects`, effort, tags, 2–6 line body) instead of continuing here.
+  Stop this skill's flow once that's written.
+
+Skip this check entirely in Mode B (an item already promoted from the backlog
+via explicit `/develop-idea <slug>` has already had its "is this worth it"
+decision made once) and whenever the user explicitly asks for a full dossier
+up front.
+
+### 4. Duplicate-idea check (Mode A only)
 
 Before treating raw text as brand-new, grep for close matches to the idea's
 likely title/keywords:
@@ -100,7 +140,7 @@ If a plausible existing backlog item turns up, surface it:
 Prevents silently creating a second, disconnected dossier for something already
 captured in the backlog.
 
-### 4. Derive the slug
+### 5. Derive the slug
 
 **Mode B (from backlog):** reuse the backlog file's slug verbatim — keeps
 `backlog/projects/<slug>.md` and `knowledge/projects/<slug>.md` paired.
@@ -108,11 +148,11 @@ captured in the backlog.
 **Mode A (raw text):** derive from the idea's title, same convention as the
 `idea` skill — lowercase kebab-case, ≤50 chars, strip stop words.
 
-### 5. Target-collision detection
+### 6. Target-collision detection
 
 Target path: `$BRAIN/knowledge/projects/<slug>.md`. Three outcomes:
 
-- **File does not exist** → new dossier, continue to step 6.
+- **File does not exist** → new dossier, continue to step 7.
 - **File exists with `kind: idea-dossier`** in its frontmatter → this is a
   previous dossier for the same idea. Show current `Stage:` and `updated:`, ask:
   > "Dossier for `<slug>` already exists (Stage: `<stage>`, updated: `<date>`).
@@ -128,7 +168,7 @@ Target path: `$BRAIN/knowledge/projects/<slug>.md`. Three outcomes:
   > likely an unrelated collision. Use a different slug?"
   Offer `<slug>-dossier` or let the user supply one, then continue as new.
 
-### 6. Web research — existing solutions / prior art (default ON)
+### 7. Web research — existing solutions / prior art (default ON)
 
 Unless the user passed `--no-web`, run two targeted passes. Paraphrase and cite
 the source URL — never quote verbatim:
@@ -147,7 +187,7 @@ likely novel, or too niche for indexed search coverage."
 
 Suppress web research for a single run with `/develop-idea --no-web <idea>`.
 
-### 7. brain/ profile + goals cross-reference (personalization)
+### 8. brain/ profile + goals cross-reference (personalization)
 
 Read `$BRAIN/core/identity/profile.md` and `$BRAIN/core/identity/goals.md`.
 Extract: known languages/stack, stated working-style preferences, active goals
@@ -159,7 +199,7 @@ user already knows versus is actively trying to learn.
 If either file is sparse or placeholder content, say so plainly and keep that
 section generic rather than inventing calibration.
 
-### 8. What brain/ already knows (optional, cheap)
+### 9. What brain/ already knows (optional, cheap)
 
 ```bash
 grep -ril "<idea keywords>" "$BRAIN/knowledge/projects/" "$BRAIN/backlog/projects/" 2>/dev/null
@@ -169,11 +209,11 @@ Collects related existing projects/ideas (e.g. shared tech, overlapping scope
 with a sibling GANDALF agent). One grep pass — not a deep scan. If nothing
 found: "No related existing projects found in brain/."
 
-### 9. Synthesise the dossier
+### 10. Synthesise the dossier
 
 Compose the full document using the structure below. Do not invent facts —
 every claim must trace to the idea text/backlog item, web research (cited),
-`profile.md`/`goals.md`, or the brain/ grep in step 8.
+`profile.md`/`goals.md`, or the brain/ grep in step 9.
 
 ---
 
@@ -293,7 +333,7 @@ sparse, say so and keep this section generic rather than inventing calibration.>
 
 ---
 
-### 10. Privacy gate — confirm before writing
+### 11. Privacy gate — confirm before writing
 
 Before writing, show the user:
 
@@ -317,15 +357,15 @@ Change summary:
 Write this? [y / n / edit]
 ```
 
-- **y** → write (step 11).
+- **y** → write (step 12).
 - **n** → discard, stop.
 - **edit** → let the user correct content, re-show and ask again.
 
-### 11. Write
+### 12. Write
 
 Create `$BRAIN/knowledge/projects/` if it does not exist.
 
-**New file:** write the full dossier as synthesised in step 9.
+**New file:** write the full dossier as synthesised in step 10.
 
 **Update mode:** read the existing file; preserve all sections; merge new
 findings in place (§3 prior-art is the section most likely to need refreshing
@@ -334,9 +374,9 @@ on a re-run); append a new dated entry to `## Log`; bump `updated:`.
 **Mode B (promote from backlog):** also edit `$BRAIN/backlog/projects/<slug>.md`
 in place — `status: done`, `updated:` bumped, add `promoted_to:
 knowledge/projects/<slug>.md`. Do not delete or move the original file, and do
-not touch its body. Both writes are covered by the single gate in step 10.
+not touch its body. Both writes are covered by the single gate in step 11.
 
-### 12. Report
+### 13. Report
 
 ```
 ── Dossier complete ─────────────────────────────────────
@@ -354,7 +394,7 @@ Next: /develop-idea <slug> again to refresh research or move the
 
 ## Update mode & lifecycle
 
-On a re-run against an existing dossier (step 5, `kind: idea-dossier` match),
+On a re-run against an existing dossier (step 6, `kind: idea-dossier` match),
 after merging new findings, ask whether to move the project's own lifecycle
 forward:
 
@@ -385,7 +425,7 @@ sections in place:
    data — otherwise drop it.
 4. Keep `## Log` as-is and append the compaction entry, e.g.
    `<date> — Not pursuing (<short reason>). Dossier compacted.`
-5. Confirm the compaction in the privacy gate (step 10) the same as any other
+5. Confirm the compaction in the privacy gate (step 11) the same as any other
    write — show a diff-style summary, not the full new file, since it's a trim.
 
 ---
@@ -396,9 +436,14 @@ sections in place:
 - **`knowledge/projects/` holds two distinct content types.** Plain,
   hand-written reference pages for already-shipped projects (no `kind` field,
   typically `privacy: public`) coexist with this skill's researched dossiers
-  (`kind: idea-dossier`, always `privacy: private`). Step 5's collision check
+  (`kind: idea-dossier`, always `privacy: private`). Step 6's collision check
   exists specifically to keep the skill from ever overwriting the former.
   See `knowledge/projects/CLAUDE.md` for the full schema of both types.
+- **Scale check (step 3) is a real gate, not a formality.** Small, scoped
+  fixes/tuning on an existing system usually belong in `/idea`, not a full
+  dossier — confirmed by dogfooding: a ~3.5h n8n-automation tuning task was
+  initially over-fitted into a full 7-section dossier before this check
+  existed.
 - **Living document, not append-only** (except `## Log`, always append-only).
   Edit sections in place as knowledge grows.
 - **No invented facts.** Prior-art analysis from web research only; skill-growth
