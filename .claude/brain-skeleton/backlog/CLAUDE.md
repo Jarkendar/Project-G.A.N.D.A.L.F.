@@ -35,9 +35,15 @@ idea → active → done
 - `done` — completed; file stays in place (append-only)
 - `dropped` — abandoned; file stays in place
 
-Items do not move between subfolders when status changes. To promote a
-`done` item into permanent knowledge, use `/idea list` → promote action
-(copies to `knowledge/projects/`, marks original as promoted).
+Items do not move between subfolders when status changes. Two promotion paths
+into `knowledge/projects/`, both leaving the original file in place:
+
+- **`/idea list` → promote action** — raw copy, no research. Fine for a
+  `done` item not worth researching further.
+- **`/develop-idea <slug>`** — the richer path. Works on an item of any
+  status (not just `done`), and produces a researched dossier (feasibility,
+  prior art, execution scenario, personalized skill-growth assessment)
+  instead of a plain copy. See `.claude/skills/develop-idea/SKILL.md`.
 
 ## Subfolders
 
