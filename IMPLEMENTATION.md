@@ -4,7 +4,7 @@
 the execution path — *how* and *when*. README is the canon; this file is updated
 as work progresses without touching the canon.
 
-Last updated: 2026-09-13
+Last updated: 2026-09-18
 
 ---
 
@@ -512,8 +512,8 @@ reshuffle it.**
   average_cadence, average_speed, average_watts, calories, suffer_score,
   kilojoules, workout_type, synced_at)`. Written by `/daily` skill on every
   Strava activity match (INSERT OR REPLACE — idempotent on strava_id).
-  Read exclusively through G.I.M.L.I. (access monopoly rule, documented in
-  `brain/db/CLAUDE.md`). Auto-discovered by Gimli via `brain/db/*.db` glob —
+  Analysed exclusively through G.I.M.L.I. (owner/analytical access model,
+  documented in `brain/db/CLAUDE.md`). Auto-discovered by Gimli via `brain/db/*.db` glob —
   no configuration change needed. Enables: monthly/yearly distance totals,
   HR-zone trends, sport-type breakdowns, cross-period comparisons.
   Privacy: PRIVATE (same restriction as `smeagol.db`).
@@ -577,6 +577,7 @@ so they don't get lost.
 | ~~**SQLite for MVP**~~ | ~~Step 1~~ | **RESOLVED 2026-06-26.** Real `dev_tracker.db` from `dev_activity_deamon` repo as smoke-test fixture; GIMLI is source-agnostic (registry: `brain/db/*.db` ∪ `GIMLI_EXTRA_DBS`). Postgres deferred to Phase 2 / Step 8. |
 | ~~**Smeagol log destination**~~ | ~~Step 2~~ | **RESOLVED 2026-06-24.** JSONL, one file per day, in `brain/current/smeagol/`, written by a Stop hook. See Step 2 above. |
 | ~~**Samwise Mode 1 → Mode 2 threshold**~~ | ~~Step 3 / Step 9~~ | **RESOLVED 2026-07-03 — moot.** Mode 2 (semantic, via Bilbo's index) shipped directly since Bilbo already existed; there was no Mode-1-first phase to graduate from. Mode 1 (grep) survives only as Samwise's fallback when the index is unavailable. |
+| ~~**`brain/db/` access contract**~~ | ~~Step 4~~ | **RESOLVED 2026-09-18.** Gimli's "sole reader" monopoly was unworkable for operational databases (Faramir's dispatcher must ask "what is due now" of its own DB). Replaced by an owner model: each DB has one owner that writes (INSERT, idempotent upsert, state-column UPDATE; never DELETE) and runs fixed, pre-defined operational reads on its own DB; G.I.M.L.I. keeps the monopoly on analytical / ad-hoc SQL. External systems (n8n) never write — they notify the owner, which applies the change. → `brain/db/CLAUDE.md`, `.claude/agents/gimli.md`. |
 | **Phase 2 orchestration framework** | Step 7 | LangGraph vs LlamaIndex vs custom thin wrapper. Decided when the engine abstraction layer is built. |
 | **Log-analysis role** | Step 2+ | **Partially resolved 2026-07-01.** R.A.D.A.G.A.S.T. (Step 2.5) covers the *reporting/analysis* half generically (trends, anomalies, comparisons over any data handed to it) — it could analyze Smeagol's logs like any other input, once something feeds them to it. Still open: whether a dedicated FTS5 retrieval layer over Smeagol's logs (E3) is needed before that's useful, or Radagast + ad-hoc `brain/current/smeagol/` reads suffice. |
 | ~~**`brain/` privacy in MVP**~~ | ~~Step 1–3~~ | **RESOLVED 2026-06-09.** Private content may enter the Claude API context window in MVP. See § "Privacy in the Claude-API MVP". Tightened in Phase 2 (Step 7). |
