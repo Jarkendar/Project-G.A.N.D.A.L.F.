@@ -550,6 +550,21 @@ reshuffle it.**
   reshuffling the folder. → `.claude/skills/develop-idea/SKILL.md`,
   `.claude/brain-skeleton/knowledge/projects/CLAUDE.md`.
 
+- [x] **E11 — `practice-prep` / `practice-review` skills (2026-09-18).** A
+  prep/review loop for role-play practice with an external assistant (Gemini
+  Live): mock interviews, explain-to-a-junior and explain-to-business drills.
+  `practice-prep` (read-only) emits a paste-ready evaluator prompt — how to
+  judge and how to summarize — personalized from `knowledge/career/`
+  (`mock-interviews/`, `skills-matrix.md`, `interview-log.md`); the user
+  writes the role and goal. `practice-review` re-checks the transcript
+  independently (the sparring assistant's verdict is input, not ground truth),
+  writes a record to `knowledge/career/mock-interviews/` and gated row notes
+  to `skills-matrix.md` (never changes levels). Motivated by a session where
+  an unprompted Gemini praised answers containing factual errors. Structural
+  precedent: `english-prep` / `english-review`; language errors stay with
+  those. → `.claude/skills/practice-prep/SKILL.md`,
+  `.claude/skills/practice-review/SKILL.md`.
+
 ---
 
 ## Open decisions / parking lot
