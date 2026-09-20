@@ -60,14 +60,12 @@ Call it `$BRAIN`. If `$BRAIN` does not exist:
 - Stop.
 
 If `$BRAIN/current/daily/` does not exist:
-- Offer to create it (`mkdir` + copy `CLAUDE.md` from
-  `.claude/brain-skeleton/current/daily/CLAUDE.md` if present, else a minimal
-  one-line note). Proceed only after confirmation. (Normally `/init-brain`
-  validation mode scaffolds this automatically — this is a fallback.)
+- Offer to create it (`mkdir` + a minimal one-line `CLAUDE.md`). Proceed only
+  after confirmation. The folder's rules then live in brain/ only — edit them
+  there.
 
 If `$BRAIN/current/fitness/` does not exist:
-- Same fallback (`mkdir` + copy `CLAUDE.md` from
-  `.claude/brain-skeleton/current/fitness/CLAUDE.md`). Only needed the first
+- Same fallback (`mkdir` + a minimal one-line `CLAUDE.md`). Only needed the first
   time a sport-activity mention is detected (step 5b) — don't create it
   pre-emptively if today's note has no such mention.
 

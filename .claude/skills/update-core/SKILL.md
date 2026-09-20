@@ -155,6 +155,7 @@ After writing, print:
   the full privacy rules and the MVP exception in IMPLEMENTATION.md.
 - **Supersession is opt-in.** The default path is always edit-in-place. Archiving
   the previous version is offered only for substantial, history-worthy changes.
-- **File templates.** The canonical templates for all `core/` documents live in
-  `.claude/brain-skeleton/` in the G.A.N.D.A.L.F. repo. This skill no longer
+- **File templates.** The initial templates for `core/` living documents live in
+  `.claude/brain-skeleton/` in the G.A.N.D.A.L.F. repo (the rules in `CLAUDE.md`
+  files do not — those exist only in brain/). This skill no longer
   embeds them. To initialise a missing document, run `/init-brain` (validation mode).
