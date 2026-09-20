@@ -1,18 +1,13 @@
 ---
 name: develop-idea
 description: >-
-  Turn one raw personal project idea — pasted text (possibly pre-structured by
-  an n8n automation, format not guaranteed) or an existing
-  brain/backlog/projects/<slug>.md item — into a researched dossier in
-  brain/knowledge/projects/: feasibility assessment, web research on existing
-  solutions/prior art, a proposed execution scenario, future expansion ideas,
-  and a personalized skill-growth assessment calibrated against
-  core/identity/profile.md and goals.md. Use this skill when the user wants to
-  properly evaluate a project idea before committing to it, when promoting a
-  backlog idea into real planning (supersedes the raw-copy "promote" action in
-  `/idea list`), or when the user says "rozwiń pomysł", "rozwiń ten projekt",
-  "sprawdź czy to ma sens", "zrób dossier projektu", "obrobiony pomysł do
-  brain", or "czy to już ktoś zrobił" about a project idea.
+  Turn one raw project idea (pasted text or a brain/backlog/projects/ item) into
+  a researched dossier in brain/knowledge/projects/: feasibility, prior art from
+  web research, an execution scenario, expansion ideas, and a personal
+  skill-growth assessment. Use before committing to a project idea, when
+  promoting a backlog idea into real planning, or when the user says "rozwiń
+  pomysł", "rozwiń ten projekt", "sprawdź czy to ma sens", "zrób dossier
+  projektu", "obrobiony pomysł do brain", or "czy to już ktoś zrobił".
 ---
 
 # develop-idea

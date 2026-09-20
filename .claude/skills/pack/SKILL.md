@@ -1,18 +1,13 @@
 ---
 name: pack
 description: >-
-  Build a packing list for a specific trip from the item catalogue in
-  brain/knowledge/travel/packing/ and the per-person packing profiles in
-  brain/core/travel/packing/ — a pre-filled table with one column per traveller
-  for personal items, plus a separate section for shared items carried once.
-  Use this skill when packing for any trip (holiday, business delegation, city
-  break, mountains, festival, race), when a trip involves more than one person
-  and the list must account for their individual needs, when reviewing what was
-  actually used after coming back so the catalogue learns, when adding items
-  and conditions to the catalogue or to someone's packing profile, or whenever
-  the user says "co zabrać na <wyjazd>" / "spakuj mnie na" / "zrób listę na
-  wyjazd" / "lista rzeczy do zabrania" / "what should I take to" mid-conversation
-  without an explicit /pack invocation.
+  Build a packing list for a trip from the brain/ item catalogue and per-person
+  packing profiles — one column per traveller plus shared items carried once.
+  Use when packing for any trip (holiday, business, city break, mountains,
+  festival, race), after a trip to record what was actually used, when adding
+  items or conditions to the catalogue or a profile, or when the user says "co
+  zabrać na <wyjazd>" / "spakuj mnie na" / "zrób listę na wyjazd" / "lista
+  rzeczy do zabrania" / "what should I take to" without invoking /pack.
 ---
 
 # pack

@@ -1,51 +1,41 @@
 # CLAUDE.md — G.A.N.D.A.L.F. working context
 
-This file is loaded into every Claude Code session for this project. It captures
-the project vision, naming conventions, design rules, and the collaboration
-agreement between this codebase and me (Claude). **This is not the vision document
-— [README.md](README.md) is. This file is the operating manual for how we work.**
+The operating manual for how we work in this repo — loaded into every session.
+The vision, motivation and roadmap live in **[README.md](README.md)**; the
+execution path, step status and open decisions in
+**[IMPLEMENTATION.md](IMPLEMENTATION.md)**.
 
 ---
 
 ## Project snapshot
 
-**G.A.N.D.A.L.F.** is a local-first, multi-agent personal AI assistant — an
-attempt at a personal J.A.R.V.I.S., running on a Raspberry Pi 5.
+**G.A.N.D.A.L.F.** is a local-first, multi-agent personal AI assistant (a
+personal J.A.R.V.I.S.) on a Raspberry Pi 5: a **router + specialised
+sub-agents**, with **skills** for higher-order workflows.
 
-The system is built as a **router + specialised sub-agents** pattern, with a
-**skills layer** for higher-order workflows that orchestrate multiple agents.
-
-**Project status: concept stage. Nothing is implemented yet.**
-
-The MVP is native to Claude Code: Gandalf as a CC skill, agents as CC sub-agents,
-engine = Claude API. The local-first / Ollama goal is not abandoned — it is
-*deferred*. Getting the **shape right** (skills, agents, KB, routing) comes before
-getting the engine right; engines are interchangeable, architecture is not.
-
-Full vision, motivation, architecture diagrams, and roadmap: **[README.md](README.md)**.
+**Status: MVP running on Claude Code** — Gandalf as a CC skill, agents as CC
+sub-agents, engine = Claude API. Local-first (Ollama) is *deferred*, not
+abandoned: shape first, engine later. For what is built and what is next, read
+IMPLEMENTATION.md — don't infer it from this file.
 
 ---
 
 ## How we communicate
 
 - **Chat:** Polish.
-- **Repo artefacts** (code, commits, documentation, PR descriptions): English —
-  consistent with README.
-- **Tone:** direct and factual. No excessive affirmations; no padding. If something
-  is unclear, I ask rather than assume. If I disagree with a direction, I say so
-  and give a reason, then follow the decision.
+- **Repo artefacts** (code, commits, docs, PR descriptions): English.
+- **Tone:** direct and factual, no padding. If something is unclear, I ask. If I
+  disagree, I say so with a reason, then follow the decision.
 
 ---
 
 ## Working agreement — git & autonomy
 
-- I work on a **branch off `main`**. I never work directly on `main`.
-- I show you the diff before asking to commit.
-- **Commit and push happen only after your explicit approval.** I never commit or
-  push on my own initiative.
-- Commit style follows **Conventional Commits**, consistent with the repo history:
-  `feat(<scope>): ...`, `docs: ...`, `fix: ...`.
-- Every commit I author ends with:
+- I work on a **branch off `main`**, never directly on `main`.
+- I show the diff before asking to commit.
+- **Commit and push only after explicit approval.**
+- **Conventional Commits:** `feat(<scope>): ...`, `docs: ...`, `fix: ...`.
+- Every commit I author ends with exactly this trailer (no session links):
   ```
   Co-Authored-By: Claude <noreply@anthropic.com>
   ```
@@ -54,36 +44,30 @@ Full vision, motivation, architecture diagrams, and roadmap: **[README.md](READM
 
 ## Naming convention
 
-All components follow `X.Y.Z.` acronym format with Tolkien references. The
-convention has two tiers:
+All components use the `X.Y.Z.` acronym format with Tolkien references:
 
 | Layer | Named after | Rule |
 |---|---|---|
 | **Agents** | Single Tolkien characters | Acronym = role; character = disposition |
 | **Skills** | Tolkien events or groups | A skill is plural — *White Council*, *Last Alliance* |
 
-The acronym must describe the component's **role**. The character must reflect its
-**disposition**. If a name feels forced, the role needs rethinking — not the name.
+If a name feels forced, the role needs rethinking — not the name. Full acronym
+expansions: README.md § agents, and each agent's file in `.claude/agents/`.
 
-### Current agents (exist in design)
+| Agent | Role | Where |
+|---|---|---|
+| G.A.N.D.A.L.F. | orchestrator / router | `.claude/skills/gandalf/` |
+| G.I.M.L.I. | SQL — analytical queries over `brain/db/` | `.claude/agents/gimli.md` |
+| S.A.M.W.I.S.E. | semantic search over Bilbo's index | `.claude/agents/samwise.md` |
+| R.A.D.A.G.A.S.T. | reporting & visualization | `.claude/agents/radagast.md` |
+| B.I.L.B.O. | embedding indexer (script, not reactive) | `.claude/scripts/bilbo/` |
+| S.M.E.A.G.O.L. | query logger (Stop hook) | `.claude/hooks/smeagol/` |
+| F.A.R.A.M.I.R. | calendar, reminders, delegation | planned — Step 4 |
+| L.E.G.O.L.A.S. | web search | planned — Step 5 |
+| T.R.E.E.B.E.A.R.D. | archivist | planned — Step 10 |
 
-| Name | Acronym |
-|---|---|
-| **G.A.N.D.A.L.F.** (orchestrator) | *Generative Agent Navigating Databases And Local Files* |
-| **S.A.M.W.I.S.E.** (semantic search) | *SQL And Markdown Wading Into Semantic Embeddings* |
-| **G.I.M.L.I.** (SQL agent) | *Generative Intelligence Mining Local Information* |
-| **L.E.G.O.L.A.S.** (web search) | *Local Engine Generating Outputs, Looking At Search* |
-| **B.I.L.B.O.** (indexer) | *Bot Indexing Local Binary Objects* |
-| **F.A.R.A.M.I.R.** (calendar & delegation) | *Forwarding Actions, Reminders And Meetings, Invoking Repositories* |
-| **S.M.E.A.G.O.L.** (query logger) | *Storage Module Evaluating All Gandalf's Operational Logs* |
-| **T.R.E.E.B.E.A.R.D.** (archivist) | *Temporal Repository Engine Evaluating, Archiving And Reducing Data* |
-| **R.A.D.A.G.A.S.T.** (reporting & visualization) | *Reporting Agent Delivering Analysis, Graphs, Assessments, Summaries & Trends* |
-
-### Proposed agents (sketches, not commitments)
-
-G.A.L.A.D.R.I.E.L. (personal advisor), L.I.N.D.I.R. (content drafting),
-H.A.L.D.I.R. (outreach/lead research). These names are placeholders to show the
-convention extends cleanly — none are greenlit until Smeagol's logs reveal the gap.
+Proposed, not greenlit: G.A.L.A.D.R.I.E.L., L.I.N.D.I.R., H.A.L.D.I.R. — only
+when Smeagol's logs reveal the gap.
 
 ---
 
@@ -91,156 +75,85 @@ convention extends cleanly — none are greenlit until Smeagol's logs reveal the
 
 ```
 User → G.A.N.D.A.L.F. (orchestrator)
-         ├─ routes to → Skill (higher-order workflow)
-         │                └─ orchestrates → Agent(s)
+         ├─ routes to → Skill (higher-order workflow) → orchestrates Agent(s)
          ├─ routes to → Agent (single-responsibility specialist)
          └─ always logs via → S.M.E.A.G.O.L.
-
-Engine layer (under all agents):
-  MVP:     Claude API via Claude Code
-  Phase 2: abstraction layer + local models (Ollama) — model-portable
+Engine: MVP = Claude API via Claude Code; Phase 2 = abstraction + Ollama
 ```
 
-The architecture is intentionally open to multiple orchestrators (Gandalf is the
-first). Skills orchestrate agents; agents do not call other agents directly.
+Skills orchestrate agents; agents do not call other agents directly. Multiple
+orchestrators are allowed (Gandalf is the first).
 
 ---
 
 ## Ecosystem & where things live
 
-This repo hosts **orchestrator and agent code** only. It is one node in a
-constellation of personal projects connected by plain files, git, n8n, and HTTP.
+This repo holds orchestrator and agent code only.
 
 | Repo | Role |
 |---|---|
-| **G.A.N.D.A.L.F.** *(this repo)* | Orchestrator & agent code. CC skill/agent definitions in `.claude/`. |
-| **`brain/`** *(private repo)* | The knowledge base — markdown + selective SQLite. **I do not create or modify this repo from here.** |
-| `prompt-vault` | Backup/export destination for skills. Direction: this repo → prompt-vault (new skills exported there, not sourced from there). |
-| `dev-tracker` | SQLite source for G.I.M.L.I. |
+| **G.A.N.D.A.L.F.** *(this repo)* | Orchestrator & agents. CC skills/agents/hooks/scripts in `.claude/`, launcher in `bin/`, ingestion utilities in `data_providers/`. |
+| **`brain/`** *(private, sibling dir)* | The knowledge base — markdown + selective SQLite. |
+| `prompt-vault` | Export destination for skills (this repo → vault, never the reverse). |
+| `dev-tracker` | SQLite source for G.I.M.L.I. (via `GIMLI_EXTRA_DBS`). |
 | `agentic-sdlc-forge` | External executor for dev tasks, invoked by F.A.R.A.M.I.R. |
-| `pi-automate` | Homelab substrate — Docker Compose, n8n flows, systemd units. |
+| `pi-automate` | Homelab substrate — Docker Compose, n8n, systemd. |
 
-**In this repo right now:**
-
-```
-data_providers/       # data ingestion utilities (inputs to the system)
-  chats/              # browser bookmarklets for exporting AI chat transcripts
-CLAUDE.md             # this file
-IMPLEMENTATION.md     # executable implementation path
-README.md             # canonical vision document (do not edit without being asked)
-```
-
-The on-disk layout, workspace pattern, and meta-repo topology will be covered
-in a planned `ARCHITECTURE.md` — written by the project owner, not by me.
+Other docs: `USE-CASES.md` (owner's scenarios). `ARCHITECTURE.md` is planned
+and owner-authored — not written by me.
 
 ---
 
 ## Core design principles
 
-These principles are extracted from README.md. Every proposal I make should
-be consistent with them.
+Every proposal must be consistent with these (full reasoning in README.md):
 
-1. **Shape before engine.** Get the architecture right (routing, agent split, KB
-   structure). Engines — Claude API, Ollama, hosted OSS — are a config change.
-2. **Privacy is folder-level, not binary.** In the `brain/` repo: `core/` and
-   `current/` are private (local-only models only); `knowledge/` is public. This
-   split is **architectural**, not a convention to honour when convenient.
-   Private folder contents never go to external APIs. *(Phase 2 target — see
-   IMPLEMENTATION.md § "Privacy in the Claude-API MVP" for the current exception.)*
-3. **Storage by question shape.** Markdown by default. SQL when the question is
-   *how much / when / count* — i.e. when you'd write `GROUP BY`. Not the other
-   way around.
-4. **Not everything deserves embeddings.** Full PDFs and reference books produce
-   noisy retrieval. Cold blobs + a thin manifest summary is often the right answer.
-5. **Append-only with supersession.** Updates never delete. `superseded_by` pointer
-   replaces the old fact in default retrieval; Treebeard can follow the chain back.
-6. **Evolutionary schema.** The initial structure will be wrong in unexpected ways.
-   Easy to refactor > comprehensive upfront design.
-7. **Incremental build.** One agent at a time. Validate the router pattern before
-   adding complexity. Smeagol's logs reshuffle the order.
+1. **Shape before engine** — routing, agent split and KB structure first; engines are config.
+2. **Privacy is folder-level** — `brain/core/` and `current/` are private (local models only in Phase 2); `knowledge/` is public. Architectural, not a convention.
+3. **Storage by question shape** — markdown by default; SQL when you'd write `GROUP BY`.
+4. **Not everything deserves embeddings** — cold blobs + a thin manifest summary is often right.
+5. **Append-only with supersession** — never delete; `superseded_by` replaces in default retrieval.
+6. **Evolutionary schema** — easy to refactor beats comprehensive upfront design.
+7. **Incremental build** — one agent at a time; Smeagol's logs reshuffle the order.
 
 ---
 
 ## What I can and can't do
 
-### I can
+**I can:** read and search this repo; propose architecture, agents, skills,
+code, tests, docs; edit files on a branch **after we've agreed on scope**;
+write CC definitions in `.claude/`; update IMPLEMENTATION.md as work progresses.
 
-- Read and search any file in this repo.
-- Propose architecture, agents, skills, code, tests, documentation.
-- Create or edit files in this repo on a branch, **after we've agreed on scope**.
-- Write Claude Code skill/sub-agent definitions in `.claude/`.
-- Update `IMPLEMENTATION.md` as work progresses.
+**Not without explicit approval:** commit or push; edit README.md; create new
+directory hierarchies or lock in library choices; install dependencies; make
+outbound network calls; anything irreversible.
 
-### Not without your explicit approval
-
-- Commit or push anything.
-- Edit `README.md`.
-- Create new directory hierarchies or lock in library choices permanently.
-- Install dependencies.
-- Make outbound network calls.
-- Any irreversible action.
-
-### Never
-
-- Curate content or manage git history in the `brain/` repo outside of sanctioned
-  writes (scaffolding via `/init-brain`, ingest via skills — these are explicitly
-  permitted; unilateral edits to owner-authored content are not).
-- Send contents of private `brain/` folders (`core/`, `current/`) to external
-  APIs. *(This is the Phase 2 target. MVP exception: the Claude-API engine may
-  receive private content in its context window — consciously accepted, documented
-  in IMPLEMENTATION.md § "Privacy in the Claude-API MVP".)*
+**Never:**
+- Curate content or manage git history in `brain/` outside sanctioned writes
+  (`/init-brain` scaffolding, skill ingest) — no unilateral edits to
+  owner-authored content.
+- Send private `brain/` content (`core/`, `current/`) to external APIs.
+  *MVP exception: the Claude-API engine itself may see it — IMPLEMENTATION.md
+  § "Privacy in the Claude-API MVP".*
 
 ---
 
 ## Brain access
 
-At the start of every session, read `.claude/gandalf.env` and resolve:
-- `BRAIN_PATH` — path to the `brain/` repo (typically `../brain`, sibling directory).
-- `GIMLI_EXTRA_DBS` — comma-separated paths to SQLite databases outside `brain/db/`
-  (e.g. the dev-activity tracker). Used by G.I.M.L.I. as part of its database registry:
-  `brain/db/*.db` ∪ `GIMLI_EXTRA_DBS`. If not set, Gimli works with `brain/db/` only.
-
-**Default behaviour:** when answering questions in conversation — not just when running
-skills — I treat `brain/` as an available knowledge source. I search it proactively
-when the question is likely answered by personal data (career, health, goals, context).
-
-**How I search:** `grep -r` for keywords, then `Read` on matching files. No embeddings
-at this stage — plain text search only.
-
-**Privacy rule applies here too:** I may read `core/` and `current/` within this session's
-context window (MVP exception, documented above), but I never send those contents to
-external APIs outside of the Claude-API engine itself.
-
-If `BRAIN_PATH` is not set or the path does not exist, I note it once and continue
-without brain access — I do not block on it.
-
----
-
-## Personal backlog
-
-`brain/backlog/` holds personal ideas, notes, and to-dos across all life domains
-(projects, activities, check, create, remember, notes). One file per idea;
-PRIVATE; append-only (done/dropped items stay in place).
-
-Use the `/idea` skill to capture or review:
-- `/idea <text>` — save a new item (proposes title, domain, effort, tags; gate before write).
-- `/idea list` — show backlog grouped by domain; change status; promote done items.
-- **Inline capture:** whenever the user says "save as idea", "add to backlog",
-  "dorzuć do backlogu", "zapisz to jako pomysł", or similar during **any** conversation,
-  run the capture flow without an explicit `/idea` invocation.
+- Read `.claude/gandalf.env` to resolve `BRAIN_PATH` (usually `../brain`) and
+  `GIMLI_EXTRA_DBS` (extra SQLite sources for Gimli). If `BRAIN_PATH` is
+  missing, note it once and continue without brain access.
+- Treat `brain/` as a knowledge source in **any** conversation, not only in
+  skills — search it proactively when the question touches personal data.
+- **How to search:** open-ended questions → S.A.M.W.I.S.E. (semantic index);
+  quantitative ones → G.I.M.L.I.; exact names/keywords → `grep` + `Read`.
+- Each `brain/` folder has its own `CLAUDE.md` with its rules — read it before
+  writing there.
+- Ideas and to-dos go to `brain/backlog/` via `/idea`, including inline requests
+  ("dorzuć do backlogu", "zapisz jako pomysł").
 
 ---
 
 ## When in doubt
 
-Ask before assuming. Reuse existing patterns. Stay true to the README canon. If a
-proposed name feels forced, rethink the role.
-
----
-
-## Companion docs
-
-- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** — the executable implementation path;
-  current step, criteria for "done", open decisions. Updated as work progresses.
-- **`ARCHITECTURE.md`** (planned, owner-authored) — on-disk layout, workspace
-  pattern, how the ecosystem repos connect physically.
+Ask before assuming. Reuse existing patterns. Stay true to the README canon.
