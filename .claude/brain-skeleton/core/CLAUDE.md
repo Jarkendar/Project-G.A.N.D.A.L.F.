@@ -30,11 +30,12 @@ Supersession (`superseded_by:`) is written by T.R.E.E.B.E.A.R.D. only.
 |---|---|
 | `identity/profile.md` | Who I am — name, location, role, languages, background, preferences |
 | `identity/goals.md` | Goals and horizons — long-term, current quarter, someday/maybe |
-| `identity/contacts.md` | People, relationships, context |
-| `health/health.md`    | Medical state — conditions, allergies, meds, vaccinations, habits |
-| `health/body.md`      | Measurable body parameters — static stats + measurement log |
-| `health/fitness.md`   | Training equipment, wearables & measurement devices |
-| `finance/finance.md`  | Financial overview and notes |
+| `contacts/contacts.md` | People — role index (one row per person; fast grep) |
+| `contacts/<slug>.md`   | Per-person detail — interests, notes, dates |
+| `health/health.md`   | Medical state — conditions, allergies, meds, vaccinations, habits |
+| `health/body.md`     | Measurable body parameters — static stats + measurement log |
+| `health/fitness.md`  | Training equipment, wearables & measurement devices |
+| `finance/finance.md` | Financial overview and notes |
 
 ## Writers
 

@@ -11,8 +11,10 @@ unstructured data across privacy levels. This repo is data-only — no executabl
 | `core/` | PRIVATE | Permanent personal facts — never to external APIs |
 | `current/` | PRIVATE | Working memory — inbox, logs, active context |
 | `knowledge/` | PUBLIC | Curated knowledge base — may reach Claude API |
+| `conversations/` | PRIVATE | Exported AI conversation transcripts |
 | `archive/` | mixed | Superseded entries — follow superseded_by chain |
 | `db/` | mixed | SQLite databases — privacy per database |
+| `backlog/` | PRIVATE | Personal idea and to-do capture — one file per idea |
 | `_meta/` | PRIVATE | Manifest, queue, schema — structural metadata |
 
 ## Global rules

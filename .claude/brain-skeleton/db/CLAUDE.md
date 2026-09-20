@@ -10,7 +10,7 @@ Primary source for G.I.M.L.I. structured queries ("how much / when / count").
 | Database | Privacy | Owner |
 |---|---|---|
 | `smeagol.db` | PRIVATE | S.M.E.A.G.O.L. |
-| `dev_tracker.db` | PUBLIC | `dev_activity_deamon` (external repo) |
+| `fitness.db` | PRIVATE | `/daily` skill |
 
 Add rows to this table as new databases are introduced.
 
@@ -48,9 +48,20 @@ in `GIMLI_EXTRA_DBS` (set in `.claude/gandalf.env`). The full registry is:
 `brain/db/*.db` ∪ `GIMLI_EXTRA_DBS`. All sources are treated equally — none is
 special-cased.
 
-`dev_tracker.db` is currently an *external* database (lives in the `dev_activity_deamon`
-repo on disk, read from there via `GIMLI_EXTRA_DBS`). It is listed in this table for
-privacy tracking; it is **not** physically copied into `brain/db/`.
+External databases reached through `GIMLI_EXTRA_DBS` are listed in this table for
+privacy tracking only; they are **not** physically copied into `brain/db/`.
 
 Always check the database's privacy level before including query results in API context.
 `smeagol.db` is PRIVATE — results stay local.
+`fitness.db` is PRIVATE — but see MVP exception below.
+
+## MVP exception (Claude-API engine)
+
+Documented in `Project-G.A.N.D.A.L.F./IMPLEMENTATION.md § "Privacy in the Claude-API MVP"`:
+the Claude-API engine may receive PRIVATE content in its context window — consciously
+accepted until Phase 2 (local models / Ollama). This applies to `fitness.db` and any
+other PRIVATE database when the **user explicitly requests** an analysis in the session.
+
+**Rule for G.I.M.L.I.:** when the user explicitly asks for a query against a PRIVATE
+database, include the results in the response. Do NOT silently block the query — inform
+the user of the privacy classification, then proceed under the MVP exception.

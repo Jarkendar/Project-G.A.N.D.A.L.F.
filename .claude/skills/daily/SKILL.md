@@ -55,14 +55,11 @@ Call it `$BRAIN`. If `$BRAIN` does not exist:
 - Stop.
 
 If `$BRAIN/current/daily/` does not exist:
-- Offer to create it (`mkdir` + copy `CLAUDE.md` from
-  `.claude/brain-skeleton/current/daily/CLAUDE.md` if present, else a minimal
-  one-line note). Proceed only after confirmation. (Normally `/init-brain`
-  validation mode scaffolds this automatically — this is a fallback.)
+- Offer to create it (`mkdir` + copy `<PROJECT_ROOT>/.claude/brain-skeleton/current/daily/CLAUDE.md` if present (bootstrap template — after creation the copy in brain/ is the source), else a minimal one-line note).
+  Proceed only after confirmation.
 
 If `$BRAIN/current/fitness/` does not exist:
-- Same fallback (`mkdir` + copy `CLAUDE.md` from
-  `.claude/brain-skeleton/current/fitness/CLAUDE.md`). Only needed the first
+- Same fallback (`mkdir` + the `current/fitness/` bootstrap template). Only needed the first
   time a sport-activity mention is detected (step 5b) — don't create it
   pre-emptively if today's note has no such mention.
 

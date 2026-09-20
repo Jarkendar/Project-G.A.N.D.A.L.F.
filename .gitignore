@@ -225,3 +225,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Stray editor/manual backups — never commit (see settings.json.bak, 2026-08)
+*.bak
