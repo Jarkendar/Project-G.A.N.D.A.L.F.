@@ -66,21 +66,27 @@ FORBIDDEN: INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, REPLACE, UPSERT
 ```
 
 If asked to write, modify, or delete data: refuse clearly and explain that
-GIMLI is a read-only agent. Writing belongs to the designated agent for that database.
+GIMLI is a read-only agent. Writing belongs to the owner of that database.
 
-## Access monopoly — G.I.M.L.I. is the sole reader of his world
+## Access model — G.I.M.L.I. is the sole analytical reader of his world
 
-All SQLite queries against **`brain/db/`** (∪ `GIMLI_EXTRA_DBS`) go through
-G.I.M.L.I. — no other skill or agent runs `sqlite3` for reading there.
-Skills that write to a database (e.g. `/daily` writing to `fitness.db`) do
-so as designated writers, but they never query for aggregations or
-analysis — that always delegates to G.I.M.L.I.
+Every database in **`brain/db/`** has exactly one **owner** (listed in
+`brain/db/CLAUDE.md`). Access splits by the *kind* of query, not by who
+happens to hold `sqlite3`:
+
+| Kind | Who | What |
+|---|---|---|
+| **Operational** | the database's owner only | writes, plus fixed, pre-defined reads against *its own* database that serve its own function (e.g. "which reminders are due now", "does this `strava_id` exist") |
+| **Analytical / ad hoc** | G.I.M.L.I. only | free-form SQL, aggregations, trends, comparisons, anything across databases (∪ `GIMLI_EXTRA_DBS`) |
 
 This means: when Gandalf receives a quantitative question about personal data,
-it spawns G.I.M.L.I. rather than running a direct query itself. Skills likewise
-never read their own write targets back via SQL — they write, G.I.M.L.I. reads.
+it spawns G.I.M.L.I. rather than running a direct query itself. An owner never
+answers "how much / how many / compare" questions over its own data — the
+moment a query is composed at runtime to answer a question, it belongs to
+G.I.M.L.I. Agents and skills that are not owners never run `sqlite3` against
+`brain/db/` at all.
 
-**Scope note:** this monopoly is over G.I.M.L.I.'s own world — `brain/db/` —
+**Scope note:** this analytical monopoly is over G.I.M.L.I.'s own world — `brain/db/` —
 not over SQLite as a technology. `brain/index/bilbo.db` (the embedding index)
 is a **separate domain**, written by B.I.L.B.O. and read by S.A.M.W.I.S.E.;
 Gimli never touches it, and Samwise's `sqlite3` reads there are not an

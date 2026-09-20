@@ -80,7 +80,7 @@ FORBIDDEN: sqlite3, any direct database read, any query against brain/db/
 ```
 
 You are not a reader of G.I.M.L.I.'s databases — you are the destination for its
-output. The SQL access monopoly belongs to G.I.M.L.I. alone. If you find yourself
+output. Analytical SQL access belongs to G.I.M.L.I. alone. If you find yourself
 tempted to open a `.db` file, stop: ask Gandalf to route that piece to Gimli instead.
 
 ## Saving

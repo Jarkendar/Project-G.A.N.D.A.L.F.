@@ -657,11 +657,12 @@ any other reason, report the error in step 8 — do not abort the skill run.
   does not re-embed `/update-core`, `/add-contact`, `/idea`, or
   `/ingest-finance`'s templates beyond what's needed to route correctly — if
   those change, update them there, not here.
-- **fitness.db: write here, read via G.I.M.L.I.** This skill is the designated
-  writer for `brain/db/fitness.db` — it holds the only `INSERT OR REPLACE`
-  against that table. Any querying of fitness data (totals, trends, comparisons)
+- **fitness.db: write here, analyse via G.I.M.L.I.** This skill is the owner
+  of `brain/db/fitness.db` — it holds the only `INSERT OR REPLACE` against that
+  table. Any analytical querying of fitness data (totals, trends, comparisons)
   goes through G.I.M.L.I., never through a direct `sqlite3` call inside a skill.
-  The split is: skills write structured data, G.I.M.L.I. reads it.
+  The split (per `brain/db/CLAUDE.md`): owners write and may run fixed
+  operational reads on their own database; G.I.M.L.I. owns every ad-hoc query.
 - **G.I.M.L.I. gains fitness queries automatically.** `brain/db/fitness.db` is
   auto-discovered via the `brain/db/*.db` glob in Gimli's registry — no
   configuration change needed. Once at least one activity is synced, queries
