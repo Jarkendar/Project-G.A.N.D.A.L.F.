@@ -1,4 +1,4 @@
-# brain-rules — making brain/'s CLAUDE.md files visible
+# brain-instruction-sync — pulling brain/ and making its CLAUDE.md files visible
 
 `brain/` describes itself: every folder's rules (privacy, schema, naming,
 writers) live in that folder's `CLAUDE.md`, **and only there**. Other tools
@@ -6,8 +6,13 @@ working inside `brain/` read them directly.
 
 Claude Code sessions of *this* project do not. `brain/` is a sibling
 directory, not part of the project tree, so Claude Code never loads its
-`CLAUDE.md` files by itself. `inject.py` closes that gap by handing the rules
+`CLAUDE.md` files by itself. `sync.py` closes that gap by handing the rules
 to the session through hooks. It never copies them anywhere.
+
+It also pulls both repos on session start. Pull and injection live in **one
+script** on purpose: the rules a session receives must come from the brain/ it
+just pulled, never from a stale one. Two hooks in the same `SessionStart` array
+could not promise that order.
 
 ## Why a hook (verified 2026-09-18 on Claude Code 2.1.276)
 
@@ -27,7 +32,7 @@ session started in this directory: interactive, Remote Control,
 
 | Event | Matcher | Injects |
 |---|---|---|
-| `SessionStart` (startup, resume, `/clear`, compaction) | — | resolved `BRAIN_PATH` + `brain/CLAUDE.md` + a note about how folder rules arrive |
+| `SessionStart` (startup, resume, `/clear`, compaction) | — | **first** `git pull --ff-only` on gandalf and brain/, **then** resolved `BRAIN_PATH` + `brain/CLAUDE.md` + a note about how folder rules arrive. The pull result is reported in the injected context |
 | `PostToolUse` | `Read\|Edit\|Glob\|Grep` | `CLAUDE.md` chain from the brain/ root down to the touched folder |
 | `PreToolUse` | `Write` | same chain for the target folder of a new file |
 
@@ -36,6 +41,10 @@ session started in this directory: interactive, Remote Control,
   `SessionStart`, so after `/clear` or compaction the rules come back.
 - `BRAIN_PATH` is read from `.claude/gandalf.env`. If it is missing or the
   directory does not exist, the hook does nothing.
+- The pull is **fast-forward only** and guarded by `$TMPDIR/gandalf-sync.lock`,
+  so parallel sessions do not race. A diverged branch, a dirty tree or no
+  network is reported as one line and otherwise ignored — the session still
+  starts, and the rules still get injected from whatever is on disk.
 - Any error is swallowed (exit 0). The hook never blocks a tool call or a
   session.
 
@@ -52,6 +61,9 @@ session started in this directory: interactive, Remote Control,
   earlier `Read`.
 - **Token cost:** root rules on every session start, plus each folder's rules
   once per session on first touch.
+- **The pull costs session-start latency.** Two `git pull`s run before the first
+  prompt; each is capped at 20 s and the hook at 45 s. Offline, the pulls fail
+  fast and the session starts anyway.
 
 ## What to do when…
 
@@ -67,9 +79,9 @@ session started in this directory: interactive, Remote Control,
 
   ```bash
   echo '{"hook_event_name":"SessionStart","session_id":"debug"}' \
-    | CLAUDE_PROJECT_DIR="$PWD" .claude/hooks/brain-rules/inject.py
+    | CLAUDE_PROJECT_DIR="$PWD" .claude/hooks/brain-instruction-sync/sync.py
   echo '{"hook_event_name":"PostToolUse","session_id":"debug","tool_input":{"file_path":"../brain/db/CLAUDE.md"}}' \
-    | CLAUDE_PROJECT_DIR="$PWD" .claude/hooks/brain-rules/inject.py
+    | CLAUDE_PROJECT_DIR="$PWD" .claude/hooks/brain-instruction-sync/sync.py
   ```
 
   No output means nothing new to inject (already seen in this session, a path

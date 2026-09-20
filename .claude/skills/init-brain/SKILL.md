@@ -133,7 +133,7 @@ located), and `$BRAIN`'s location is already re-resolved per machine via
 - **Rules: brain/ is the source, the skeleton holds bootstrap copies.** Every
   `CLAUDE.md` and `_meta/schema.md` is authored in `brain/` — brain/ describes
   itself, and other tools working inside brain/ rely on that. Sessions of this
-  project see those rules through the `.claude/hooks/brain-rules/inject.py` hook
+  project see those rules through the `.claude/hooks/brain-instruction-sync/sync.py` hook
   (root rules at session start, folder rules on first touch), never from the
   skeleton. The skeleton's copies exist for one purpose: giving a **newly
   created** brain/ a working set of rules. They are generic (no personal
