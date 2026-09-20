@@ -1,18 +1,13 @@
 ---
 name: daily
 description: >-
-  Process a free-form daily note covering any domain (health, finance, career,
-  projects, ideas, observations) and route each item into brain/, delegating to
-  the skill that already owns that target (update-core, add-contact, idea,
-  ingest-finance) while maintaining a lightweight, append-only daily journal.
-  A mention of a sport activity (run, ride, swim, etc.) triggers a live lookup
-  via the Strava MCP, logged to a parallel monthly/yearly fitness digest.
-  Mentions of visited places (restaurants, bars, attractions, cities) route to
-  knowledge/places/; attended events (concerts, races, airshows, festivals,
-  trips, kayak trips) route to knowledge/events/. Use this skill when capturing
-  an end-of-day note, processing a note saved to a file, or re-running for a
-  day already processed to merge in new facts without duplicating the day's
-  journal entry.
+  Process a free-form daily note (any domain) and route each item into brain/,
+  delegating to the skill that owns the target (update-core, add-contact, idea,
+  ingest-finance) and keeping an append-only daily journal. Sport activities
+  trigger a Strava lookup; visited places go to knowledge/places/, attended
+  events to knowledge/events/. Use when capturing an end-of-day note,
+  processing a note saved to a file, or re-running a processed day to merge in
+  new facts without duplicating its entry.
 ---
 
 # daily

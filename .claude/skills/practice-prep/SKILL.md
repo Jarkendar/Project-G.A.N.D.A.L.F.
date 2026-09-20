@@ -1,18 +1,14 @@
 ---
 name: practice-prep
 description: >-
-  Read-only generator of a paste-ready evaluator prompt for a practice
-  conversation with another assistant (Gemini Live or similar) — tells the
-  sparring partner how to judge and how to summarize, personalized with the
-  user's recorded weak spots from brain/knowledge/career/ (skills-matrix,
-  mock-interviews, interview-log) and, for English sessions, from
-  knowledge/language/english.md. The user writes the role and goal of the
-  conversation themselves; this skill supplies only the evaluation and
-  summary sections. Writes nothing. Use this skill before a mock interview,
-  an explain-to-a-junior drill, an explain-to-business drill, or any
-  role-play practice session on a topic being learned, or when the user asks
-  for a practice prompt, a starter prompt for Gemini, or to prepare a
-  sparring session.
+  Read-only: generate a paste-ready evaluator prompt for a practice
+  conversation with another assistant (Gemini Live or similar) — how to judge
+  and summarize, personalized with recorded weak spots from brain/ (career
+  records; English log for English sessions). The user writes the role and
+  goal; this supplies only evaluation and summary. Use before a mock
+  interview, an explain-to-a-junior or explain-to-business drill, any role-play
+  practice on a topic being learned, or when asked for a practice/starter
+  prompt for Gemini or to prepare a sparring session.
 ---
 
 # practice-prep
