@@ -76,11 +76,24 @@ session started in this directory: interactive, Remote Control,
   outside brain/, or an unresolved `BRAIN_PATH`). Delete
   `$TMPDIR/gandalf-brain-rules-debug.json` to repeat.
 
-## Not done yet: scaffolding a new brain/ with rules
+## The bootstrap copies in the skeleton
 
-`/init-brain` creation mode now builds only the data structure. A fresh brain/
-starts without any `CLAUDE.md`. This does not matter while there is one brain/
-(a new machine clones the brain/ repo, rules included). It matters once someone
-else wants to start from this public repo. See IMPLEMENTATION.md, parking lot
-"brain/ rules — scaffolding a new brain/", for the design worked out when this
-was deferred.
+`.claude/brain-skeleton/` holds a copy of every rule file. Those copies exist
+**only to create a brain/ that does not exist yet** — `/init-brain` creation
+mode, and `/daily`, `/idea`, `/english-review` for folders they create later.
+Nothing reads them afterwards: at runtime this hook always serves the file from
+brain/.
+
+So the two setup paths both work: attach to an existing brain/ (rules come from
+there, via this hook) or create one from scratch (rules come from the skeleton,
+then brain/ owns them).
+
+Consequences to keep in mind:
+
+- The bootstrap copies are **generic** — no personal examples, no
+  installation-specific databases. Keep them that way: this repo is public.
+- They may lag behind brain/. That only makes a *newly created* brain/ slightly
+  stale; it can never change how a live brain/ behaves.
+- Editing a bootstrap copy does **not** change your brain/. Edit the file in
+  brain/, and refresh the bootstrap copy only if a new brain/ should start with
+  that change.

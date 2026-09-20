@@ -2,8 +2,9 @@
 name: init-brain
 description: >-
   Initialize or validate the brain/ knowledge repository for G.A.N.D.A.L.F.
-  from the data skeleton at .claude/brain-skeleton/ (living-document
-  templates, _meta files, empty folders). Use this skill for first-time setup
+  from the skeleton at .claude/brain-skeleton/ (folder tree, living-document
+  templates, _meta files, and bootstrap copies of the per-folder CLAUDE.md
+  rules). Use this skill for first-time setup
   when brain/ does not exist yet, after cloning this repo on a new machine, to
   validate that an existing brain/ has the expected structure, or to recover
   missing core/ templates or _meta files.
@@ -83,11 +84,16 @@ For each relative path `<relpath>` in that list:
 Validation checks **existence only** — documents in `core/` are living documents
 and will diverge from the skeleton template intentionally. Do not check content.
 
-Print validation report: ✅ present / ❌ missing for each path.
+Rule files (every `CLAUDE.md` and `_meta/schema.md`) are checked for **existence
+only, and never restored from the skeleton** in validation mode: in an existing
+brain/ those files are the source of truth and the skeleton copy may be older.
+Report a missing one as ⚠️ and let the user write it in brain/.
 
 Then list every folder in `$BRAIN` (excluding `.git/`) that has no `CLAUDE.md`
 of its own **and** no ancestor below the root that has one — report these as
 ⚠️ "no folder rules". Report only; never create rule files from this skill.
+
+Print validation report: ✅ present / ❌ missing / ⚠️ for each path.
 
 ### 5. Hooks wiring
 
@@ -124,13 +130,17 @@ located), and `$BRAIN`'s location is already re-resolved per machine via
 - **Skeleton source.** Data templates (living documents in `core/`, `_meta/`
   files, empty folders) live in `.claude/brain-skeleton/` in this repo. To add or
   change one, edit the file there — not here.
-- **Rules are not in the skeleton.** Every `CLAUDE.md` and `_meta/schema.md` lives
-  **only** in `brain/` — brain/ describes itself, and other tools working inside
-  brain/ rely on that. Sessions of this project see those rules through the
-  `.claude/hooks/brain-rules/inject.py` hook (root rules at session start, folder
-  rules on first touch). A freshly created brain/ therefore starts without rule
-  files — see IMPLEMENTATION.md, parking lot "brain/ rules — scaffolding a new
-  brain/", for the deferred export design.
+- **Rules: brain/ is the source, the skeleton holds bootstrap copies.** Every
+  `CLAUDE.md` and `_meta/schema.md` is authored in `brain/` — brain/ describes
+  itself, and other tools working inside brain/ rely on that. Sessions of this
+  project see those rules through the `.claude/hooks/brain-rules/inject.py` hook
+  (root rules at session start, folder rules on first touch), never from the
+  skeleton. The skeleton's copies exist for one purpose: giving a **newly
+  created** brain/ a working set of rules. They are generic (no personal
+  examples, no installation-specific databases) and may lag behind brain/ —
+  that is acceptable, because nothing reads them after creation. Skills that
+  create a brain/ folder later (`/daily`, `/idea`, `/english-review`) copy the
+  matching bootstrap file the same way.
 - **No-clobber by design.** Both creation and validation use `-n` / `cp -n`. Existing
   files in brain/ are never overwritten by this skill. This is intentional: living
   documents (core/) accumulate real data and must not be reset.

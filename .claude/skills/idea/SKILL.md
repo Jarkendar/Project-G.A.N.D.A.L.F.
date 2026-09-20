@@ -53,7 +53,7 @@ Call it `$BRAIN`. If `$BRAIN` does not exist:
 - Stop.
 
 If `$BRAIN/backlog/` does not exist:
-- Offer to create it (mkdir + CLAUDE.md skeleton). Proceed only after confirmation.
+- Offer to create it (`mkdir` + copy `<PROJECT_ROOT>/.claude/brain-skeleton/backlog/CLAUDE.md` if present (bootstrap template — after creation the copy in brain/ is the source), else a minimal one-line note). Proceed only after confirmation.
 
 ### 2. Determine mode
 

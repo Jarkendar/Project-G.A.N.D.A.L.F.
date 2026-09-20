@@ -50,9 +50,9 @@ Call it `$BRAIN`. If `$BRAIN` does not exist:
 - Stop.
 
 If `$BRAIN/knowledge/language/` does not exist:
-- Offer to create it (`mkdir` + a minimal `CLAUDE.md`: "PRIVATE — English practice
-  log and self-assessed weaknesses tied to recruitment. Living documents, edited
-  in place."). Proceed only after confirmation.
+- Offer to create it (`mkdir` + copy `<PROJECT_ROOT>/.claude/brain-skeleton/knowledge/language/CLAUDE.md` if present (bootstrap template — after creation the copy in brain/ is the source), else a minimal one-line note: "PRIVATE — English practice log and self-assessed
+  weaknesses tied to recruitment. Living documents, edited in place.").
+  Proceed only after confirmation.
 
 ### 2. Gather the input
 
