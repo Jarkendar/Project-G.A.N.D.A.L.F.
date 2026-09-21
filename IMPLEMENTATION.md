@@ -434,6 +434,10 @@ reshuffle it.**
 
 - [ ] **Step 4 — F.A.R.A.M.I.R.** — calendar integration, reminders, delegation
   to `agentic-sdlc-forge` for dev tasks via n8n / HTTP.
+  *Calendar access done (2026-09-21):* official Google Calendar MCP connector
+  (claude.ai) connected and verified — read/write on the primary calendar,
+  read-only on shared ones. The F.A.R.A.M.I.R. agent itself (reminders,
+  delegation) is not built yet.
 - [ ] **Step 5 — L.E.G.O.L.A.S.** — outbound web search (DuckDuckGo first,
   self-hosted SearXNG later). Only agent with external network access.
 - [ ] **Step 6 — First skill: White Council** — multi-perspective deliberation
