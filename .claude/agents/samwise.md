@@ -67,7 +67,7 @@ yourself.
    ```
    **Known, measured limitation:** the calibration eval found that broad
    topical queries can score *every* relevant chunk below the default
-   threshold — "my side-projects" and "my cycling trips" both scored 0/3
+   threshold — two broad, category-shaped golden-set queries each scored 0/3
    expected files in the top-5 even at `--min-score 0.0`, because per-chunk
    embeddings favor documents whose vocabulary literally overlaps the query
    over documents that are merely topically related. A fixed score cutoff

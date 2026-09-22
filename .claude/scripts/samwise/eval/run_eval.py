@@ -3,11 +3,11 @@
 # plus semantic threshold calibration — the core deliverable of Samwise's
 # Part 3 (see IMPLEMENTATION.md Step 3 and the plan this was built from).
 #
-# Loads eval/golden.jsonl (hand-labeled query -> expected file(s)) — a mix of
-# single-answer point-lookup queries and genuinely multi-file topical queries
-# (e.g. "my side-projects" -> 3 files, "my family" -> 3 contacts) — runs all
-# three ../search.py strategies IN-PROCESS (single model load for the whole
-# run, not one subprocess per query x strategy), and reports:
+# Loads the private golden set from brain/ (hand-labeled query -> expected
+# file(s)) — a mix of single-answer point-lookup queries and genuinely
+# multi-file topical queries — runs all three ../search.py strategies
+# IN-PROCESS (single model load for the whole run, not one subprocess per
+# query x strategy), and reports:
 #   - per-strategy hit@1/3/5, MRR, precision@5, recall@5, full-recall@5
 #     (recall/precision are set-based: they credit partial matches on
 #     multi-file queries rather than assuming one relevant document)
@@ -18,6 +18,7 @@
 #   - a recommended default strategy + --min-score for search.py / samwise.md
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -26,12 +27,34 @@ import search  # noqa: E402
 
 TOP_K = 10
 PRECISION_RECALL_K = 5
-GOLDEN_PATH = Path(__file__).resolve().parent / "golden.jsonl"
+# The golden set lives in brain/, not here: every entry pairs a real question
+# with the real file that answers it, which together describe brain/'s
+# contents — that does not belong in a public repo. This directory keeps only
+# `golden.example.jsonl`, a synthetic illustration of the format.
+GOLDEN_RELATIVE_TO_BRAIN = Path("_meta/eval/samwise-golden.jsonl")
+EXAMPLE_PATH = Path(__file__).resolve().parent / "golden.example.jsonl"
 
 
-def load_golden() -> list[dict]:
+def resolve_golden_path(brain_dir: Path) -> Path:
+    """SAMWISE_GOLDEN (absolute or relative to brain/) wins; otherwise the
+    conventional location inside brain/."""
+    override = os.environ.get("SAMWISE_GOLDEN")
+    if override:
+        path = Path(override).expanduser()
+        return path if path.is_absolute() else brain_dir / path
+    return brain_dir / GOLDEN_RELATIVE_TO_BRAIN
+
+
+def load_golden(golden_path: Path) -> list[dict]:
+    if not golden_path.exists():
+        sys.exit(
+            f"SAMWISE eval: no golden set at {golden_path}\n"
+            f"  The golden set is private and lives in brain/ — see\n"
+            f"  {EXAMPLE_PATH.name} for the format, or set SAMWISE_GOLDEN to\n"
+            f"  point somewhere else."
+        )
     rows = []
-    with GOLDEN_PATH.open(encoding="utf-8") as f:
+    with golden_path.open(encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line:
@@ -128,7 +151,8 @@ def calibrate_threshold(golden: list[dict], idx: "search.SamwiseIndex") -> tuple
 def main():
     project_dir = search.default_project_dir()
     brain_dir = search.resolve_brain_path(project_dir)
-    golden = load_golden()
+    golden_path = resolve_golden_path(brain_dir)
+    golden = load_golden(golden_path)
     idx = search.load_index(brain_dir)
 
     n_multi = sum(1 for item in golden if len(item["expected_paths"]) > 1)

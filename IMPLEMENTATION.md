@@ -4,7 +4,7 @@
 the execution path — *how* and *when*. README is the canon; this file is updated
 as work progresses without touching the canon.
 
-Last updated: 2026-09-18
+Last updated: 2026-09-22
 
 ---
 
@@ -282,9 +282,10 @@ unavailable, not as a transitional phase.
   system grows in **depth** (new, narrow, per-domain monopolies), not
   **breadth** (one monopoly expanding to cover more ground). Documented in
   both `gimli.md` and `samwise.md`.
-- **Comparative eval** (`.claude/scripts/samwise/eval/`): `golden.jsonl` (20
+- **Comparative eval** (`.claude/scripts/samwise/eval/`): a golden set of 20
   hand-labeled PL/EN queries — 15 single-file point lookups + 5 genuinely
-  multi-file topical queries, approved before measuring) and `run_eval.py`
+  multi-file topical queries, approved before measuring (since 2026-09-22
+  kept privately in `brain/_meta/eval/`) — and `run_eval.py`
   (runs grep/semantic/hybrid in-process — one model load for the whole run —
   and reports hit@1/3/5, MRR, precision@5, recall@5, full-recall@5, a
   per-query "who picked what" table, and an F1-optimal cosine threshold swept
@@ -323,18 +324,17 @@ down rather than help. F1-optimal threshold: **0.5047** (precision 0.665,
 recall 0.791), wired into `search.py`'s `DEFAULT_MIN_SCORE`.
 
 **Measured limitation, not just a threshold-tuning gap:** two of the five
-multi-file queries in the golden set ("what are my side-projects", "what
-cycling trips have I done") scored **0/3 expected files in the top-5 across
-all three strategies — even fully ungated at `--min-score 0.0`**. Per-chunk
-embeddings favor literal vocabulary overlap over topical relatedness (e.g.
-"projekt" is heavily overloaded by career/job documents, burying the actual
-`knowledge/projects/` files for a plural, category-shaped query). No fixed
-score cutoff fixes this; the mitigation lives in `samwise.md`'s workflow
-(widen `--top-k`/`--min-score` for enumerative-sounding questions, then apply
+multi-file queries in the golden set — both broad, category-shaped ones
+expecting three documents each — scored **0/3 expected files in the top-5
+across all three strategies, even fully ungated at `--min-score 0.0`**.
+Per-chunk embeddings favor literal vocabulary overlap over topical
+relatedness: a category noun that recurs across unrelated documents buries
+the handful of files that actually belong to that category. No fixed score
+cutoff fixes this; the mitigation lives in `samwise.md`'s workflow (widen
+`--top-k`/`--min-score` for enumerative-sounding questions, then apply
 judgment over the wider candidate list) rather than in the retrieval math.
-Two-file multi-queries (employment contract+benefits, sector-specific stock
-tickers) worked fine — the failure mode is specific to broad, many-document,
-low-lexical-overlap categories.
+The two-file multi-queries worked fine — the failure mode is specific to
+broad, many-document, low-lexical-overlap categories.
 
 **Done when:**
 - Gandalf routes unstructured knowledge queries to Samwise.
@@ -419,10 +419,50 @@ logs reshuffle it" discipline applies here exactly as it did for Radagast
 - A deliberate model/revision change without `--rebuild` fails loudly rather
   than corrupting the index.
 
-**Not yet done:** no scheduler (systemd/n8n) wired up — run manually for now;
-no privacy gate (documented MVP exception, same as elsewhere). The reader side
-is no longer outstanding: S.A.M.W.I.S.E. (Step 3, above) now queries this
-index at query time.
+**Not yet done:** no scheduler wired up — run manually for now; no privacy
+gate (documented MVP exception, same as elsewhere). The reader side is no
+longer outstanding: S.A.M.W.I.S.E. (Step 3, above) now queries this index at
+query time.
+
+**Pi bootstrap + measurement pass (2026-09-22).** Until now Bilbo had only
+ever run on the old workstation; the Pi had no venv, no model cache and no
+`brain/index/bilbo.db`. First run on the Pi, and the first measurements taken
+against the real `brain/` at its current size:
+
+| | |
+|---|---|
+| Index | 262 files → 1756 chunks, `bilbo.db` 4.7 MB (gitignored in brain/) |
+| Full build | 180 s (132 s of it in `model.encode`) |
+| No-op re-run | 0.0 s — 262 files skipped, model never loaded |
+| Model cache | 458 MB in `~/.cache/huggingface` |
+
+- **torch resolves to the CUDA build on aarch64.** `pip install -r
+  requirements.txt` pulled `torch==2.14.0+cu130` plus ~4 GB of `nvidia-*`
+  packages: PyPI's ARM wheels now target ARM server GPUs. Replaced with the
+  CPU wheel from PyTorch's own index (5.6 GB → 1.3 GB venv). Documented in
+  `.claude/scripts/bilbo/README.md`; not pinnable in `requirements.txt`,
+  since the wheel lives on a separate index.
+- **41% of chunks are silently truncated.** `MAX_CHUNK_WORDS = 90` bounds
+  *words*, but the model's window is 128 *tokens*: 713/1756 chunks exceed it
+  and ~19% of all tokens (40 k of 206 k) never reach the encoder. Token
+  lengths: p50 112, p90 208, max 350. Table-heavy sections are the worst
+  offenders — a 49-word chunk of one table tokenized to 323. This is the
+  headline input to chunking v2.
+- **The eval was measuring against a set that no longer matched the corpus.**
+  Re-running `eval/run_eval.py` first gave semantic hit@1 0.45 / MRR 0.48
+  (grep 0.20 / 0.27, hybrid 0.40 / 0.47) — far below the 0.70 / 0.75 recorded
+  on 2026-07-03. Cause was the eval set, not retrieval: the in-repo copy had
+  been rewritten to keep personal content out of a public repo, and **6 of
+  its 20 queries expected targets that no longer resolved**, unhittable by
+  construction (≈0.64 hit@1 over the 14 still-valid ones). Fixed the same day
+  by moving the golden set out of this repo entirely — see the parking lot
+  entry, and § Step 3 for where it now lives. **Re-measured against the
+  restored set: semantic hit@1 0.70 / MRR 0.73 (grep 0.25 / 0.35, hybrid 0.55
+  / 0.66)** — level with 2026-07-03 despite the corpus growing from 153 to
+  262 files, so nothing regressed in retrieval itself. One drift worth noting:
+  the F1-optimal threshold is now **0.5454** against the 0.5047 hard-coded in
+  `search.py` (`DEFAULT_MIN_SCORE`) — not yet changed, since a threshold bump
+  narrows what Samwise returns and belongs with chunking v2's recalibration.
 
 ---
 
@@ -445,8 +485,10 @@ reshuffle it.**
   constraints, optimise model choices.
 - [x] **Step 9 — B.I.L.B.O. + vector DB** — indexer over `brain/`, pulled forward
   ahead of Samwise (see detailed section above, right after Step 3). Reader
-  side (Samwise, Step 3) is now built and consuming this index. Still open:
-  scheduling (systemd/n8n) to run Bilbo automatically instead of manually.
+  side (Samwise, Step 3) is now built and consuming this index. Running on the
+  Pi since 2026-09-22. Still open, now split into three tracks: automatic
+  triggering (commit hook), chunking v2, and the Qdrant + reranker RAG —
+  see the parking lot.
 - [ ] **Step 10 — T.R.E.E.B.E.A.R.D.** — nightly compression pass, supersession
   resolution, archive retrieval. Meaningful once 6–12 months of data accumulate.
 - [ ] **Step 11 — Optional voice layer** — Whisper.cpp (STT) + Piper TTS —
@@ -591,3 +633,7 @@ so they don't get lost.
 | **Skill-authoring heuristic** | E4 | What conditions trigger "this workflow should become a skill" — what qualifies, minimum reuse threshold, and who reviews before it is promoted to `prompt-vault`. |
 | **Profile self-update guardrails** | E5 | What the automated system is allowed to write or overwrite in `core/profile.md`; append-only vs field-specific rules; how proposed updates are surfaced for human review before committing. |
 | **Summary-sufficiency heuristic** | E8 | Bilbo/Samwise split is settled (matches README: Bilbo non-reactive indexer, Samwise reactive retriever). Step 3 established a precedent worth reusing here: a fixed similarity threshold (0.5047, F1-calibrated) works for point-lookup queries but measurably fails broad/enumerative ones (0/3 recall on two golden-set queries even ungated) — so E8's "summary vs. fetch full file" rule should not be a bare score cutoff either. Still open: the actual decision rule (threshold + query-intent classification, most likely) and whether it needs the same point-lookup/broad-query judgment split Samwise now does. Decided when E8 is implemented. |
+| **Bilbo trigger mechanism** | Step 9 | **Direction set 2026-09-22: a `post-commit` hook in brain/, not a fixed-interval timer.** The hook only records that a reindex is needed; the run fires shortly afterwards (debounced, so a burst of commits indexes once). A 10-minute timer was the first proposal and was dropped — a no-op run already costs 0.0 s, so polling buys nothing that commit-triggering does not. Open: where the hook and its unit files live (this repo vs. `pi-automate`), and whether `core.hooksPath` is used so the hook itself is version-controlled. |
+| **Chunking v2** | Step 9 | Open — owner is still thinking it over. Measured trigger: 41% of chunks exceed the 128-token window (see Step 9 § Pi bootstrap). Candidate changes: token-based limits instead of word counts, full heading breadcrumbs, table-aware splitting with the header row repeated, merging tiny sections, overlap at window boundaries, frontmatter as metadata rather than embedded text, per-folder strategies, and possibly a longer-window model (`multilingual-e5-small`, 512 tokens, same 384 dims — a model swap means `--rebuild` plus recalibrating Samwise's threshold). Every candidate is accepted only if it improves the eval against the private golden set. |
+| **Vector store: Qdrant (+ reranker)** | Step 9 | **Direction set 2026-09-22: Qdrant, plus a reranking stage.** Stated motivation is explicitly testing and portfolio ("a RAG on an RPi"), not throughput — at ~1.8 k chunks a numpy brute-force scan is already ~1 ms, so performance is not an argument. Real technical gains: payload filtering (privacy level, `superseded_by`, folder), the `kb_*` collections from README, native hybrid (dense + sparse) search, and a service n8n can reach. Open: **ChromaDB** — named in README as the Phase-2 store — has not been weighed against Qdrant yet; `kb_<folder>` collections vs. a single collection with a `folder` payload; which reranker fits in the Pi's memory budget alongside the encoder. Must-check first: the `qdrant/qdrant` image on this Pi's **16 KB-page** kernel (`getconf PAGESIZE` = 16384) — jemalloc has failed on that page size before. |
+| ~~**Private golden set for eval**~~ | ~~Step 9~~ | **RESOLVED 2026-09-22.** The golden set paired real questions with the real files that answer them — together a description of brain/'s contents, in a public repo. It had been rewritten once to strip personal content, which left 6 of its 20 entries pointing at targets that no longer resolved, silently dragging every metric down and making the 2026-09-22 run incomparable with 2026-07-03's. Fix: the set lives in **brain/`_meta/eval/samwise-golden.jsonl`** (private by folder), resolved by `run_eval.py` via `$BRAIN_PATH` or a `SAMWISE_GOLDEN` override, with a synthetic `golden.example.jsonl` kept here purely to document the format. Note: earlier revisions of the set remain in this repo's git history — rewriting that history is a separate decision. |
