@@ -55,8 +55,15 @@ results = search.semantic_search(idx, "query", top_k=8, min_score=0.5047)
 
 ## Calibration: `eval/`
 
-`eval/golden.jsonl` — 20 hand-labeled PL/EN queries (15 single-file point
-lookups + 5 genuinely multi-file topical queries), approved before measuring.
+The golden set — 20 hand-labeled PL/EN queries (15 single-file point lookups
++ 5 genuinely multi-file topical queries), approved before measuring — lives
+**in brain/, not here**: `brain/_meta/eval/samwise-golden.jsonl`. Each entry
+pairs a real question with the real file that answers it, so the set
+describes brain/'s contents and has no place in a public repo. `run_eval.py`
+resolves it through `BRAIN_PATH`; `SAMWISE_GOLDEN` overrides the location
+(absolute, or relative to brain/). `eval/golden.example.jsonl` documents the
+format with synthetic entries and is never used for measuring.
+
 `eval/run_eval.py` runs all three strategies in-process against it and
 reports hit@1/3/5, MRR, precision@5, recall@5, full-recall@5, a per-query
 "who picked what" table, and an F1-optimal cosine threshold swept over the
@@ -77,15 +84,14 @@ F1-optimal threshold **0.5047** (precision 0.665, recall 0.791) is wired into
 
 ### Known limitation — not solved by threshold tuning
 
-Two of the five multi-file golden-set queries ("what are my side-projects",
-"what cycling trips have I done") scored **0/3 expected files in the top-5
-across all three strategies, even fully ungated** (`--min-score 0.0`).
+Two of the five multi-file golden-set queries — both broad, category-shaped
+ones expecting three documents each — scored **0/3 expected files in the
+top-5 across all three strategies, even fully ungated** (`--min-score 0.0`).
 Per-chunk embeddings favor literal vocabulary overlap over topical
-relatedness — e.g. "projekt" is heavily overloaded by career/job documents in
-this corpus, burying the actual `knowledge/projects/` files for a plural,
-category-shaped query. No fixed score cutoff fixes this; a two-file multi-hit
-query (employment contract + benefits) worked fine, so the failure mode is
-specific to broad, many-document, low-lexical-overlap categories, not
+relatedness: a category noun that recurs across unrelated documents buries
+the handful of files that actually belong to that category. No fixed score
+cutoff fixes this; the two-file multi-hit queries worked fine, so the failure
+mode is specific to broad, many-document, low-lexical-overlap categories, not
 multi-file queries generally.
 
 The mitigation lives in the agent's workflow (`.claude/agents/samwise.md`),
