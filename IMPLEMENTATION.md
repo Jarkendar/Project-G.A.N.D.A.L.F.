@@ -4,7 +4,7 @@
 the execution path — *how* and *when*. README is the canon; this file is updated
 as work progresses without touching the canon.
 
-Last updated: 2026-09-18
+Last updated: 2026-09-22
 
 ---
 
@@ -419,10 +419,45 @@ logs reshuffle it" discipline applies here exactly as it did for Radagast
 - A deliberate model/revision change without `--rebuild` fails loudly rather
   than corrupting the index.
 
-**Not yet done:** no scheduler (systemd/n8n) wired up — run manually for now;
-no privacy gate (documented MVP exception, same as elsewhere). The reader side
-is no longer outstanding: S.A.M.W.I.S.E. (Step 3, above) now queries this
-index at query time.
+**Not yet done:** no scheduler wired up — run manually for now; no privacy
+gate (documented MVP exception, same as elsewhere). The reader side is no
+longer outstanding: S.A.M.W.I.S.E. (Step 3, above) now queries this index at
+query time.
+
+**Pi bootstrap + measurement pass (2026-09-22).** Until now Bilbo had only
+ever run on the old workstation; the Pi had no venv, no model cache and no
+`brain/index/bilbo.db`. First run on the Pi, and the first measurements taken
+against the real `brain/` at its current size:
+
+| | |
+|---|---|
+| Index | 262 files → 1756 chunks, `bilbo.db` 4.7 MB (gitignored in brain/) |
+| Full build | 180 s (132 s of it in `model.encode`) |
+| No-op re-run | 0.0 s — 262 files skipped, model never loaded |
+| Model cache | 458 MB in `~/.cache/huggingface` |
+
+- **torch resolves to the CUDA build on aarch64.** `pip install -r
+  requirements.txt` pulled `torch==2.14.0+cu130` plus ~4 GB of `nvidia-*`
+  packages: PyPI's ARM wheels now target ARM server GPUs. Replaced with the
+  CPU wheel from PyTorch's own index (5.6 GB → 1.3 GB venv). Documented in
+  `.claude/scripts/bilbo/README.md`; not pinnable in `requirements.txt`,
+  since the wheel lives on a separate index.
+- **41% of chunks are silently truncated.** `MAX_CHUNK_WORDS = 90` bounds
+  *words*, but the model's window is 128 *tokens*: 713/1756 chunks exceed it
+  and ~19% of all tokens (40 k of 206 k) never reach the encoder. Token
+  lengths: p50 112, p90 208, max 350. Table-heavy sections are the worst
+  offenders — a 49-word chunk of one table tokenized to 323. This is the
+  headline input to chunking v2.
+- **The in-repo golden set no longer matches the live corpus.** Re-running
+  `eval/run_eval.py`: semantic hit@1 0.45 / MRR 0.48 (grep 0.20 / 0.27,
+  hybrid 0.40 / 0.47) — far below the 0.70 / 0.75 recorded on 2026-07-03.
+  Cause is the eval set, not retrieval: `golden.jsonl` is anonymised for this
+  public repo, and **6 of its 20 queries now expect targets that no longer
+  resolve**, so they are unhittable by construction. Over the 14 still-valid
+  queries semantic scores ≈0.64 hit@1. Consequence: chunking v2 and any
+  Qdrant work need a **private golden set kept outside this repo** (in
+  brain/, or gitignored, selected via an env var); the anonymised one stays
+  here as the public example and is not a usable baseline.
 
 ---
 
@@ -445,8 +480,10 @@ reshuffle it.**
   constraints, optimise model choices.
 - [x] **Step 9 — B.I.L.B.O. + vector DB** — indexer over `brain/`, pulled forward
   ahead of Samwise (see detailed section above, right after Step 3). Reader
-  side (Samwise, Step 3) is now built and consuming this index. Still open:
-  scheduling (systemd/n8n) to run Bilbo automatically instead of manually.
+  side (Samwise, Step 3) is now built and consuming this index. Running on the
+  Pi since 2026-09-22. Still open, now split into three tracks: automatic
+  triggering (commit hook), chunking v2, and the Qdrant + reranker RAG —
+  see the parking lot.
 - [ ] **Step 10 — T.R.E.E.B.E.A.R.D.** — nightly compression pass, supersession
   resolution, archive retrieval. Meaningful once 6–12 months of data accumulate.
 - [ ] **Step 11 — Optional voice layer** — Whisper.cpp (STT) + Piper TTS —
@@ -591,3 +628,7 @@ so they don't get lost.
 | **Skill-authoring heuristic** | E4 | What conditions trigger "this workflow should become a skill" — what qualifies, minimum reuse threshold, and who reviews before it is promoted to `prompt-vault`. |
 | **Profile self-update guardrails** | E5 | What the automated system is allowed to write or overwrite in `core/profile.md`; append-only vs field-specific rules; how proposed updates are surfaced for human review before committing. |
 | **Summary-sufficiency heuristic** | E8 | Bilbo/Samwise split is settled (matches README: Bilbo non-reactive indexer, Samwise reactive retriever). Step 3 established a precedent worth reusing here: a fixed similarity threshold (0.5047, F1-calibrated) works for point-lookup queries but measurably fails broad/enumerative ones (0/3 recall on two golden-set queries even ungated) — so E8's "summary vs. fetch full file" rule should not be a bare score cutoff either. Still open: the actual decision rule (threshold + query-intent classification, most likely) and whether it needs the same point-lookup/broad-query judgment split Samwise now does. Decided when E8 is implemented. |
+| **Bilbo trigger mechanism** | Step 9 | **Direction set 2026-09-22: a `post-commit` hook in brain/, not a fixed-interval timer.** The hook only records that a reindex is needed; the run fires shortly afterwards (debounced, so a burst of commits indexes once). A 10-minute timer was the first proposal and was dropped — a no-op run already costs 0.0 s, so polling buys nothing that commit-triggering does not. Open: where the hook and its unit files live (this repo vs. `pi-automate`), and whether `core.hooksPath` is used so the hook itself is version-controlled. |
+| **Chunking v2** | Step 9 | Open — owner is still thinking it over. Measured trigger: 41% of chunks exceed the 128-token window (see Step 9 § Pi bootstrap). Candidate changes: token-based limits instead of word counts, full heading breadcrumbs, table-aware splitting with the header row repeated, merging tiny sections, overlap at window boundaries, frontmatter as metadata rather than embedded text, per-folder strategies, and possibly a longer-window model (`multilingual-e5-small`, 512 tokens, same 384 dims — a model swap means `--rebuild` plus recalibrating Samwise's threshold). Every candidate is accepted only if it improves the eval, which first needs the private golden set. |
+| **Vector store: Qdrant (+ reranker)** | Step 9 | **Direction set 2026-09-22: Qdrant, plus a reranking stage.** Stated motivation is explicitly testing and portfolio ("a RAG on an RPi"), not throughput — at ~1.8 k chunks a numpy brute-force scan is already ~1 ms, so performance is not an argument. Real technical gains: payload filtering (privacy level, `superseded_by`, folder), the `kb_*` collections from README, native hybrid (dense + sparse) search, and a service n8n can reach. Open: **ChromaDB** — named in README as the Phase-2 store — has not been weighed against Qdrant yet; `kb_<folder>` collections vs. a single collection with a `folder` payload; which reranker fits in the Pi's memory budget alongside the encoder. Must-check first: the `qdrant/qdrant` image on this Pi's **16 KB-page** kernel (`getconf PAGESIZE` = 16384) — jemalloc has failed on that page size before. |
+| **Private golden set for eval** | Step 9 | Open. `eval/golden.jsonl` is anonymised for this public repo, so 6 of its 20 queries expect targets that no longer resolve and can never be hit — the 2026-09-22 numbers are therefore not comparable with 2026-07-03's. Needs a golden set that matches the live corpus, kept **outside this repo** (in brain/, or gitignored, chosen via an env var), before chunking v2 or Qdrant can be judged; it should also cover table-shaped content. The anonymised set stays in-repo as the public example only. |

@@ -46,6 +46,26 @@ The first run downloads the pinned model revision to the local
 Hugging Face cache (`~/.cache/huggingface/...`, outside this repo — never
 committed). Subsequent runs reuse the cached weights; no repeated download.
 
+### On the Raspberry Pi (aarch64): install the CPU build of torch
+
+A plain `pip install -r requirements.txt` resolves torch to the **CUDA**
+build even on a Pi — PyPI's `aarch64` wheels now ship CUDA 13 for ARM server
+GPUs (Grace/Thor), and pull ~4 GB of `nvidia-*` packages the Pi can never
+use. Install the CPU wheel explicitly:
+
+```bash
+pip install -r requirements.txt
+pip uninstall -y $(pip freeze | grep -E '^(nvidia|cuda|triton)' | cut -d= -f1)
+pip install --force-reinstall --no-deps torch==2.14.0 \
+    --index-url https://download.pytorch.org/whl/cpu
+python -c "import torch; print(torch.__version__)"   # expect ...+cpu
+```
+
+Venv size: **5.6 GB → 1.3 GB**. `pip check` stays clean — the CPU wheel
+declares no `nvidia-*` dependencies. This is not pinned in
+`requirements.txt` because the wheel lives on a separate index; the
+`requirements.txt` pin (`sentence-transformers`, `numpy`) still holds.
+
 ## Model pinning
 
 The model (`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`) is
@@ -70,8 +90,16 @@ conflict with sentence-transformers' own version bounds.
 
 ## Not yet done (see IMPLEMENTATION.md / the plan this was built from)
 
-- No scheduler wired up yet — run manually. Eventually a systemd timer or an
-  n8n trigger in `pi-automate` (README: `N8N -.triggers.-> Bilbo`).
+- No scheduler wired up yet — run manually. Planned: a `post-commit` hook in
+  `brain/` that records "reindex needed", with the run itself fired shortly
+  after (debounced), rather than a fixed-interval timer.
+- **Chunks are truncated, measured: `MAX_CHUNK_WORDS = 90` does not bound
+  token count.** On the real `brain/` (2026-09-22, 1756 chunks), 713 chunks
+  (41%) exceed the model's 128-token window and ~19% of all tokens are
+  silently dropped before embedding. Polish text runs ~1.5–2 tokens per word,
+  and table-heavy sections are far worse — a 49-word chunk of one table
+  tokenized to 323. Chunking v2 (token-based limits, table-aware splitting)
+  is a planned step.
 - No privacy gate — the index includes `core/`/`current/` content today, same
   as the rest of the MVP's documented privacy exception.
 
