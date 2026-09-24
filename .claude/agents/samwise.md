@@ -41,14 +41,19 @@ yourself.
    # BRAIN_PATH is now available.
    ```
 2. **Judge whether the question is a point-lookup or a broad/enumerative
-   one** before choosing flags — this distinction matters (see step 2a/2b):
+   one** before choosing flags — this distinction matters (see step 2a/2b).
+   It is your judgment from the wording; measured against the golden set's
+   labels this rule is right ~80% of the time and over-calls "broad" (Polish
+   "jakie…" is plural-sounding even when one file answers), so when unsure,
+   treat the question as a point-lookup and widen only if the bundle looks
+   thin:
    - **Point-lookup** ("what do I know about my CV gaps", "a broker's
      business profile") — one document is the expected answer.
    - **Broad/enumerative** ("what are my side-projects", "what cycling trips
      have I done", "tell me about my family") — plural nouns, "all", "every",
      or a category name are the signal. Multiple distinct documents are the
      expected answer.
-2. **Default — ask for a context bundle:**
+3. **Default — ask for a context bundle:**
    ```bash
    .claude/scripts/bilbo/.venv/bin/python .claude/scripts/samwise/search.py \
      "<the user's question>" --context --format text
@@ -61,9 +66,14 @@ yourself.
    (`--budget`). Every passage is headed with path, section number, line
    range, privacy and why it was included, so cite from the header. Measured
    on the golden set: the answer is inside the bundle for 95% of queries
-   (top-5 chunks: 84%), the right section for 92% (85%). Raise `--budget`
-   (3000: answer 97%) for broad questions; `--no-links` if links pull in
-   noise. Use the ranked modes below when you need scores or a wide list.
+   (top-5 chunks: 84%), the right section for 92% (85%). Do not raise
+   `--budget` for broad questions expecting more files: measured, a bigger
+   budget or more lead files barely helps them (full file recall 0.50 →
+   0.58 even at 3000 tokens and 12 files) because the missing documents rank
+   30th–85th — no chunk says "side project" or "cycling race". For a broad
+   question, also run the widened ranked list (2b) and judge by eye.
+   `--no-links` if links pull in noise. Use the ranked modes below when you
+   need scores or a wide list.
 2a. **Point-lookup — ranked hits with the calibrated default:**
    ```bash
    .claude/scripts/bilbo/.venv/bin/python .claude/scripts/samwise/search.py \

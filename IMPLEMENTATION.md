@@ -711,6 +711,38 @@ move to its own repo and serve other projects.
         queries change; "my goals this year" is found only through a link);
         kept on for multi-file questions. Latency +60 ms over plain
         semantic (document loads). Tests: 28.
+
+        **Budget and query-breadth study (2026-09-24).** Why 1500 tokens,
+        and should point and broad questions get different budgets? The
+        1500 default was a starting value, checked afterwards on a denser
+        grid (answer / section / file recall / avg tokens used):
+
+        | budget | 800 | 1000 | 1200 | **1500** | 2000 | 2500 | 3000 |
+        |---|---|---|---|---|---|---|---|
+        | all 63 | .76/.77/.85 | .76/.77/.90 | .84/.88/.90 | **.95/.92/.92** | .95/.92/.93 | .97/.96/.93 | .97/.96/.95 |
+        | point 51 | .76/.79/.92 | .76/.79/.96 | .85/.92/.97 | **.97/.96/.98** | .97/.96/.98 | 1.0/1.0/.98 | 1.0/1.0/1.0 |
+        | broad 12 | .67/.50/.55 | .67/.50/.63 | .67/.50/.63 | .67/.50/.69 | .67/.50/.74 | .67/.50/.74 | .67/.50/.75 |
+
+        The knee is between 1200 and 1500 (a budget "unlocks" whole sections
+        in steps); 2000 adds nothing; 2500 adds one query. **Broad questions
+        do not respond to budget** (full file recall 0.50 at every budget),
+        nor to breadth: 5/8/12 lead files with pools of 30–60 lift their full
+        recall only to 0.58 at 3000 tokens, while dropping point answers from
+        0.97 to 0.68 at 1500 (more files eat the budget). The cause is
+        retrieval, not packing — the missing documents rank far down
+        ("my side projects": photovault #85, gandalf #37; "cycling races":
+        gran fondo files #61, #39): nothing in their chunks names the
+        category. That is a document-level problem — summaries, keywords
+        and topics per file (phase D) are the lever, not the bundle.
+        Routing was measured too, against the golden types (broad =
+        multi/link): the samwise.md rule applied by Haiku — the way Samwise
+        decides today, by its own judgment of the wording — scores accuracy
+        0.78 (broad precision 0.45: it over-calls "broad"); a lexical
+        heuristic 0.84; a retrieval signal (files scoring near the top)
+        0.81. With any router, including the oracle, adaptive budgets
+        (point 1000–1500 / broad 2500–3000) never beat a flat 1500 at equal
+        or lower cost. **Decision: 1500 stays, flat;** breadth for broad
+        questions is deferred to phase D.
 - [ ] **D — Enrichment ablation:** heuristic headers vs. late chunking vs.
       Haiku per-file vs. Haiku per-chunk.
 - [ ] **E — Reranker (in this stage, not Stage 3):** bge-reranker-v2-m3
