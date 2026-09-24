@@ -55,8 +55,10 @@ results = search.semantic_search(idx, "query", top_k=8, min_score=0.5047)
 
 ## Calibration: `eval/`
 
-The golden set — 20 hand-labeled PL/EN queries (15 single-file point lookups
-+ 5 genuinely multi-file topical queries), approved before measuring — lives
+The golden set — 63 hand-labeled PL/EN queries since 2026-09-24 (20 until
+then), each tagged with a `type` (point, multi, cross-lingual, deep, table,
+link, entity) and optionally the expected section and an answer snippet —
+approved before measuring — lives
 **in brain/, not here**: `brain/_meta/eval/samwise-golden.jsonl`. Each entry
 pairs a real question with the real file that answers it, so the set
 describes brain/'s contents and has no place in a public repo. `run_eval.py`
@@ -73,6 +75,22 @@ score distribution of correct vs. incorrect semantic hits:
 cd .claude/scripts/samwise/eval
 ../../bilbo/.venv/bin/python run_eval.py
 ```
+
+Since 2026-09-24 (Index v2, phase A) it also reports section_hit@5 (an
+expected file's chunk under an expected heading), answer@5 (the answer
+snippet appears in the top-5 chunk text), ctx_chars@5, hit@5 / MRR per query
+type, query latency p50/p95 and peak RSS. Options:
+
+```bash
+# evaluate an experimental index built with: ../../bilbo/index.py --db <path>
+run_eval.py --index ../../../../../brain/index/exp/<variant>.db
+# subset of strategies, no per-query listing, results kept for comparison
+run_eval.py --strategies semantic,hybrid --quiet \
+    --json-out ../../../../../brain/index/eval-runs/<date>_<variant>.json
+```
+
+Keep `--json-out` files in `brain/index/eval-runs/` (gitignored with the rest
+of `brain/index/`): they contain the private queries.
 
 **Result (2026-07-03):** semantic wins outright (hit@1 0.70 vs. grep's 0.40
 and hybrid's 0.60; MRR 0.75 vs. 0.50 / 0.70) and is the default strategy.

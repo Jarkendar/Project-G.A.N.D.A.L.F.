@@ -148,8 +148,10 @@ class SamwiseIndex:
     vectors: np.ndarray = None  # shape (n_chunks, embed_dim), float32, normalized
 
 
-def load_index(brain_dir: Path) -> SamwiseIndex:
-    db_path = brain_dir / "index" / "bilbo.db"
+def load_index(brain_dir: Path, db_path: Path | None = None) -> SamwiseIndex:
+    """db_path defaults to Bilbo's production index; the eval harness passes an
+    experimental one (built with `index.py --db`) to compare variants."""
+    db_path = db_path or brain_dir / "index" / "bilbo.db"
     if not db_path.is_file():
         sys.exit(
             f"SAMWISE: no index at {db_path} — run B.I.L.B.O. "
@@ -235,6 +237,7 @@ def semantic_search(idx: SamwiseIndex, query: str, top_k: int, min_score: float)
             "heading": idx.headings[i],
             "ord": idx.ords[i],
             "snippet": make_snippet(idx.texts[i]),
+            "chunk": int(i),  # position in idx.texts — the eval reads full chunk text
         })
         if len(results) >= top_k:
             break
@@ -329,6 +332,7 @@ def hybrid_search(idx: SamwiseIndex, brain_dir: Path, query: str, top_k: int) ->
             "heading": base.get("heading"),
             "ord": base.get("ord"),
             "snippet": base.get("snippet"),
+            "chunk": base.get("chunk"),
         })
     fused.sort(key=lambda r: -r["score"])
     return fused[:top_k]

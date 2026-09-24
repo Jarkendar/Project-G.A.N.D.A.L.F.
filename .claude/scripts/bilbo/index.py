@@ -414,6 +414,9 @@ def main():
     parser.add_argument("--if-new-commits", action="store_true",
                         help="skip the run when brain/ HEAD equals the last indexed commit "
                              "(used by the post-commit/post-merge hooks in brain/)")
+    parser.add_argument("--db", type=str, default=None,
+                        help="write to this index instead of brain/index/bilbo.db — "
+                             "for experimental variants compared by the Samwise eval")
     args = parser.parse_args()
 
     project_dir = Path(__file__).resolve().parents[3]
@@ -428,7 +431,7 @@ def main():
         if not scope.exists():
             sys.exit(f"BILBO: --path does not exist under BRAIN_PATH: {scope}")
 
-    db_path = brain_dir / "index" / "bilbo.db"
+    db_path = Path(args.db).resolve() if args.db else brain_dir / "index" / "bilbo.db"
     conn = open_db(db_path)
 
     # Read HEAD before scanning: a commit landing mid-run then shows up as
