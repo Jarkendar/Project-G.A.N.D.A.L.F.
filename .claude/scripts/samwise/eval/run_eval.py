@@ -243,15 +243,14 @@ def main():
     idx = search.load_index(brain_dir, Path(args.index).resolve() if args.index else None)
 
     load_start = time.perf_counter()
-    search.load_model(idx.model_name, idx.model_revision, idx.trust_remote_code,
-                      idx.config_kwargs)
+    search.load_model(idx.spec)
     model_load_s = time.perf_counter() - load_start
 
     n_multi = sum(1 for item in golden if len(item["expected_paths"]) > 1)
     print(f"SAMWISE eval — {len(golden)} golden queries "
           f"({len(golden) - n_multi} single-file, {n_multi} multi-file), top-{TOP_K}")
     print(f"index: {idx.db_path} — {len(idx.texts)} chunks, "
-          f"{idx.model_name}@{idx.model_revision[:7]}, model load {model_load_s:.1f}s\n")
+          f"{idx.spec.name}@{idx.spec.revision[:7]}, model load {model_load_s:.1f}s\n")
 
     summary = {}
     details = {}
@@ -333,7 +332,7 @@ def main():
     if args.json_out:
         out = {
             "index": str(idx.db_path),
-            "model": f"{idx.model_name}@{idx.model_revision}",
+            "model": f"{idx.spec.name}@{idx.spec.revision}",
             "chunks": len(idx.texts),
             "golden": str(golden_path),
             "n_queries": len(golden),

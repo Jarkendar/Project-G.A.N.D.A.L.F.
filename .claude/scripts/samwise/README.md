@@ -7,6 +7,9 @@ table, cosine-ranks chunks against it, and returns ranked paths + scores +
 snippets. Bilbo builds the index; Samwise reads it. Neither role crosses into
 the other — `search.py` opens the database via a `mode=ro` URI connection and
 never writes to `brain/index/`.
+Retrieval itself is `imladris.search` from the `imladris-rag/` package at
+the repo root; `search.py` is the brain/ adapter (paths, corpus rules,
+threshold, CLI).
 
 The conversational sub-agent lives at `.claude/agents/samwise.md`; this
 directory holds the underlying query engine (`search.py`) and its eval

@@ -1,0 +1,65 @@
+# imladris-rag
+
+A small retrieval engine for markdown corpora, built to run on a CPU-only
+board — developed and measured on a Raspberry Pi 5 (8 GB). Named after
+Imladris, Elrond's house of lore.
+
+It is corpus-agnostic: callers hand it a directory and exclusion rules, a
+model and chunker choice, and a path for the index. Inside G.A.N.D.A.L.F. the
+callers are two thin adapters — B.I.L.B.O. (`.claude/scripts/bilbo/index.py`,
+writes the index) and S.A.M.W.I.S.E. (`.claude/scripts/samwise/search.py`,
+reads it) — which add everything specific to the `brain/` knowledge base.
+The package is meant to move to its own repository later without changes.
+
+## Modules
+
+| Module | What it does |
+|---|---|
+| `imladris.models` | Registry of embedding models, each pinned to a Hub commit, with the query/passage prefixes it was trained with. Loads in float32 with a capped sequence length. |
+| `imladris.chunking` | Markdown chunkers. `v2` (production): structural blocks — paragraph, list, table — packed within one section up to a token budget, tables split by rows with the header repeated, each chunk prefixed with the document title and heading path. `v1`: heading + ~90-word windows, kept for comparison. |
+| `imladris.corpus` | What to index: a root, a glob, and exclusion rules. |
+| `imladris.store` | SQLite index — files, chunks with vectors, and a `meta` table recording how the index was built; refuses to mix models or chunkers. |
+| `imladris.indexer` | Incremental sync by content hash: only changed files are re-chunked and re-embedded, and the model is not even loaded on a no-op run. |
+| `imladris.search` | Semantic (cosine over normalized vectors), keyword and hybrid (Reciprocal Rank Fusion) retrieval. |
+
+## Minimal use
+
+```python
+from pathlib import Path
+from imladris import indexer, search, store
+from imladris.corpus import Corpus
+from imladris.models import resolve_model
+
+corpus = Corpus(root=Path("notes"), exclude_names=frozenset({"README.md"}))
+conn = store.open_store(Path("notes.db"))
+indexer.sync(conn, corpus, resolve_model("granite-311m"), chunker="v2")
+
+idx = search.load_index(Path("notes.db"))
+for hit in search.semantic_search(idx, "what did I plan for Q3?", top_k=5, min_score=-1):
+    print(hit["score"], hit["path"], hit["heading"])
+```
+
+## Measured on a Raspberry Pi 5
+
+Against a private 63-query golden set over a ~275-file personal knowledge
+base (PL/EN), the production configuration — `granite-311m` + chunker `v2` —
+scores hit@1 0.76, hit@5 0.89, MRR 0.82, up from 0.60 / 0.81 / 0.69 for the
+MiniLM + `v1` baseline. A full index build takes ~18 minutes; a query ~0.3 s;
+peak memory ~2.4 GB. The bake-off, the chunking ablation and two traps worth
+knowing (bf16 checkpoints are ~150× slower on this CPU; `arctic-m-v2.0`'s
+bundled code does not run under transformers 5) are recorded in
+G.A.N.D.A.L.F.'s `IMPLEMENTATION.md`, Step 9.
+
+## Tests
+
+```bash
+python -m unittest discover imladris-rag/tests
+```
+
+The chunker and corpus tests need no model.
+
+## Roadmap
+
+Hierarchical nodes (document → section → block) with metadata and links,
+FTS5 hybrid retrieval, context expansion under a token budget, LLM
+enrichment, and a reranker — Index v2 phases C–E.

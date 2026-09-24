@@ -622,7 +622,24 @@ move to its own repo and serve other projects.
         hit@1 0.76, MRR 0.82, sec@5 0.85, ans@5 0.84. granite-97m stays as
         the lighter fallback if the reranker squeezes RAM.
 - [ ] **C — Hierarchical index:** nodes, metadata, links, FTS5 hybrid,
-      context expansion, Samwise v2 returning context bundles.
+      context expansion, Samwise v2 returning context bundles. Four steps,
+      each eval-gated:
+  - [x] **C1 — engine extracted (2026-09-24).** `imladris-rag/` at the repo
+        root (owner-approved location and name: Imladris, Elrond's house of
+        lore; package `imladris`), with `pyproject.toml`, README and unit
+        tests (13, no model needed). Modules: `models`, `chunking`, `corpus`,
+        `store`, `indexer`, `search` — none knows about brain/. Bilbo's
+        `index.py` and Samwise's `search.py` are now brain/ adapters; their
+        CLIs, the hook and `gandalf.env` config are unchanged. Verified as a
+        pure refactor: chunks identical for all 275 files, vectors equal to
+        float noise (1.2e-7), the 63-query eval identical per query for all
+        three strategies.
+  - [ ] **C2 — nodes and links:** `doc → section → block` with metadata,
+        links and backlinks.
+  - [ ] **C3 — FTS5 hybrid** in place of the grep baseline, one result per
+        file in the top-k.
+  - [ ] **C4 — context expansion** under a token budget, 1-hop links;
+        Samwise returns context bundles with citations.
 - [ ] **D — Enrichment ablation:** heuristic headers vs. late chunking vs.
       Haiku per-file vs. Haiku per-chunk.
 - [ ] **E — Reranker (in this stage, not Stage 3):** bge-reranker-v2-m3
