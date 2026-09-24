@@ -1,5 +1,6 @@
 """Incremental indexing: compare the corpus with the store by content hash,
-chunk and embed only what changed, drop what disappeared."""
+parse, chunk and embed only what changed, drop what disappeared, and keep
+the link graph resolved against the current set of files."""
 
 import json
 import sqlite3
@@ -8,8 +9,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from . import store
-from .chunking import DEFAULT_CHUNK_PARAMS, chunk_file
+from .chunking import DEFAULT_CHUNK_PARAMS, chunk_markdown_v1, parse_markdown, split_frontmatter
 from .corpus import Corpus, file_hash
+from .links import Resolver, extract_links
 from .models import ModelSpec, load_model, token_counter
 
 
@@ -19,6 +21,7 @@ class SyncResult:
     chunks: int = 0
     deleted: int = 0
     unchanged: int = 0
+    links: int = 0
 
 
 def plan(conn: sqlite3.Connection, corpus: Corpus, scope: Path | None, rebuild: bool):
@@ -42,11 +45,40 @@ def plan(conn: sqlite3.Connection, corpus: Corpus, scope: Path | None, rebuild: 
     return to_update, to_delete, unchanged
 
 
+def _parse(chunker: str, rel: Path, content: str, count, chunk_params: dict | None):
+    """(title, frontmatter, sections, chunks) as plain dicts for the store."""
+    if chunker == "v2":
+        doc = parse_markdown(rel, content, count, chunk_params)
+        sections = [{"heading": " > ".join(h for h in s.path if h != doc.title) or doc.title,
+                     "section_no": s.number, "line_start": s.line_start, "line_end": s.line_end,
+                     "text": s.text} for s in doc.sections]
+        chunks = [{"heading": c.heading, "text": c.text, "section": c.section,
+                   "line_start": c.line_start, "line_end": c.line_end} for c in doc.chunks]
+        return doc.title, doc.frontmatter, sections, chunks
+    frontmatter, _ = split_frontmatter(content)
+    title = frontmatter.get("title") or rel.stem
+    chunks = [{"heading": h, "text": t, "section": None, "line_start": None, "line_end": None}
+              for h, t in chunk_markdown_v1(rel, content)]
+    return title, frontmatter, [], chunks
+
+
+def relink(conn: sqlite3.Connection, resolver: Resolver) -> int:
+    """Re-resolve every stored link against the current file set; returns how
+    many links resolve to a document in the corpus."""
+    rows = conn.execute("SELECT rowid, src, raw, kind FROM links").fetchall()
+    for rowid, src, raw, kind in rows:
+        target = {"markdown": resolver.markdown, "wikilink": resolver.wikilink}.get(
+            kind, lambda _src, r: resolver.path(r))(src, raw)
+        conn.execute("UPDATE links SET dst = ? WHERE rowid = ?", (target, rowid))
+    return conn.execute("SELECT COUNT(*) FROM links WHERE dst IS NOT NULL").fetchone()[0]
+
+
 def sync(conn: sqlite3.Connection, corpus: Corpus, spec: ModelSpec, chunker: str = "v1",
          chunk_params: dict | None = None, scope: Path | None = None, rebuild: bool = False,
          log=print) -> SyncResult:
     """Bring the store in line with the corpus. Raises store.IndexMismatch if
-    the store was built with another model or chunker and `rebuild` is off."""
+    the store was built with another schema, model or chunker and `rebuild`
+    is off."""
     if unknown := set(chunk_params or {}) - set(DEFAULT_CHUNK_PARAMS):
         raise ValueError(f"unknown chunk params: {sorted(unknown)}")
     if rebuild:
@@ -56,6 +88,7 @@ def sync(conn: sqlite3.Connection, corpus: Corpus, spec: ModelSpec, chunker: str
 
     to_update, to_delete, unchanged = plan(conn, corpus, scope, rebuild)
     result = SyncResult(unchanged=unchanged)
+    resolver = Resolver({p.as_posix() for p in corpus.discover()})
 
     if to_update:
         # Loaded only when there is something to embed: a no-op run stays instant.
@@ -63,12 +96,12 @@ def sync(conn: sqlite3.Connection, corpus: Corpus, spec: ModelSpec, chunker: str
         model = load_model(spec)
         count = token_counter(model)
 
-        per_file = {}
+        parsed = {}
         texts = []
         for rel in to_update:
             content = (corpus.root / rel).read_text(encoding="utf-8", errors="replace")
-            per_file[rel] = chunk_file(chunker, rel, content, count, chunk_params)
-            texts.extend(text for _, text in per_file[rel])
+            parsed[rel] = (content, *_parse(chunker, rel, content, count, chunk_params))
+            texts.extend(c["text"] for c in parsed[rel][4])
 
         vectors = []
         if texts:
@@ -80,17 +113,21 @@ def sync(conn: sqlite3.Connection, corpus: Corpus, spec: ModelSpec, chunker: str
         now = datetime.now(timezone.utc).isoformat(timespec="seconds")
         cursor = 0
         for rel in to_update:
-            chunks = per_file[rel]
-            file_vectors = vectors[cursor:cursor + len(chunks)]
+            content, title, frontmatter, sections, chunks = parsed[rel]
+            for chunk, vec in zip(chunks, vectors[cursor:cursor + len(chunks)]):
+                chunk["vector"] = vec.astype("float32").tobytes()
+                chunk["token_count"] = count(chunk["text"]) if chunker == "v2" else len(chunk["text"].split())
             cursor += len(chunks)
-            rows = [(heading, text, vec.astype("float32").tobytes(),
-                     count(text) if chunker == "v2" else len(text.split()))
-                    for (heading, text), vec in zip(chunks, file_vectors)]
+            posix = rel.as_posix()
+            links = [{"dst": l.target, "raw": l.raw, "kind": l.kind, "line": l.line}
+                     for l in extract_links(posix, content, resolver)]
             abs_path = corpus.root / rel
-            store.replace_file(conn, rel.as_posix(), file_hash(abs_path),
-                               abs_path.stat().st_mtime, now, rows)
+            store.write_document(conn, posix, content_hash=file_hash(abs_path),
+                                 mtime=abs_path.stat().st_mtime, indexed_at=now, title=title,
+                                 frontmatter=frontmatter, privacy=corpus.privacy_of(rel, frontmatter),
+                                 sections=sections, blocks=chunks, links=links)
             result.updated += 1
-            result.chunks += len(rows)
+            result.chunks += len(chunks)
 
         store.set_meta(
             conn,
@@ -107,7 +144,9 @@ def sync(conn: sqlite3.Connection, corpus: Corpus, spec: ModelSpec, chunker: str
         )
 
     for path in to_delete:
-        store.delete_file(conn, path)
+        store.delete_document(conn, path)
         result.deleted += 1
+    if to_update or to_delete:
+        result.links = relink(conn, resolver)
     conn.commit()
     return result

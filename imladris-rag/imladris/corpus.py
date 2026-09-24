@@ -4,6 +4,12 @@ The engine knows nothing else about where the files come from."""
 import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Callable
+
+
+def default_privacy(rel_path: Path, frontmatter: dict) -> str:
+    """The document's own `privacy:` field, private when it has none."""
+    return frontmatter.get("privacy") or "private"
 
 
 @dataclass(frozen=True)
@@ -13,6 +19,9 @@ class Corpus:
     exclude_top_dirs: frozenset = field(default_factory=frozenset)   # first path part, e.g. "index"
     exclude_prefixes: tuple = ()                                      # posix prefixes, e.g. "logs/raw"
     exclude_names: frozenset = field(default_factory=frozenset)      # file names, e.g. "CLAUDE.md"
+    # (relative path, frontmatter) -> "private" | "public"; callers encode
+    # their own rules here (e.g. folder-level privacy that overrides the file)
+    privacy_of: Callable[[Path, dict], str] = default_privacy
 
     def is_excluded(self, rel_path: Path) -> bool:
         if rel_path.parts and rel_path.parts[0] in self.exclude_top_dirs:

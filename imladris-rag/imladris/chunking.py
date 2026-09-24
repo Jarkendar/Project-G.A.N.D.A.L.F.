@@ -8,6 +8,7 @@ v2 — structural: paragraph, list and table blocks packed within one section,
 """
 
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)$")
@@ -107,29 +108,95 @@ def chunk_markdown_v1(rel_path: Path, text: str) -> list[tuple[str, str]]:
 
 
 # --- v2 ------------------------------------------------------------------------
+# Works on (line_number, text) pairs so every section and chunk knows which
+# lines of the file it came from — the hierarchy and citations need that.
+
+@dataclass
+class Section:
+    path: list[str]      # enclosing headings, first H1 excluded, e.g. ["Portfolio", "XTB"]
+    number: str          # position among its siblings, e.g. "2.3"; "" for the preamble
+    line_start: int      # 1-based, inclusive; the heading line itself for a headed section
+    line_end: int
+    text: str            # body text (after skip_lines), stripped
+    headed: bool = True  # False for the preamble before the first heading
+
+
+@dataclass
+class Chunk:
+    heading: str         # heading path joined with " > " (merged chunks: " | "), or the title
+    text: str            # what gets embedded: prefix + body
+    section: int         # index into Document.sections of the (first) section it belongs to
+    line_start: int
+    line_end: int
+
+
+@dataclass
+class Document:
+    title: str
+    frontmatter: dict
+    sections: list[Section]
+    chunks: list[Chunk]
+
+
+def _numbered_body(text: str) -> tuple[dict, list[tuple[int, str]]]:
+    """Frontmatter plus the body as (1-based line number, line) pairs."""
+    fm, body = split_frontmatter(text)
+    first = len(text[:len(text) - len(body)].splitlines()) + 1 if body is not text else 1
+    return fm, list(enumerate(body.splitlines(), start=first))
+
 
 def split_sections(body: str) -> list[tuple[list[str], str]]:
     """Split body into (heading_path, section_text) — heading_path is the full
     stack of enclosing headings, e.g. ["Portfolio", "XTB"]. The document's
     first H1 is left out: it restates the title, which every chunk carries
     anyway."""
+    return [(s.path, s.text) for s in _sections(list(enumerate(body.splitlines(), 1)))]
+
+
+def _sections(lines: list[tuple[int, str]]) -> list[Section]:
     stack: list[tuple[int, str]] = []
-    sections: list[tuple[list[str], list[str]]] = [([], [])]
+    counters: list[int] = []  # sibling counters per heading depth in the stack
+    raw: list[tuple[list[str], str, int, list[tuple[int, str]], bool]] = [
+        ([], "", lines[0][0] if lines else 1, [], False)]
     seen_heading = False
-    for line in body.splitlines():
+    for no, line in lines:
         m = HEADING_RE.match(line)
         if m:
             level = len(m.group(1))
             while stack and stack[-1][0] >= level:
                 stack.pop()
             if not (level == 1 and not seen_heading):
+                depth = len(stack)
+                counters = counters[:depth + 1]
+                if len(counters) <= depth:
+                    counters.append(0)
+                counters[depth] += 1
                 stack.append((level, m.group(2).strip()))
             seen_heading = True
-            sections.append(([h for _, h in stack], []))
+            raw.append(([h for _, h in stack], ".".join(map(str, counters[:len(stack)])), no, [], True))
         else:
-            sections[-1][1].append(line)
-    return [(path, "\n".join(lines).strip()) for path, lines in sections
-            if any(l.strip() for l in lines)]
+            raw[-1][3].append((no, line))
+    sections = []
+    for path, number, start, body, headed in raw:
+        if not any(l.strip() for _, l in body):
+            continue
+        end = max(no for no, l in body if l.strip())
+        sections.append(Section(path, number, start, end, "\n".join(l for _, l in body).strip(), headed))
+    return sections
+
+
+def _blocks(lines: list[tuple[int, str]]) -> list[tuple[str, int, int]]:
+    """Blank-line separated blocks as (text, first line, last line)."""
+    blocks, current = [], []
+    for no, line in lines:
+        if line.strip():
+            current.append((no, line))
+        elif current:
+            blocks.append(current)
+            current = []
+    if current:
+        blocks.append(current)
+    return [("\n".join(l for _, l in b).strip(), b[0][0], b[-1][0]) for b in blocks]
 
 
 def split_oversize(block: str, budget: int, count) -> list[str]:
@@ -168,16 +235,17 @@ def split_oversize(block: str, budget: int, count) -> list[str]:
     return out
 
 
-def chunk_markdown_v2(rel_path: Path, text: str, count, params: dict | None = None) -> list[tuple[str, str]]:
-    """Return [(heading_path, text_to_embed), ...]. `count` returns a token
-    count under the model being indexed; `params` overrides
-    DEFAULT_CHUNK_PARAMS."""
+def parse_markdown(rel_path: Path, text: str, count, params: dict | None = None) -> Document:
+    """Sections and chunks of one file, with line ranges. `count` returns a
+    token count under the model being indexed; `params` overrides
+    DEFAULT_CHUNK_PARAMS. A piece of an oversized block keeps the whole
+    block's line range."""
     params = {**DEFAULT_CHUNK_PARAMS, **(params or {})}
-    fm, body = split_frontmatter(text)
+    fm, lines = _numbered_body(text)
     title = fm.get("title") or rel_path.stem
     if params["skip_lines"]:
         skip = re.compile(params["skip_lines"])
-        body = "\n".join(l for l in body.splitlines() if not skip.search(l))
+        lines = [(no, l) for no, l in lines if not skip.search(l)]
 
     def prefix_for(heading: str) -> str:
         mode = params["prefix"]
@@ -189,49 +257,63 @@ def chunk_markdown_v2(rel_path: Path, text: str, count, params: dict | None = No
             return f"{heading}\n\n"
         return f"{title}\n{heading}\n\n"
 
-    pieces: list[tuple[str, str]] = []  # (heading, body) before prefixing
-    for path, section_text in split_sections(body) or [([], body.strip())]:
-        heading = " > ".join(h for h in path if h != title)
+    sections = _sections(lines)
+    if not sections and lines:
+        body = "\n".join(l for _, l in lines).strip()
+        sections = [Section([], "", lines[0][0], lines[-1][0], body, False)] if body else []
+
+    # (heading, body, section index, first line, last line) before prefixing
+    pieces: list[tuple[str, str, int, int, int]] = []
+    for si, section in enumerate(sections):
+        heading = " > ".join(h for h in section.path if h != title)
         prefix_tokens = count(prefix_for(heading))
         target = max(32, params["target"] - prefix_tokens)
         limit = max(32, CHUNK_MAX_TOKENS - prefix_tokens)
+        section_lines = [(no, l) for no, l in lines if section.line_start <= no <= section.line_end
+                         and not (section.headed and no == section.line_start)]
 
         blocks = []
-        for block in (b.strip() for b in re.split(r"\n\s*\n", section_text)):
-            if not block:
-                continue
-            blocks.extend([block] if count(block) <= limit else split_oversize(block, limit, count))
+        for block, first, last in _blocks(section_lines):
+            parts = [block] if count(block) <= limit else split_oversize(block, limit, count)
+            blocks.extend((part, first, last) for part in parts)
 
-        current: list[str] = []
+        current: list[tuple[str, int, int]] = []
         for block in blocks:
-            if current and count("\n\n".join(current + [block])) > target:
-                pieces.append((heading, "\n\n".join(current)))
+            if current and count("\n\n".join([b[0] for b in current] + [block[0]])) > target:
+                pieces.append((heading, "\n\n".join(b[0] for b in current), si, current[0][1], current[-1][2]))
                 current = []
             current.append(block)
         if current:
-            pieces.append((heading, "\n\n".join(current)))
+            pieces.append((heading, "\n\n".join(b[0] for b in current), si, current[0][1], current[-1][2]))
 
     if params["merge_tiny"]:
-        merged: list[tuple[str, str]] = []
-        carry: tuple[str, str] | None = None  # a tiny piece waiting for a following neighbour
-        for heading, text_ in pieces:
+        merged = []
+        carry = None  # a tiny piece waiting for a following neighbour
+        for heading, body, si, first, last in pieces:
             if carry:
                 heading = " | ".join(h for h in (carry[0], heading) if h)
-                text_ = f"{carry[1]}\n\n{text_}"
+                body, si, first = f"{carry[1]}\n\n{body}", carry[2], carry[3]
                 carry = None
-            if count(text_) >= params["merge_tiny"]:
-                merged.append((heading, text_))
-            elif merged and count(merged[-1][1] + text_) <= CHUNK_MAX_TOKENS:
-                prev_heading, prev_text = merged.pop()
-                label = " | ".join(dict.fromkeys(h for h in (prev_heading, heading) if h))
-                merged.append((label, f"{prev_text}\n\n{text_}"))
+            if count(body) >= params["merge_tiny"]:
+                merged.append((heading, body, si, first, last))
+            elif merged and count(merged[-1][1] + body) <= CHUNK_MAX_TOKENS:
+                ph, pb, psi, pfirst, _ = merged.pop()
+                label = " | ".join(dict.fromkeys(h for h in (ph, heading) if h))
+                merged.append((label, f"{pb}\n\n{body}", psi, pfirst, last))
             else:
-                carry = (heading, text_)
+                carry = (heading, body, si, first, last)
         if carry:
             merged.append(carry)
         pieces = merged
 
-    return [(heading or title, prefix_for(heading) + text_) for heading, text_ in pieces]
+    chunks = [Chunk(heading or title, prefix_for(heading) + body, si, first, last)
+              for heading, body, si, first, last in pieces]
+    return Document(title, fm, sections, chunks)
+
+
+def chunk_markdown_v2(rel_path: Path, text: str, count, params: dict | None = None) -> list[tuple[str, str]]:
+    """Return [(heading_path, text_to_embed), ...] — the flat view of parse_markdown."""
+    return [(c.heading, c.text) for c in parse_markdown(rel_path, text, count, params).chunks]
 
 
 CHUNKERS = ("v1", "v2")

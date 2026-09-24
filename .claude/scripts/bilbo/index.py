@@ -31,12 +31,28 @@ from imladris.chunking import CHUNKERS  # noqa: E402
 from imladris.corpus import Corpus  # noqa: E402
 from imladris.models import DEFAULT_MODEL, MODEL_REGISTRY, resolve_model  # noqa: E402
 
+# brain/ privacy is folder-level first, then per file (brain/CLAUDE.md): these
+# folders are private whatever a file says; knowledge/ is public unless the
+# file says private; anything else follows the file, private when unstated.
+ALWAYS_PRIVATE = {"core", "current", "conversations", "backlog", "_meta"}
+
+
+def brain_privacy(rel_path: Path, frontmatter: dict) -> str:
+    folder = rel_path.parts[0] if len(rel_path.parts) > 1 else ""
+    if folder in ALWAYS_PRIVATE:
+        return "private"
+    if folder == "knowledge":
+        return "private" if frontmatter.get("privacy") == "private" else "public"
+    return frontmatter.get("privacy") or "private"
+
+
 # What in brain/ is not knowledge: the index's own folder, Smeagol's logs (and
 # privacy-sensitive), and per-folder CLAUDE.md files (operating instructions).
 BRAIN_CORPUS_RULES = dict(
     exclude_top_dirs=frozenset({"index"}),
     exclude_prefixes=("current/smeagol",),
     exclude_names=frozenset({"CLAUDE.md"}),
+    privacy_of=brain_privacy,
 )
 
 
@@ -157,7 +173,8 @@ def main():
     except (store.IndexMismatch, ValueError) as err:
         sys.exit(f"BILBO: {err}")
     print(f"BILBO: {result.updated} file(s) updated ({result.chunks} chunks), "
-          f"{result.deleted} deleted, {result.unchanged} unchanged.")
+          f"{result.deleted} deleted, {result.unchanged} unchanged."
+          + (f" {result.links} resolved links." if result.updated or result.deleted else ""))
     # Only a full-scope run covers everything HEAD contains; a --path run
     # leaves the rest unchecked, so it must not claim the commit.
     if head and scope is None:

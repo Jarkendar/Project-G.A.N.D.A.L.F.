@@ -634,8 +634,26 @@ move to its own repo and serve other projects.
         pure refactor: chunks identical for all 275 files, vectors equal to
         float noise (1.2e-7), the 63-query eval identical per query for all
         three strategies.
-  - [ ] **C2 — nodes and links:** `doc → section → block` with metadata,
-        links and backlinks.
+  - [x] **C2 — nodes and links (2026-09-24).** Store schema 2:
+        `documents` (hash, title, frontmatter JSON, privacy, superseded_by),
+        `nodes` (`doc → section → block` tree; sections carry heading path,
+        number such as "2.3", line range and body; blocks are the embedded
+        chunks with line ranges), `links` (markdown, wikilink, path mention;
+        re-resolved on every change to the file set, so backlinks are a
+        query on `dst`). Privacy is a corpus rule supplied by the adapter —
+        Bilbo encodes brain/'s folder-first rules (core/, current/,
+        conversations/, backlog/, _meta/ always private; knowledge/ public
+        unless the file says private). The chunker now tracks line numbers;
+        its output is byte-identical to C1 on all 275 files (a piece of a
+        split oversized block keeps the whole block's range). Production
+        index: 275 docs, 1269 sections, 1540 blocks, 182 of 198 links
+        resolved (the rest are URLs, format examples, excluded files);
+        vectors identical to the schema-1 index, eval identical per query.
+        Samwise results now carry `section_no` and `lines`. A schema-1
+        index stays readable until rebuilt. Tests: 25.
+        Found on the way: the fixed threshold (0.868) drops a correct 0.860
+        hit for a short query ("kto jest uposażonym w polisie") — a
+        threshold relative to the top score is worth trying in C3.
   - [ ] **C3 — FTS5 hybrid** in place of the grep baseline, one result per
         file in the top-k.
   - [ ] **C4 — context expansion** under a token budget, 1-hop links;

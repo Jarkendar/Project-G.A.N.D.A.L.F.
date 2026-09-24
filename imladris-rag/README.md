@@ -16,9 +16,10 @@ The package is meant to move to its own repository later without changes.
 | Module | What it does |
 |---|---|
 | `imladris.models` | Registry of embedding models, each pinned to a Hub commit, with the query/passage prefixes it was trained with. Loads in float32 with a capped sequence length. |
+| `imladris.links` | Links between documents — markdown links, wikilinks, bare path mentions — resolved against the corpus' own file list. |
 | `imladris.chunking` | Markdown chunkers. `v2` (production): structural blocks — paragraph, list, table — packed within one section up to a token budget, tables split by rows with the header repeated, each chunk prefixed with the document title and heading path. `v1`: heading + ~90-word windows, kept for comparison. |
-| `imladris.corpus` | What to index: a root, a glob, and exclusion rules. |
-| `imladris.store` | SQLite index — files, chunks with vectors, and a `meta` table recording how the index was built; refuses to mix models or chunkers. |
+| `imladris.corpus` | What to index: a root, a glob, exclusion rules, and a privacy rule (callable) so a caller can impose folder-level privacy. |
+| `imladris.store` | SQLite index, schema 2: `documents` (hash, title, frontmatter, privacy, supersession), `nodes` — a `doc → section → block` tree with heading paths, section numbers and line ranges, blocks carrying the vectors — and `links`; a `meta` table records how the index was built and the store refuses to mix models, chunkers or schemas. |
 | `imladris.indexer` | Incremental sync by content hash: only changed files are re-chunked and re-embedded, and the model is not even loaded on a no-op run. |
 | `imladris.search` | Semantic (cosine over normalized vectors), keyword and hybrid (Reciprocal Rank Fusion) retrieval. |
 
@@ -60,6 +61,6 @@ The chunker and corpus tests need no model.
 
 ## Roadmap
 
-Hierarchical nodes (document → section → block) with metadata and links,
-FTS5 hybrid retrieval, context expansion under a token budget, LLM
-enrichment, and a reranker — Index v2 phases C–E.
+FTS5 hybrid retrieval, context expansion under a token budget along the
+section tree and the link graph, LLM enrichment, and a reranker — Index v2
+phases C3–E.

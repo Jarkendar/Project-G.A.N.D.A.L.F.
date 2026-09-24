@@ -50,6 +50,8 @@ class Index:
     ords: list[int] = field(default_factory=list)
     headings: list[str] = field(default_factory=list)
     texts: list[str] = field(default_factory=list)
+    section_nos: list = field(default_factory=list)  # "2.3" per chunk; None on schema-1 indexes
+    line_ranges: list = field(default_factory=list)  # (start, end) per chunk, or (None, None)
     vectors: np.ndarray = None  # (n_chunks, embed_dim), float32, normalized
 
 
@@ -61,7 +63,13 @@ def load_index(db_path: Path) -> Index:
         meta = store.get_meta(conn)
         if not meta.get("model_name"):
             raise IndexUnavailable(f"index at {db_path} has no meta")
-        rows = conn.execute("SELECT path, ord, heading, text, vector FROM chunks ORDER BY id").fetchall()
+        if store._has_table(conn, "nodes"):
+            rows = conn.execute(
+                "SELECT path, ord, heading, text, vector, section_no, line_start, line_end "
+                "FROM nodes WHERE level = 'block' AND vector IS NOT NULL ORDER BY id").fetchall()
+        else:  # schema 1: read-only compatibility until the index is rebuilt
+            rows = [r + (None, None, None) for r in conn.execute(
+                "SELECT path, ord, heading, text, vector FROM chunks ORDER BY id").fetchall()]
     finally:
         conn.close()
     if not rows:
@@ -82,6 +90,8 @@ def load_index(db_path: Path) -> Index:
         ords=[r[1] for r in rows],
         headings=[r[2] or "" for r in rows],
         texts=[r[3] for r in rows],
+        section_nos=[r[5] for r in rows],
+        line_ranges=[(r[6], r[7]) for r in rows],
         vectors=np.stack([np.frombuffer(r[4], dtype=np.float32) for r in rows]),
     )
 
@@ -113,6 +123,8 @@ def semantic_search(idx: Index, query: str, top_k: int, min_score: float) -> lis
             "heading": idx.headings[i],
             "ord": idx.ords[i],
             "snippet": make_snippet(idx.texts[i]),
+            "section_no": idx.section_nos[i],
+            "lines": list(idx.line_ranges[i]) if idx.line_ranges[i][0] is not None else None,
             "chunk": int(i),  # position in idx.texts, for callers that need the full text
         })
         if len(results) >= top_k:
@@ -179,7 +191,8 @@ def hybrid_search(idx: Index, corpus: Corpus, query: str, top_k: int) -> list[di
 
     fused = [{"score": round(score, 6), "path": path,
               "heading": by_path[path].get("heading"), "ord": by_path[path].get("ord"),
-              "snippet": by_path[path].get("snippet"), "chunk": by_path[path].get("chunk")}
+              "snippet": by_path[path].get("snippet"), "chunk": by_path[path].get("chunk"),
+              "section_no": by_path[path].get("section_no"), "lines": by_path[path].get("lines")}
              for path, score in rrf.items()]
     fused.sort(key=lambda r: -r["score"])
     return fused[:top_k]

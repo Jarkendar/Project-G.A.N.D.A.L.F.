@@ -18,8 +18,14 @@ sync — is the `imladris-rag/` package at the repo root (see its README),
 written to know nothing about brain/. `index.py` is the brain/ adapter: it
 resolves `BRAIN_PATH`, defines what is not knowledge (`index/`,
 `current/smeagol/`, per-folder `CLAUDE.md`), reads the production model and
-chunker from `.claude/gandalf.env`, records the indexed brain/ commit for the
-hook, and keeps the CLI below unchanged.
+chunker from `.claude/gandalf.env`, applies brain/'s folder-first privacy
+rules (`brain_privacy`: core/, current/, conversations/, backlog/, _meta/
+always private; knowledge/ public unless the file says private), records the
+indexed brain/ commit for the hook, and keeps the CLI below unchanged.
+
+The index (schema 2) holds more than vectors: each file's section tree with
+line ranges, its frontmatter and effective privacy, and the links between
+files — see `imladris-rag/imladris/store.py`.
 
 ## What it does
 
