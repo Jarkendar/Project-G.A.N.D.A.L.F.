@@ -66,6 +66,27 @@ declares no `nvidia-*` dependencies. This is not pinned in
 `requirements.txt` because the wheel lives on a separate index; the
 `requirements.txt` pin (`sentence-transformers`, `numpy`) still holds.
 
+## Automatic reindex on commit
+
+brain/'s `core.hooksPath` points at `.claude/hooks/brain/` (set by
+`/init-brain`), so two hooks there keep the index current without a timer:
+
+- `post-commit` — after every commit in brain/ (skills, `/daily`, Smeagol).
+- `post-merge` — after every pull; the SessionStart sync pulls with
+  `--ff-only`, which fires it.
+
+Both start `index.py --if-new-commits` **detached** (`setsid`, `nice -n 19`)
+and return at once — loading the model alone takes ~20 s. `--if-new-commits`
+skips the run when brain/ HEAD equals `meta.last_indexed_commit`, which every
+full-scope, non-dry run records. `flock -n` on `brain/index/.reindex.lock`
+keeps two runs from writing the index at once; a commit that finds the lock
+taken is simply skipped, and the next run picks its files up anyway, since
+the sync is incremental by content hash. No debounce — a burst of commits
+means a few short runs; add one only if that turns out to hurt.
+
+Output goes to `brain/index/reindex.log` (gitignored with the rest of
+`index/`). If the venv is missing, the hook does nothing.
+
 ## Model pinning
 
 The model (`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`) is
@@ -90,9 +111,6 @@ conflict with sentence-transformers' own version bounds.
 
 ## Not yet done (see IMPLEMENTATION.md / the plan this was built from)
 
-- No scheduler wired up yet — run manually. Planned: a `post-commit` hook in
-  `brain/` that records "reindex needed", with the run itself fired shortly
-  after (debounced), rather than a fixed-interval timer.
 - **Chunks are truncated, measured: `MAX_CHUNK_WORDS = 90` does not bound
   token count.** On the real `brain/` (2026-09-22, 1756 chunks), 713 chunks
   (41%) exceed the model's 128-token window and ~19% of all tokens are

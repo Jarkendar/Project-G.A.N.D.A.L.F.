@@ -98,9 +98,10 @@ Print validation report: ✅ present / ❌ missing / ⚠️ for each path.
 ### 5. Hooks wiring
 
 `$BRAIN` is a separate git repo and is meant to hold data only — no executable
-code (see `brain/CLAUDE.md`). The frontmatter validator hook therefore lives in
-*this* repo, at `.claude/hooks/brain/pre-commit`, and `$BRAIN` must be pointed
-at it via `core.hooksPath`.
+code (see `brain/CLAUDE.md`). Its hooks therefore live in *this* repo, in
+`.claude/hooks/brain/` — `pre-commit` (frontmatter validator) and
+`post-commit`/`post-merge` (B.I.L.B.O. reindex, a no-op until Bilbo's venv
+exists) — and `$BRAIN` must be pointed at that folder via `core.hooksPath`.
 
 Check the current value:
 
@@ -147,6 +148,7 @@ located), and `$BRAIN`'s location is already re-resolved per machine via
 - **Validation scope.** Validation only checks structural completeness (all skeleton
   files present). It does not verify frontmatter, content, or that living documents
   match the template — they are not supposed to after the first edit.
-- **Hooks source.** The pre-commit frontmatter validator run via `core.hooksPath`
-  lives at `.claude/hooks/brain/pre-commit` in this repo, not in `brain/` — see
-  Step 5. It can always be bypassed per-commit with `git commit --no-verify`.
+- **Hooks source.** The hooks run via `core.hooksPath` live in
+  `.claude/hooks/brain/` in this repo, not in `brain/` — see Step 5. The
+  pre-commit validator can always be bypassed per-commit with
+  `git commit --no-verify`.

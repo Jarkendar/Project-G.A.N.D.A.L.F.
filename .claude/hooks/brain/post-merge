@@ -1,0 +1,3 @@
+#!/bin/sh
+# Same as post-commit: reindex brain/ after a pull/merge.
+exec "$(dirname "$0")/post-commit"

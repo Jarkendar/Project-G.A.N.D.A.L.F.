@@ -28,6 +28,7 @@ import hashlib
 import os
 import re
 import sqlite3
+import subprocess
 import sys
 import time
 from datetime import datetime, timezone
@@ -79,6 +80,17 @@ def resolve_brain_path(project_dir: Path) -> Path:
     if not path.is_dir():
         sys.exit(f"BILBO: resolved BRAIN_PATH does not exist: {path}")
     return path
+
+
+def brain_head(brain_dir: Path) -> str | None:
+    """Current HEAD commit of the brain/ repo, or None if it is not a git repo."""
+    try:
+        return subprocess.run(
+            ["git", "-C", str(brain_dir), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return None
 
 
 # --- Discovery -----------------------------------------------------------------
@@ -399,6 +411,9 @@ def main():
                          help="limit to one file or subdirectory (relative to BRAIN_PATH)")
     parser.add_argument("--model", type=str, default=None, help="override the embedding model name")
     parser.add_argument("--dry-run", action="store_true", help="report deltas without embedding or writing")
+    parser.add_argument("--if-new-commits", action="store_true",
+                        help="skip the run when brain/ HEAD equals the last indexed commit "
+                             "(used by the post-commit/post-merge hooks in brain/)")
     args = parser.parse_args()
 
     project_dir = Path(__file__).resolve().parents[3]
@@ -416,6 +431,14 @@ def main():
     db_path = brain_dir / "index" / "bilbo.db"
     conn = open_db(db_path)
 
+    # Read HEAD before scanning: a commit landing mid-run then shows up as
+    # "new" on the next check instead of being marked indexed unseen.
+    head = brain_head(brain_dir)
+    if args.if_new_commits and head and head == get_meta(conn).get("last_indexed_commit"):
+        print(f"BILBO: brain/ HEAD {head[:7]} already indexed — nothing to do.")
+        conn.close()
+        return
+
     if args.rebuild and not args.dry_run:
         conn.executescript("DELETE FROM chunks; DELETE FROM files; DELETE FROM meta;")
         conn.commit()
@@ -424,6 +447,10 @@ def main():
 
     start = time.time()
     sync(conn, brain_dir, model_name, revision, scope, args.dry_run, args.rebuild)
+    # Only a full-scope run covers everything HEAD contains; a --path run
+    # leaves the rest unchecked, so it must not claim the commit.
+    if head and scope is None and not args.dry_run:
+        set_meta(conn, last_indexed_commit=head)
     conn.close()
     print(f"BILBO: done in {time.time() - start:.1f}s. Index: {db_path}")
 
