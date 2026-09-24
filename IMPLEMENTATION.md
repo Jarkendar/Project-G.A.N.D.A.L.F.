@@ -683,6 +683,15 @@ move to its own repo and serve other projects.
         relative cutoff (top − 0.047) raises recall (0.78 → 0.88) but loses
         on F1 (0.615 vs 0.645): the absolute threshold stays; the reranker
         (phase E) will own this. Samwise's default remains `semantic`.
+        **Stopwords (measured afterwards):** the PL/EN list moved out of the
+        engine into `.claude/scripts/samwise/stopwords.txt` (the engine takes
+        a `stopwords` set and ships none — which words are noise depends on
+        the corpus' languages). They matter most where nothing else weighs
+        words: grep hit@1 0.30 vs 0.25 without, grep-based hybrid 0.62 vs
+        0.49 (MRR 0.73 vs 0.63); for BM25 they help less (fts hit@1 0.59 vs
+        0.54, MRR 0.64 vs 0.61) since IDF already discounts common words;
+        weighted hybrid-fts is unchanged (0.70). Semantic search and context
+        bundles never use them.
   - [x] **C4 — context expansion (2026-09-24).** `imladris.context`
         builds a token-budgeted bundle: the best block of each of the top 3
         files first (breadth), then the other hit blocks in score order

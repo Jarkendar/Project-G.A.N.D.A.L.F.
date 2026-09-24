@@ -23,21 +23,11 @@ from .corpus import Corpus
 from .models import ModelSpec, load_model
 
 RRF_K = 60  # standard Reciprocal Rank Fusion constant
+# Keyword paths (keyword_search, fts_*) take a `stopwords` set from the caller:
+# which words carry no meaning depends on the corpus' languages, so the engine
+# ships none. load_stopwords reads a plain one-word-per-line file.
 SNIPPET_CHARS = 240
 
-STOPWORDS = {
-    # English function words / query-pattern filler ("what do I know about...")
-    "the", "and", "for", "with", "this", "that", "from", "have", "what",
-    "about", "your", "how", "when", "where", "which", "does", "did", "was",
-    "were", "are", "into", "over", "under", "who", "whom", "will", "can",
-    "know", "tell", "find", "show", "any",
-    # Polish function words / query-pattern filler ("co wiem o... / jakie mam...")
-    "wiem", "jak", "jakie", "jakich", "jaki", "jaka", "czy", "się", "nie",
-    "dla", "tego", "tym", "oraz", "moje", "moja", "mój", "moim", "jest",
-    "były", "była", "był", "coś", "tam", "tutaj", "znam", "znaj", "znać",
-    "powiedz", "pokaż", "znajdź", "mam", "masz", "ten", "ta", "już", "być",
-    "swoje", "swoja", "swój", "chcę", "chce",
-}
 
 
 class IndexUnavailable(Exception):
@@ -138,21 +128,32 @@ def semantic_search(idx: Index, query: str, top_k: int, min_score: float) -> lis
     return results
 
 
-def keywords_from_query(query: str) -> list[str]:
+def load_stopwords(path: Path) -> frozenset:
+    """One word per line; blank lines and "#" comments ignored; lower-cased."""
+    words = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.split("#", 1)[0].strip().lower()
+        if line:
+            words.add(line)
+    return frozenset(words)
+
+
+def keywords_from_query(query: str, stopwords: frozenset = frozenset()) -> list[str]:
     # Case-preserving pass first so all-caps acronyms (CV, AI, US) survive at
     # 2 characters, while genuine 2-letter stopwords (o, w, z, do...) drop.
     keywords = []
     for t in re.findall(r"\w+", query):
         low = t.lower()
-        if low in STOPWORDS:
+        if low in stopwords:
             continue
         if len(t) >= 3 or (t.isupper() and len(t) >= 2):
             keywords.append(low)
     return keywords
 
 
-def keyword_search(corpus: Corpus, query: str, top_k: int) -> list[dict]:
-    keywords = keywords_from_query(query)
+def keyword_search(corpus: Corpus, query: str, top_k: int,
+                   stopwords: frozenset = frozenset()) -> list[dict]:
+    keywords = keywords_from_query(query, stopwords)
     if not keywords:
         return []
     results = []
@@ -183,10 +184,11 @@ def _best_per_path(results: list[dict]) -> list[dict]:
     return list(best.values())
 
 
-def hybrid_search(idx: Index, corpus: Corpus, query: str, top_k: int) -> list[dict]:
+def hybrid_search(idx: Index, corpus: Corpus, query: str, top_k: int,
+                  stopwords: frozenset = frozenset()) -> list[dict]:
     pool = max(top_k * 5, 40)
     semantic_hits = _best_per_path(semantic_search(idx, query, top_k=pool, min_score=-1.0))
-    keyword_hits = keyword_search(corpus, query, top_k=pool)
+    keyword_hits = keyword_search(corpus, query, top_k=pool, stopwords=stopwords)
 
     rrf: dict[str, float] = {}
     by_path: dict[str, dict] = {}
@@ -214,19 +216,20 @@ def _hit(idx: Index, i: int, score: float) -> dict:
             "chunk": int(i)}
 
 
-def fts_query(query: str, stem: int) -> str:
+def fts_query(query: str, stem: int, stopwords: frozenset = frozenset()) -> str:
     """An FTS5 OR-query of the query's keywords, each cut to `stem` characters
     and prefix-matched (0 = whole words)."""
     terms = []
-    for kw in dict.fromkeys(keywords_from_query(query)):
+    for kw in dict.fromkeys(keywords_from_query(query, stopwords)):
         kw = kw.replace('"', "")
         terms.append(f'"{kw[:stem]}"*' if stem and len(kw) > stem else f'"{kw}"')
     return " OR ".join(terms)
 
 
-def fts_search(idx: Index, query: str, top_k: int, stem: int = 5) -> list[dict]:
+def fts_search(idx: Index, query: str, top_k: int, stem: int = 5,
+               stopwords: frozenset = frozenset()) -> list[dict]:
     """BM25-ranked blocks. Empty on a schema-1 index or without keywords."""
-    match = fts_query(query, stem)
+    match = fts_query(query, stem, stopwords)
     if not match or idx.ids[0] is None:
         return []
     positions = {node_id: i for i, node_id in enumerate(idx.ids)}
@@ -240,13 +243,13 @@ def fts_search(idx: Index, query: str, top_k: int, stem: int = 5) -> list[dict]:
 
 
 def hybrid_fts_search(idx: Index, query: str, top_k: int, stem: int = 5,
-                      fts_weight: float = 1.0) -> list[dict]:
+                      fts_weight: float = 1.0, stopwords: frozenset = frozenset()) -> list[dict]:
     """Reciprocal Rank Fusion of semantic and FTS rankings, block by block;
     `fts_weight` scales the FTS side (1.0 = plain RRF)."""
     pool = max(top_k * 5, 40)
     rrf: dict[int, float] = {}
     for weight, hits in ((1.0, semantic_search(idx, query, top_k=pool, min_score=-1.0)),
-                         (fts_weight, fts_search(idx, query, top_k=pool, stem=stem))):
+                         (fts_weight, fts_search(idx, query, top_k=pool, stem=stem, stopwords=stopwords))):
         for rank, hit in enumerate(hits):
             rrf[hit["chunk"]] = rrf.get(hit["chunk"], 0.0) + weight / (RRF_K + rank + 1)
     fused = sorted(rrf.items(), key=lambda kv: -kv[1])[:top_k]

@@ -96,7 +96,9 @@ def _chunk_text(idx: "search.SamwiseIndex", result: dict) -> str:
 
 def evaluate_strategy(strategy: str, golden: list[dict], brain_dir: Path,
                        idx: "search.SamwiseIndex", stem: int = 5,
-                       fts_weight: float = 1.0, context_args: dict | None = None) -> tuple[dict, list[dict]]:
+                       fts_weight: float = 1.0, context_args: dict | None = None,
+                       stopwords: frozenset | None = None) -> tuple[dict, list[dict]]:
+    stopwords = search.STOPWORDS if stopwords is None else stopwords
     """`strategy` is a search.py strategy, optionally suffixed "+div" for
     one block per file (e.g. "hybrid-fts+div")."""
     name, _, flag = strategy.partition("+")
@@ -111,7 +113,8 @@ def evaluate_strategy(strategy: str, golden: list[dict], brain_dir: Path,
                        for it in items]
         else:
             results = search.search(brain_dir, item["query"], name, TOP_K, -1.0, idx=idx,
-                                    diversify=flag == "div", stem=stem, fts_weight=fts_weight)
+                                    diversify=flag == "div", stem=stem, fts_weight=fts_weight,
+                                    stopwords=stopwords)
         latency_ms = (time.perf_counter() - start) * 1000
         expected = set(item["expected_paths"])
         rank = rank_of_first_relevant(results, item["expected_paths"])
@@ -268,6 +271,8 @@ def main():
                         help="context: token budget of the bundle")
     parser.add_argument("--files", type=int, default=3, help="context: lead files (best block of each goes first)")
     parser.add_argument("--no-links", action="store_true", help="context: do not follow links")
+    parser.add_argument("--no-stopwords", action="store_true",
+                        help="keyword strategies: ignore stopwords.txt (measure its effect)")
     parser.add_argument("--stem", type=int, default=5,
                         help="fts / hybrid-fts: cut query words to this many characters (0 = off)")
     parser.add_argument("--json-out", type=str, default=None,
@@ -298,7 +303,8 @@ def main():
     for strategy in strategies:
         metrics, per_query = evaluate_strategy(strategy, golden, brain_dir, idx, args.stem, args.fts_weight,
                                                 {"budget": args.budget, "lead_files": args.files,
-                                                 "links": not args.no_links})
+                                                 "links": not args.no_links},
+                                                frozenset() if args.no_stopwords else None)
         summary[strategy] = metrics
         details[strategy] = per_query
 

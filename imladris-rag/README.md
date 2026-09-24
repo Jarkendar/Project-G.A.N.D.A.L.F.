@@ -22,7 +22,7 @@ The package is meant to move to its own repository later without changes.
 | `imladris.store` | SQLite index, schema 2: `documents` (hash, title, frontmatter, privacy, supersession), `nodes` — a `doc → section → block` tree with heading paths, section numbers and line ranges, blocks carrying the vectors — and `links`; a `meta` table records how the index was built and the store refuses to mix models, chunkers or schemas. |
 | `imladris.indexer` | Incremental sync by content hash: only changed files are re-chunked and re-embedded, and the model is not even loaded on a no-op run. |
 | `imladris.context` | Context bundles: ranked blocks widened along the document tree (section, whole document) and the link graph, within a token budget, each passage carrying path, section, line range, privacy and reason. |
-| `imladris.search` | Semantic (cosine over normalized vectors), full-text (SQLite FTS5 / BM25 over blocks, prefix-stemmed queries), keyword baseline, weighted Reciprocal Rank Fusion hybrids, and per-file diversification. |
+| `imladris.search` | Semantic (cosine over normalized vectors), full-text (SQLite FTS5 / BM25 over blocks, prefix-stemmed queries), keyword baseline, weighted Reciprocal Rank Fusion hybrids, and per-file diversification. Keyword paths take a caller-supplied stopword set (`load_stopwords` reads a one-word-per-line file); the engine ships none. |
 
 ## Minimal use
 

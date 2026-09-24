@@ -98,8 +98,16 @@ class LinksTest(unittest.TestCase):
 
 
 class SearchHelpersTest(unittest.TestCase):
+    def test_load_stopwords(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            f = Path(tmp) / "stop.txt"
+            f.write_text("# comment\nThe\n\nand  # trailing\n")
+            self.assertEqual(search.load_stopwords(f), frozenset({"the", "and"}))
+
     def test_fts_query_stems_and_drops_stopwords(self):
-        self.assertEqual(search.fts_query("kto jest uposażonym w polisie", 5), '"kto" OR "uposa"* OR "polis"*')
+        stop = frozenset({"jest"})
+        self.assertEqual(search.fts_query("kto jest uposażonym w polisie", 5, stop), '"kto" OR "uposa"* OR "polis"*')
+        self.assertIn('"jest"', search.fts_query("kto jest", 5))  # the engine ships no stopwords
         self.assertEqual(search.fts_query("polisie", 0), '"polisie"')
 
     def test_diversify_keeps_best_block_per_file(self):

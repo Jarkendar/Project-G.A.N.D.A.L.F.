@@ -40,6 +40,10 @@ from index import brain_corpus, resolve_brain_path  # noqa: E402,F401  (Bilbo's 
 
 SamwiseIndex = engine.Index
 
+# Words that carry no meaning in brain/ queries (PL + EN), for the keyword
+# strategies. Config, not code: edit stopwords.txt.
+STOPWORDS = engine.load_stopwords(Path(__file__).with_name("stopwords.txt"))
+
 # Calibrated by eval/run_eval.py for the production index — granite-311m +
 # chunker v2 since 2026-09-24 — against the 63-query golden set (F1-optimal:
 # F1=0.645, precision=0.552, recall=0.775; IMPLEMENTATION.md Step 9, Index v2
@@ -73,8 +77,8 @@ def load_index(brain_dir: Path, db_path: Path | None = None) -> SamwiseIndex:
 semantic_search = engine.semantic_search
 
 
-def grep_search(brain_dir: Path, query: str, top_k: int) -> list[dict]:
-    return engine.keyword_search(brain_corpus(brain_dir), query, top_k)
+def grep_search(brain_dir: Path, query: str, top_k: int, stopwords: frozenset = STOPWORDS) -> list[dict]:
+    return engine.keyword_search(brain_corpus(brain_dir), query, top_k, stopwords)
 
 
 STRATEGIES = ("semantic", "fts", "hybrid-fts", "grep", "hybrid")
@@ -85,20 +89,20 @@ DEFAULT_STEM = 5  # FTS query words are cut to this many characters (0 = whole w
 def search(brain_dir: Path, query: str, strategy: str, top_k: int,
            min_score: float, idx: SamwiseIndex | None = None,
            diversify: bool = False, stem: int = DEFAULT_STEM,
-           fts_weight: float = 1.0) -> list[dict]:
+           fts_weight: float = 1.0, stopwords: frozenset = STOPWORDS) -> list[dict]:
     if strategy == "grep":
-        return grep_search(brain_dir, query, top_k)
+        return grep_search(brain_dir, query, top_k, stopwords)
     if idx is None:
         idx = load_index(brain_dir)
     pool = top_k * 4 if diversify else top_k  # room to drop same-file blocks
     if strategy == "semantic":
         results = engine.semantic_search(idx, query, pool, min_score)
     elif strategy == "fts":
-        results = engine.fts_search(idx, query, pool, stem)
+        results = engine.fts_search(idx, query, pool, stem, stopwords)
     elif strategy == "hybrid-fts":
-        results = engine.hybrid_fts_search(idx, query, pool, stem, fts_weight)
+        results = engine.hybrid_fts_search(idx, query, pool, stem, fts_weight, stopwords)
     elif strategy == "hybrid":
-        results = engine.hybrid_search(idx, brain_corpus(brain_dir), query, pool)
+        results = engine.hybrid_search(idx, brain_corpus(brain_dir), query, pool, stopwords)
     else:
         raise ValueError(f"unknown strategy: {strategy}")
     return engine.diversify(results, top_k) if diversify else results[:top_k]
