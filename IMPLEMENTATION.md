@@ -571,11 +571,56 @@ move to its own repo and serve other projects.
       and `multi` (0.44); grep is 1.00 on `deep` but 0.12 on `cross`, which is
       the case for hybrid retrieval. Only half the answers reach the reader
       (ans@5 0.49). F1-optimal threshold 0.5128; peak RSS 1.1 GB.
-- [ ] **B — Model bake-off** on a simple structural chunker (no word limit):
+- [x] **B — Model bake-off** on a simple structural chunker (no word limit):
       MiniLM (baseline), multilingual-e5-small, granite-97m-r2,
       arctic-m-v2.0, granite-311m-r2 — quality and Pi encode time. Ends with
       the model decision (`--rebuild`, threshold recalibration — which also
       closes the 0.5047 vs 0.5454 drift above).
+      **Done 2026-09-24 — production switched to granite-311m + chunker v2.**
+      Chunker v2: structural blocks (paragraph / list / table, never split
+      mid-block unless over 512 tokens — tables then by row groups with the
+      header repeated, prose by sentences) packed within one section up to
+      256 tokens counted by the model's tokenizer, each prefixed with the
+      file title and full heading path. Semantic strategy, 63 queries:
+
+      | model (chunker) | hit@1 | hit@5 | MRR | sec@5 | ans@5 | build | RSS build / query | p50 |
+      |---|---|---|---|---|---|---|---|---|
+      | MiniLM (v1, old production) | 0.60 | 0.81 | 0.69 | 0.58 | 0.49 | — | — / 1.1 GB | 128 ms |
+      | MiniLM (v2) | 0.60 | 0.81 | 0.68 | 0.50 | 0.46 | 112 s | 1.4 / 1.1 GB | 120 ms |
+      | multilingual-e5-small | 0.59 | 0.81 | 0.70 | 0.73 | 0.78 | 242 s | 1.3 / 0.9 GB | 124 ms |
+      | granite-97m-r2 | 0.67 | 0.84 | 0.75 | 0.77 | 0.78 | 269 s | 1.5 / 1.1 GB | 140 ms |
+      | **granite-311m-r2** | **0.76** | **0.89** | **0.82** | 0.81 | 0.81 | 1123 s | 2.5 / 2.2 GB | 325 ms |
+      | arctic-m-v2.0 | — | — | — | — | — | fails | — | — |
+
+      - v2 alone does nothing for MiniLM: bigger chunks overflow its 128-token
+        window further. The long-window models are what fix `deep` queries
+        (hit@5 0.38 → 1.00 for both granites).
+      - With granite-311m, semantic beats hybrid (0.76 vs. 0.62 hit@1): the
+        keyword side adds more false positives than it recovers. Hybrid comes
+        back in phase C with FTS5, not the naive grep.
+      - **bf16 trap:** granite ships bf16 weights and transformers 5 keeps
+        them; the Pi 5's CPU has no bf16 support, so the first granite build
+        ran ~150× slow (projected 30 h). Models now load in float32.
+      - **arctic-m-v2.0 dropped:** its bundled 2024 modeling code needs
+        xformers unless configured off, and even then produces invalid
+        position ids under transformers 5. Not worth a separate environment.
+      - **Chunking ablation** (granite-97m, then confirmed on granite-311m):
+        prefix title+path beat title only (MRR 0.73), path only (0.66) and no
+        prefix (0.61) — the context identifies the file and section, even
+        though it makes a file's chunks score alike. A boilerplate-line
+        filter (`> Source…`, `> CIK:`, `> Living document…`) was kept: on
+        granite-311m file-level metrics unchanged, sec@5 0.81 → 0.85, ans@5
+        0.81 → 0.84. Merging tiny chunks and targets of 128/512 tokens moved
+        precision within noise; the gains they showed in sec@5/ans@5 tracked
+        the extra context returned (+18%), which phase C's expansion handles
+        under an explicit budget. **Chunking is no longer the bottleneck** —
+        intra-file ranking (all chunks of the right file scoring ~0.90) is
+        the reranker's job.
+      - Production: `BILBO_EMBED_MODEL=granite-311m`, `BILBO_CHUNKER=v2`,
+        `BILBO_CHUNK_PARAMS` in `.claude/gandalf.env` (read by the hook);
+        Samwise threshold recalibrated to **0.8684** (F1 0.645). Final:
+        hit@1 0.76, MRR 0.82, sec@5 0.85, ans@5 0.84. granite-97m stays as
+        the lighter fallback if the reranker squeezes RAM.
 - [ ] **C — Hierarchical index:** nodes, metadata, links, FTS5 hybrid,
       context expansion, Samwise v2 returning context bundles.
 - [ ] **D — Enrichment ablation:** heuristic headers vs. late chunking vs.

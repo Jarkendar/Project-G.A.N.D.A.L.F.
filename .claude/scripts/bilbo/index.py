@@ -25,6 +25,7 @@
 
 import argparse
 import hashlib
+import json
 import os
 import re
 import sqlite3
@@ -44,7 +45,31 @@ DEFAULT_MODEL_NAME = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v
 # — always follow with --rebuild, since old and new-revision vectors are not
 # comparable.
 DEFAULT_MODEL_REVISION = "e8f8c211226b894fcb81acc59f3b34ba3efd5f42"
-EMBED_DIM = 384
+
+# Candidate models for the Index v2 bake-off (IMPLEMENTATION.md Step 9, phase
+# B), selectable with --model <key>. Each is pinned to a Hub commit like the
+# default. Prefixes are what the model was trained with: e5 needs "query: " /
+# "passage: ", arctic only a query prefix, granite none. arctic ships its own
+# modeling code (trust_remote_code) — pinned, so it is always the same code.
+MODEL_REGISTRY = {
+    "minilm": {"name": DEFAULT_MODEL_NAME, "revision": DEFAULT_MODEL_REVISION},
+    "e5-small": {"name": "intfloat/multilingual-e5-small",
+                 "revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+                 "query_prefix": "query: ", "passage_prefix": "passage: "},
+    "granite-97m": {"name": "ibm-granite/granite-embedding-97m-multilingual-r2",
+                    "revision": "835ad14087e140460703cf0fae09f97d469d65c2"},
+    "granite-311m": {"name": "ibm-granite/granite-embedding-311m-multilingual-r2",
+                     "revision": "44399559930365213510b1ee2eb15ded83374f0e"},
+    "arctic-m": {"name": "Snowflake/snowflake-arctic-embed-m-v2.0",
+                 "revision": "95c2741480856aa9666782eb4afe11959938017f",
+                 "query_prefix": "query: ", "trust_remote_code": True,
+                 # its GTE code otherwise demands xformers (a GPU kernel library)
+                 "config_kwargs": {"use_memory_efficient_attention": False,
+                                   "unpad_inputs": False}},
+}
+# Long-window models accept 8K-32K tokens; chunks never get near that, and an
+# uncapped window only costs memory on an outlier.
+MAX_SEQ_CAP = 1024
 
 # Corpus rules: exclude Smeagol's logs (not knowledge, and privacy-sensitive
 # per SKILL.md), the index's own folder, and per-folder CLAUDE.md files (these
@@ -55,7 +80,15 @@ EXCLUDED_FILENAMES = {"CLAUDE.md"}
 
 SCHEMA_VERSION = "1"
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.*)$")
-MAX_CHUNK_WORDS = 90  # keeps chunks well under this model's ~128-token window
+MAX_CHUNK_WORDS = 90  # chunker v1: keeps chunks well under MiniLM's ~128-token window
+
+# Chunker v2 (Index v2, phase B): structural — paragraph, list and table
+# blocks packed within one section, never split mid-block unless a single
+# block is too long for the window. Budgets are counted with the model's own
+# tokenizer and include the title + heading-path prefix.
+CHUNK_TARGET_TOKENS = 256
+CHUNK_MAX_TOKENS = 512
+SENTENCE_END_RE = re.compile(r"(?<=[.!?…])\s+|\n+")
 
 
 # --- Environment --------------------------------------------------------------
@@ -80,6 +113,21 @@ def resolve_brain_path(project_dir: Path) -> Path:
     if not path.is_dir():
         sys.exit(f"BILBO: resolved BRAIN_PATH does not exist: {path}")
     return path
+
+
+def read_gandalf_env(project_dir: Path) -> dict:
+    """KEY=VALUE pairs from .claude/gandalf.env, taken literally (no shell
+    quoting), so a JSON value such as BILBO_CHUNK_PARAMS needs no escaping."""
+    values = {}
+    try:
+        for line in (project_dir / ".claude" / "gandalf.env").read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, _, value = line.partition("=")
+                values[key.strip()] = value.strip()
+    except OSError:
+        pass
+    return values
 
 
 def brain_head(brain_dir: Path) -> str | None:
@@ -215,6 +263,140 @@ def chunk_markdown(rel_path: Path, text: str) -> list[tuple[str, str]]:
     return chunks
 
 
+def split_sections(body: str) -> list[tuple[list[str], str]]:
+    """Split body into (heading_path, section_text) — heading_path is the full
+    stack of enclosing headings, e.g. ["Portfolio", "XTB"]. The document's
+    first H1 is left out: it restates the title, which every chunk carries
+    anyway."""
+    stack: list[tuple[int, str]] = []
+    sections: list[tuple[list[str], list[str]]] = [([], [])]
+    seen_heading = False
+    for line in body.splitlines():
+        m = HEADING_RE.match(line)
+        if m:
+            level = len(m.group(1))
+            while stack and stack[-1][0] >= level:
+                stack.pop()
+            if not (level == 1 and not seen_heading):
+                stack.append((level, m.group(2).strip()))
+            seen_heading = True
+            sections.append(([h for _, h in stack], []))
+        else:
+            sections[-1][1].append(line)
+    return [(path, "\n".join(lines).strip()) for path, lines in sections
+            if any(l.strip() for l in lines)]
+
+
+def split_oversize(block: str, budget: int, count) -> list[str]:
+    """Split one block that exceeds the window: a table by row groups with the
+    header repeated, anything else by sentences. A single sentence still over
+    budget is cut by tokens as a last resort."""
+    lines = block.splitlines()
+    if len(lines) > 2 and all(l.lstrip().startswith("|") for l in lines):
+        header, rows = lines[:2], lines[2:]
+        pieces, current = [], []
+        for row in rows:
+            if current and count("\n".join(header + current + [row])) > budget:
+                pieces.append("\n".join(header + current))
+                current = []
+            current.append(row)
+        if current:
+            pieces.append("\n".join(header + current))
+        return pieces
+    pieces, current = [], ""
+    for sentence in (x for x in SENTENCE_END_RE.split(block) if x.strip()):
+        candidate = f"{current} {sentence}".strip()
+        if current and count(candidate) > budget:
+            pieces.append(current)
+            candidate = sentence
+        current = candidate
+    if current:
+        pieces.append(current)
+    out = []
+    for piece in pieces:
+        if count(piece) <= budget:
+            out.append(piece)
+            continue
+        words = piece.split()  # last resort for a sentence with no breaks
+        step = max(1, len(words) * budget // count(piece))
+        out.extend(" ".join(words[i:i + step]) for i in range(0, len(words), step))
+    return out
+
+
+DEFAULT_CHUNK_PARAMS = {
+    "prefix": "title+path",  # context embedded with each chunk: title+path | path | title | none
+    "target": CHUNK_TARGET_TOKENS,  # pack blocks of one section up to this many tokens
+    "merge_tiny": 0,         # fold chunks whose body is under this many tokens into a neighbour
+    "skip_lines": "",        # regex; matching lines (boilerplate) are dropped before chunking
+}
+
+
+def chunk_markdown_v2(rel_path: Path, text: str, count, params: dict | None = None) -> list[tuple[str, str]]:
+    """Return [(heading_path, text_to_embed), ...]. `count` returns a token
+    count under the model being indexed; `params` overrides
+    DEFAULT_CHUNK_PARAMS (the knobs the phase-B chunking ablation turns)."""
+    params = {**DEFAULT_CHUNK_PARAMS, **(params or {})}
+    fm, body = split_frontmatter(text)
+    title = fm.get("title") or rel_path.stem
+    if params["skip_lines"]:
+        skip = re.compile(params["skip_lines"])
+        body = "\n".join(l for l in body.splitlines() if not skip.search(l))
+
+    def prefix_for(heading: str) -> str:
+        mode = params["prefix"]
+        if mode == "none":
+            return ""
+        if mode == "title" or not heading:
+            return f"{title}\n\n" if mode != "path" or not heading else f"{heading}\n\n"
+        if mode == "path":
+            return f"{heading}\n\n"
+        return f"{title}\n{heading}\n\n"
+
+    pieces: list[tuple[str, str]] = []  # (heading, body) before prefixing
+    for path, section_text in split_sections(body) or [([], body.strip())]:
+        heading = " > ".join(h for h in path if h != title)
+        prefix_tokens = count(prefix_for(heading))
+        target = max(32, params["target"] - prefix_tokens)
+        limit = max(32, CHUNK_MAX_TOKENS - prefix_tokens)
+
+        blocks = []
+        for block in (b.strip() for b in re.split(r"\n\s*\n", section_text)):
+            if not block:
+                continue
+            blocks.extend([block] if count(block) <= limit else split_oversize(block, limit, count))
+
+        current: list[str] = []
+        for block in blocks:
+            if current and count("\n\n".join(current + [block])) > target:
+                pieces.append((heading, "\n\n".join(current)))
+                current = []
+            current.append(block)
+        if current:
+            pieces.append((heading, "\n\n".join(current)))
+
+    if params["merge_tiny"]:
+        merged: list[tuple[str, str]] = []
+        carry: tuple[str, str] | None = None  # a tiny piece waiting for a following neighbour
+        for heading, text_ in pieces:
+            if carry:
+                heading = " | ".join(h for h in (carry[0], heading) if h)
+                text_ = f"{carry[1]}\n\n{text_}"
+                carry = None
+            if count(text_) >= params["merge_tiny"]:
+                merged.append((heading, text_))
+            elif merged and count(merged[-1][1] + text_) <= CHUNK_MAX_TOKENS:
+                prev_heading, prev_text = merged.pop()
+                label = " | ".join(dict.fromkeys(h for h in (prev_heading, heading) if h))
+                merged.append((label, f"{prev_text}\n\n{text_}"))
+            else:
+                carry = (heading, text_)
+        if carry:
+            merged.append(carry)
+        pieces = merged
+
+    return [(heading or title, prefix_for(heading) + text_) for heading, text_ in pieces]
+
+
 # --- Storage -----------------------------------------------------------------
 
 def open_db(db_path: Path) -> sqlite3.Connection:
@@ -263,10 +445,16 @@ def set_meta(conn: sqlite3.Connection, **kwargs):
     conn.commit()
 
 
-def check_model_consistency(conn: sqlite3.Connection, model_name: str, revision: str, rebuild: bool):
+def check_model_consistency(conn: sqlite3.Connection, model_name: str, revision: str,
+                            chunker: str, rebuild: bool):
     meta = get_meta(conn)
-    if not meta:
+    if not meta.get("model_name"):
         return  # fresh DB, nothing to check yet
+    if meta.get("chunker", "v1") != chunker and not rebuild:
+        sys.exit(
+            f"BILBO: index was chunked with {meta.get('chunker', 'v1')}, this run "
+            f"requests {chunker}. Run with --rebuild."
+        )
     prev_model = meta.get("model_name")
     prev_revision = meta.get("model_revision")
     prev_schema = meta.get("schema_version")
@@ -291,8 +479,9 @@ def vector_to_blob(vec) -> bytes:
 
 # --- Sync ----------------------------------------------------------------
 
-def sync(conn: sqlite3.Connection, brain_dir: Path, model_name: str, revision: str,
-         scope: Path | None, dry_run: bool, rebuild: bool):
+def sync(conn: sqlite3.Connection, brain_dir: Path, spec: dict, chunker: str,
+         scope: Path | None, dry_run: bool, rebuild: bool, chunk_params: dict | None = None):
+    model_name, revision = spec["name"], spec["revision"]
     disk_files = discover_files(brain_dir, scope)
     disk_set = {p.as_posix() for p in disk_files}
 
@@ -339,22 +528,36 @@ def sync(conn: sqlite3.Connection, brain_dir: Path, model_name: str, revision: s
         from sentence_transformers import SentenceTransformer
 
         print(f"BILBO: loading {model_name}@{revision} ...")
-        model = SentenceTransformer(model_name, revision=revision)
+        import torch
+        # float32 explicitly: transformers 5 keeps a checkpoint's saved dtype,
+        # and bf16 weights (granite) fall back to a ~150x slower matmul on the
+        # Pi 5's Cortex-A76, which has no bf16 support.
+        model = SentenceTransformer(model_name, revision=revision,
+                                    trust_remote_code=spec.get("trust_remote_code", False),
+                                    model_kwargs={"dtype": torch.float32},
+                                    config_kwargs=spec.get("config_kwargs"))
+        model.max_seq_length = min(model.max_seq_length or MAX_SEQ_CAP, MAX_SEQ_CAP)
+        tokenizer = model.tokenizer
+
+        def count(text: str) -> int:
+            return len(tokenizer(text, add_special_tokens=False)["input_ids"])
 
         per_file_chunks: dict[str, list[tuple[str, str]]] = {}
         all_texts: list[str] = []
         for rel in to_update:
             abs_path = brain_dir / rel
             text = abs_path.read_text(encoding="utf-8", errors="replace")
-            chunks = chunk_markdown(rel, text)
+            chunks = chunk_markdown_v2(rel, text, count, chunk_params) if chunker == "v2" else chunk_markdown(rel, text)
             per_file_chunks[rel.as_posix()] = chunks
             all_texts.extend(text for _, text in chunks)
 
         vectors = []
         if all_texts:
             print(f"BILBO: embedding {len(all_texts)} chunks from {len(to_update)} file(s) ...")
+            passage_prefix = spec.get("passage_prefix", "")
             vectors = model.encode(
-                all_texts, batch_size=32, normalize_embeddings=True, show_progress_bar=True
+                [passage_prefix + t for t in all_texts], batch_size=16 if chunker == "v2" else 32,
+                normalize_embeddings=True, show_progress_bar=True
             )
 
         cursor = 0
@@ -373,7 +576,8 @@ def sync(conn: sqlite3.Connection, brain_dir: Path, model_name: str, revision: s
                 conn.execute(
                     "INSERT INTO chunks(path, ord, heading, text, vector, token_count) "
                     "VALUES (?, ?, ?, ?, ?, ?)",
-                    (posix, i, heading, text, vector_to_blob(vec), len(text.split())),
+                    (posix, i, heading, text, vector_to_blob(vec),
+                     count(text) if chunker == "v2" else len(text.split())),
                 )
             conn.execute(
                 "INSERT INTO files(path, content_hash, mtime, chunk_count, indexed_at) "
@@ -389,8 +593,14 @@ def sync(conn: sqlite3.Connection, brain_dir: Path, model_name: str, revision: s
             conn,
             model_name=model_name,
             model_revision=revision,
-            embed_dim=str(EMBED_DIM),
+            embed_dim=str(model.get_sentence_embedding_dimension()),
             schema_version=SCHEMA_VERSION,
+            chunker=chunker,
+            query_prefix=spec.get("query_prefix", ""),
+            trust_remote_code="1" if spec.get("trust_remote_code") else "0",
+            config_kwargs=json.dumps(spec.get("config_kwargs") or {}),
+            chunk_params=json.dumps({**DEFAULT_CHUNK_PARAMS, **(chunk_params or {})}
+                                    if chunker == "v2" else {}, sort_keys=True),
         )
 
     for posix in to_delete:
@@ -409,7 +619,15 @@ def main():
     parser.add_argument("--rebuild", action="store_true", help="wipe and rebuild the full index")
     parser.add_argument("--path", type=str, default=None,
                          help="limit to one file or subdirectory (relative to BRAIN_PATH)")
-    parser.add_argument("--model", type=str, default=None, help="override the embedding model name")
+    parser.add_argument("--model", type=str, default=None,
+                        help="embedding model: a key of MODEL_REGISTRY (" + ", ".join(MODEL_REGISTRY) +
+                             ") or a Hub name (revision then from BILBO_EMBED_REVISION)")
+    parser.add_argument("--chunk-params", type=str, default=None,
+                        help="chunker v2 only: JSON overriding DEFAULT_CHUNK_PARAMS, e.g. "
+                             "'{\"prefix\": \"path\", \"merge_tiny\": 40}'")
+    parser.add_argument("--chunker", choices=["v1", "v2"], default=None,
+                        help="v1: heading + ~90-word windows (production); "
+                             "v2: structural blocks within token budgets (Index v2)")
     parser.add_argument("--dry-run", action="store_true", help="report deltas without embedding or writing")
     parser.add_argument("--if-new-commits", action="store_true",
                         help="skip the run when brain/ HEAD equals the last indexed commit "
@@ -422,8 +640,20 @@ def main():
     project_dir = Path(__file__).resolve().parents[3]
     brain_dir = resolve_brain_path(project_dir)
 
-    model_name = args.model or os.environ.get("BILBO_EMBED_MODEL", DEFAULT_MODEL_NAME)
-    revision = os.environ.get("BILBO_EMBED_REVISION", DEFAULT_MODEL_REVISION)
+    # Precedence: CLI flag > environment variable > .claude/gandalf.env > built-in
+    # default. gandalf.env is what the post-commit hook runs with, so it is where
+    # the production model and chunker are configured.
+    genv = read_gandalf_env(project_dir)
+    setting = lambda key, default=None: os.environ.get(key) or genv.get(key) or default
+    args.chunker = args.chunker or setting("BILBO_CHUNKER", "v1")
+    args.chunk_params = args.chunk_params or setting("BILBO_CHUNK_PARAMS")
+    model_arg = args.model or setting("BILBO_EMBED_MODEL", "minilm")
+    spec = MODEL_REGISTRY.get(model_arg) or next(
+        (m for m in MODEL_REGISTRY.values() if m["name"] == model_arg), None)
+    if spec is None:
+        spec = {"name": model_arg}
+    spec = {**spec, "revision": os.environ.get("BILBO_EMBED_REVISION", spec.get("revision", "main"))}
+    model_name, revision = spec["name"], spec["revision"]
 
     scope = None
     if args.path:
@@ -446,10 +676,13 @@ def main():
         conn.executescript("DELETE FROM chunks; DELETE FROM files; DELETE FROM meta;")
         conn.commit()
     else:
-        check_model_consistency(conn, model_name, revision, args.rebuild)
+        check_model_consistency(conn, model_name, revision, args.chunker, args.rebuild)
 
     start = time.time()
-    sync(conn, brain_dir, model_name, revision, scope, args.dry_run, args.rebuild)
+    chunk_params = json.loads(args.chunk_params) if args.chunk_params else None
+    if chunk_params and set(chunk_params) - set(DEFAULT_CHUNK_PARAMS):
+        sys.exit(f"BILBO: unknown --chunk-params keys: {set(chunk_params) - set(DEFAULT_CHUNK_PARAMS)}")
+    sync(conn, brain_dir, spec, args.chunker, scope, args.dry_run, args.rebuild, chunk_params)
     # Only a full-scope run covers everything HEAD contains; a --path run
     # leaves the rest unchecked, so it must not claim the commit.
     if head and scope is None and not args.dry_run:

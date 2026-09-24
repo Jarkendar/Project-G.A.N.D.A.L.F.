@@ -53,13 +53,14 @@ yourself.
    .claude/scripts/bilbo/.venv/bin/python .claude/scripts/samwise/search.py \
      "<the user's question>" --strategy semantic --top-k 8
    ```
-   `search.py`'s default `--min-score` (0.5047) is F1-optimal, calibrated
-   against a 20-query golden set (`eval/run_eval.py`, mixing point-lookup and
-   multi-file queries; precision 0.665, recall 0.791 at that cutoff — see
-   `IMPLEMENTATION.md` Step 3). Semantic also beat both grep and hybrid
-   outright in aggregate (hit@1 0.70 vs. 0.40 / 0.60, MRR 0.75 vs. 0.50 /
-   0.70) — hybrid's grep component pulls in enough false positives via rank
-   fusion to make pure semantic the better default.
+   `search.py`'s default `--min-score` (0.8684) is F1-optimal for the
+   production index (granite-311m, calibrated against a 63-query golden set
+   with `eval/run_eval.py`; precision 0.552, recall 0.775 at that cutoff — see
+   `IMPLEMENTATION.md` Step 9, Index v2 phase B). Scores from this model sit
+   high and close together (a relevant chunk ~0.87–0.91, an unrelated one
+   rarely below ~0.80), so read the ranking, not the absolute number.
+   Semantic beats hybrid with this model (hit@1 0.76 vs. 0.62) — the grep
+   side of hybrid adds more false positives than it recovers.
 2b. **Broad/enumerative — widen the net, then use your own judgment:**
    ```bash
    .claude/scripts/bilbo/.venv/bin/python .claude/scripts/samwise/search.py \
@@ -128,11 +129,11 @@ knowledge) — you will never see it as a hit.
 
 ```
 **Query:** <as received>
-**Strategy:** semantic (min-score 0.5047) — or "semantic, widened net (broad query)" — or "grep fallback" if the index was unavailable
+**Strategy:** semantic (min-score 0.8684) — or "semantic, widened net (broad query)" — or "grep fallback" if the index was unavailable
 
 | score | path | excerpt |
 |-------|------|---------|
-| 0.55  | knowledge/career/cv.md | ... |
+| 0.89  | knowledge/career/cv.md | ... |
 
 **From reading the full file(s):** <what you found, in your own words, citing paths>
 
