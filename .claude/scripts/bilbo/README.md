@@ -20,10 +20,10 @@ Samwise reads it. Neither role crosses into the other.
    stored in `brain/index/bilbo.db`. **Unchanged files are skipped entirely —
    zero re-embedding cost.** Only new/changed files get (re)chunked and
    (re)embedded; deleted files have their chunks removed.
-3. Chunks each file by markdown heading, sub-splitting further so no chunk
-   exceeds ~90 words — comfortably under this model's ~128-token window
-   (going over means silent truncation, not an error, which would quietly
-   degrade retrieval quality).
+3. Chunks each file — production uses **chunker v2** (see "Models and
+   chunkers" below): structural blocks packed within one section up to 256
+   tokens, each prefixed with the file title and full heading path. Chunker
+   v1 (heading + ~90-word windows) remains for reference.
 4. Embeds all changed chunks in one batched `model.encode(...)` call
    (normalized vectors, so cosine similarity = dot product at query time).
 5. Upserts everything into `brain/index/bilbo.db` (SQLite — outside
@@ -87,11 +87,48 @@ means a few short runs; add one only if that turns out to hurt.
 Output goes to `brain/index/reindex.log` (gitignored with the rest of
 `index/`). If the venv is missing, the hook does nothing.
 
+## Models and chunkers
+
+Production is configured in `.claude/gandalf.env` — the file the post-commit
+hook runs with — not in code:
+
+```
+BILBO_EMBED_MODEL=granite-311m
+BILBO_CHUNKER=v2
+BILBO_CHUNK_PARAMS={"skip_lines": "^> (Source|Source URL|CIK|...)"}
+```
+
+Precedence: CLI flag (`--model`, `--chunker`, `--chunk-params`) > environment
+variable > `gandalf.env` > built-in default (MiniLM + v1). Changing any of the
+three needs one `index.py --rebuild`; the index refuses to mix models or
+chunkers otherwise.
+
+- **Models** — `MODEL_REGISTRY` in `index.py`: `minilm`, `e5-small`,
+  `granite-97m`, `granite-311m`, `arctic-m`, each pinned to a Hub commit, with
+  the query/passage prefixes it was trained with. The query prefix,
+  `trust_remote_code` and config overrides are recorded in `meta`, so Samwise
+  encodes queries the same way. Chosen on 2026-09-24 by the phase-B bake-off
+  (IMPLEMENTATION.md Step 9): `granite-311m`; `granite-97m` is the lighter
+  fallback. `arctic-m` does not run under transformers 5 (its own 2024
+  modeling code produces invalid position ids) — kept in the registry only
+  as a record.
+- **float32 is forced.** transformers 5 keeps a checkpoint's saved dtype, and
+  granite ships bf16 weights; the Pi 5's Cortex-A76 has no bf16 support, so
+  every matmul fell back to a path ~150× slower (a 30-hour build instead of
+  4 minutes).
+- **Chunker v2 knobs** (`DEFAULT_CHUNK_PARAMS`): `prefix` (title+path | path
+  | title | none), `target` tokens, `merge_tiny`, `skip_lines`. The ablation
+  on 2026-09-24 kept title+path (every lighter prefix lost 2–18 MRR points),
+  256 tokens, no merging, and a boilerplate-line filter — see
+  IMPLEMENTATION.md Step 9 for the numbers.
+
+Full rebuild on the Pi: ~18 min for granite-311m (~2.4 GB peak RSS);
+incremental runs from the hook touch only changed files.
+
 ## Model pinning
 
-The model (`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`) is
-pinned to a fixed **HF Hub commit revision**, not the moving `main` branch —
-see `DEFAULT_MODEL_REVISION` in `index.py`. This means:
+Every model is pinned to a fixed **HF Hub commit revision**, not the moving
+`main` branch — see `MODEL_REGISTRY` in `index.py`. This means:
 
 - A re-download on a new machine, or after `--rebuild`, always fetches the
   *exact same weights* — no risk of an upstream model update silently
@@ -111,13 +148,10 @@ conflict with sentence-transformers' own version bounds.
 
 ## Not yet done (see IMPLEMENTATION.md / the plan this was built from)
 
-- **Chunks are truncated, measured: `MAX_CHUNK_WORDS = 90` does not bound
-  token count.** On the real `brain/` (2026-09-22, 1756 chunks), 713 chunks
-  (41%) exceed the model's 128-token window and ~19% of all tokens are
-  silently dropped before embedding. Polish text runs ~1.5–2 tokens per word,
-  and table-heavy sections are far worse — a 49-word chunk of one table
-  tokenized to 323. Fixed by the planned Index v2 (hierarchical chunks, a
-  long-window model, no word limits) — see IMPLEMENTATION.md Step 9.
+- Hierarchical nodes, enrichment and a reranker — Index v2 phases C–E
+  (IMPLEMENTATION.md Step 9). The truncation problem of chunker v1 (41% of
+  chunks over MiniLM's 128-token window) is gone with v2 + granite's 32K
+  window.
 - No privacy gate — the index includes `core/`/`current/` content today, same
   as the rest of the MVP's documented privacy exception.
 

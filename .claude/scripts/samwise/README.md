@@ -40,7 +40,7 @@ than installing `sentence-transformers`/`torch` twice:
 ```bash
 --strategy {semantic,grep,hybrid}   # default: semantic
 --top-k N                           # default: 8
---min-score F                       # default: 0.5047 (calibrated, see below)
+--min-score F                       # default: 0.8684 (calibrated per model, see below)
 --format {json,text}                # default: json
 ```
 
@@ -50,7 +50,7 @@ for the whole run instead of once per subprocess):
 ```python
 import search
 idx = search.load_index(brain_dir)
-results = search.semantic_search(idx, "query", top_k=8, min_score=0.5047)
+results = search.semantic_search(idx, "query", top_k=8, min_score=search.DEFAULT_MIN_SCORE)
 ```
 
 ## Calibration: `eval/`
@@ -97,8 +97,17 @@ and hybrid's 0.60; MRR 0.75 vs. 0.50 / 0.70) and is the default strategy.
 Hybrid underperforms pure semantic — RRF folds in enough of grep's false
 positives (especially Polish queries against English-language notes, where
 literal keyword matching fails outright) to drag it down rather than help.
-F1-optimal threshold **0.5047** (precision 0.665, recall 0.791) is wired into
+F1-optimal threshold **0.5047** (precision 0.665, recall 0.791) was wired into
 `search.py`'s `DEFAULT_MIN_SCORE`. Full numbers: `IMPLEMENTATION.md` Step 3.
+
+**Since 2026-09-24 (Index v2, phase B):** the production index runs
+granite-311m with chunker v2 — semantic hit@1 0.76, MRR 0.82 on the 63-query
+set (MiniLM: 0.60 / 0.69). The threshold is recalibrated to **0.8684**
+(precision 0.552, recall 0.775): cosine scores are model-specific, so the old
+value means nothing for the new model. Semantic still beats hybrid. Samwise
+applies the index's recorded query prefix, `trust_remote_code` and config
+overrides from its `meta` table, and loads the model in float32. Full
+numbers: `IMPLEMENTATION.md` Step 9.
 
 ### Known limitation — not solved by threshold tuning
 

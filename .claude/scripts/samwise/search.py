@@ -38,11 +38,12 @@ EXCLUDED_DIR_PARTS = {"index"}
 EXCLUDED_SUBPATHS = ("current/smeagol",)
 EXCLUDED_FILENAMES = {"CLAUDE.md"}
 
-# Calibrated by eval/run_eval.py against a 20-query golden set — 15 single-
-# file point-lookup queries plus 5 genuinely multi-file topical queries
-# (F1-optimal threshold: F1=0.7224, precision=0.6648, recall=0.7908; see
-# IMPLEMENTATION.md Step 3 for the full run). Re-run the eval and update this
-# constant if the corpus or model changes meaningfully.
+# Calibrated by eval/run_eval.py for the production index — granite-311m +
+# chunker v2 since 2026-09-24 — against the 63-query golden set (F1-optimal:
+# F1=0.645, precision=0.552, recall=0.775; IMPLEMENTATION.md Step 9, Index v2
+# phase B). The value is model-specific: cosine scores of different models
+# live on different scales (MiniLM's was 0.5047). Re-run the eval and update
+# this constant whenever BILBO_EMBED_MODEL or the chunker changes.
 #
 # Known limitation (measured, not theoretical): this threshold is tuned on a
 # mix of point-lookup and broad queries, but broad "list everything about X"
@@ -51,7 +52,7 @@ EXCLUDED_FILENAMES = {"CLAUDE.md"}
 # trips" across ALL strategies, not just semantic). A fixed score cutoff
 # cannot fully solve this — see samwise.md's workflow for the mitigation
 # (widen --top-k / relax --min-score for enumerative-sounding questions).
-DEFAULT_MIN_SCORE = 0.5047
+DEFAULT_MIN_SCORE = 0.8684
 DEFAULT_TOP_K = 8
 RRF_K = 60  # standard Reciprocal Rank Fusion constant
 
@@ -141,6 +142,9 @@ class SamwiseIndex:
     model_name: str
     model_revision: str
     embed_dim: int
+    query_prefix: str = ""          # what the model was trained to see before a query
+    trust_remote_code: bool = False  # model ships its own (pinned) modeling code
+    config_kwargs: dict = field(default_factory=dict)  # model config overrides Bilbo used
     paths: list[str] = field(default_factory=list)
     ords: list[int] = field(default_factory=list)
     headings: list[str] = field(default_factory=list)
@@ -183,6 +187,9 @@ def load_index(brain_dir: Path, db_path: Path | None = None) -> SamwiseIndex:
         model_name=meta["model_name"],
         model_revision=meta.get("model_revision", ""),
         embed_dim=embed_dim,
+        query_prefix=meta.get("query_prefix", ""),
+        trust_remote_code=meta.get("trust_remote_code") == "1",
+        config_kwargs=json.loads(meta.get("config_kwargs") or "{}"),
         paths=[r[0] for r in rows],
         ords=[r[1] for r in rows],
         headings=[r[2] or "" for r in rows],
@@ -194,20 +201,27 @@ def load_index(brain_dir: Path, db_path: Path | None = None) -> SamwiseIndex:
 _model_cache = {}
 
 
-def load_model(model_name: str, revision: str):
+def load_model(model_name: str, revision: str, trust_remote_code: bool = False,
+               config_kwargs: dict | None = None):
     """Lazy, cached load of the sentence-transformers model. Kept out of the
     module's top-level imports so `--strategy grep` never pays the (heavy)
     torch/sentence-transformers import cost."""
     key = (model_name, revision)
     if key not in _model_cache:
+        import torch
         from sentence_transformers import SentenceTransformer
-        _model_cache[key] = SentenceTransformer(model_name, revision=revision)
+        # float32 like Bilbo: bf16 checkpoints are ~150x slower on the Pi's CPU.
+        _model_cache[key] = SentenceTransformer(model_name, revision=revision,
+                                                trust_remote_code=trust_remote_code,
+                                                model_kwargs={"dtype": torch.float32},
+                                                config_kwargs=config_kwargs or None)
     return _model_cache[key]
 
 
 def embed_query(idx: SamwiseIndex, query: str) -> np.ndarray:
-    model = load_model(idx.model_name, idx.model_revision)
-    vec = model.encode([query], normalize_embeddings=True)[0]
+    model = load_model(idx.model_name, idx.model_revision, idx.trust_remote_code,
+                       idx.config_kwargs)
+    vec = model.encode([idx.query_prefix + query], normalize_embeddings=True)[0]
     return vec.astype(np.float32)
 
 

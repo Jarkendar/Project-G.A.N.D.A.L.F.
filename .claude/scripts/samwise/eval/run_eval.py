@@ -243,7 +243,8 @@ def main():
     idx = search.load_index(brain_dir, Path(args.index).resolve() if args.index else None)
 
     load_start = time.perf_counter()
-    search.load_model(idx.model_name, idx.model_revision)
+    search.load_model(idx.model_name, idx.model_revision, idx.trust_remote_code,
+                      idx.config_kwargs)
     model_load_s = time.perf_counter() - load_start
 
     n_multi = sum(1 for item in golden if len(item["expected_paths"]) > 1)
