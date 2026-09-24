@@ -544,7 +544,7 @@ move to its own repo and serve other projects.
   at phase C; no separate repo in this stage.
 
 *Phases — each change is accepted only if it improves the eval:*
-- [ ] **A — Eval v2.** Golden set grown to ~60 queries in
+- [x] **A — Eval v2.** Golden set grown to ~60 queries in
       `brain/_meta/eval/samwise-golden.jsonl` (drafted by Claude from brain/
       content, verified by the owner; never in this repo). Query types: point
       lookup PL and EN, cross-lingual, multi-file, deep inside a long file,
@@ -555,6 +555,22 @@ move to its own repo and serve other projects.
       query latency p50/p95 on the Pi; build time; RAM. Harness builds and
       evaluates experimental indexes side by side with the production
       `bilbo.db`.
+      **Done 2026-09-24.** Golden set: 63 queries (20 old + 43 new, owner-
+      approved; 34 PL / 9 EN new). Harness: `index.py --db`,
+      `run_eval.py --index/--strategies/--json-out/--quiet`, new metrics
+      listed above. **Baseline v2 (MiniLM, production index, 1782 chunks):**
+
+      | strategy | hit@1 | hit@5 | MRR | R@5 | sec@5 | ans@5 | p50 ms |
+      |---|---|---|---|---|---|---|---|
+      | grep | 0.30 | 0.62 | 0.42 | 0.57 | — | — | 40 |
+      | semantic | 0.60 | 0.81 | 0.69 | 0.76 | 0.58 | 0.49 | 128 |
+      | hybrid | 0.52 | 0.86 | 0.67 | 0.81 | 0.42 | 0.35 | 135 |
+
+      The old 20 queries still score 0.70 / 0.725 (unchanged). Semantic's
+      weak spots: `deep` (hit@5 0.38 — the truncation this redesign targets)
+      and `multi` (0.44); grep is 1.00 on `deep` but 0.12 on `cross`, which is
+      the case for hybrid retrieval. Only half the answers reach the reader
+      (ans@5 0.49). F1-optimal threshold 0.5128; peak RSS 1.1 GB.
 - [ ] **B — Model bake-off** on a simple structural chunker (no word limit):
       MiniLM (baseline), multilingual-e5-small, granite-97m-r2,
       arctic-m-v2.0, granite-311m-r2 — quality and Pi encode time. Ends with
