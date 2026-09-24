@@ -1,0 +1,23 @@
+#!/bin/sh
+# Reindexes brain/ with B.I.L.B.O. after every commit (and, via post-merge,
+# after every pull — the SessionStart sync pulls with --ff-only). Installed
+# via core.hooksPath, like pre-commit.
+#
+# Runs detached so the commit returns immediately (loading the model alone
+# takes ~20 s). flock -n keeps two runs from writing bilbo.db at once; a
+# commit that finds the lock taken is skipped, and the next run picks up its
+# files anyway — the index is incremental by content hash. No debounce: add
+# one only if bursts of commits turn out to cost too much.
+#
+# Git runs hooks from the worktree root, so relative paths land in brain/.
+# Log: brain/index/reindex.log (index/ is gitignored). Never fails git.
+
+BILBO="$(cd "$(dirname "$0")/../../scripts/bilbo" && pwd)"
+PYTHON="$BILBO/.venv/bin/python"
+[ -x "$PYTHON" ] || exit 0   # Bilbo not set up on this machine
+
+mkdir -p index
+setsid nohup nice -n 19 flock -n index/.reindex.lock \
+    "$PYTHON" "$BILBO/index.py" --if-new-commits \
+    >>index/reindex.log 2>&1 </dev/null &
+exit 0
