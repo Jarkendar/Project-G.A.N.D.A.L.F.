@@ -11,6 +11,22 @@ rank `brain/` chunks by cosine similarity against `chunks.vector`, and return
 ranked paths + snippets for Claude to `Read` deeper. Bilbo builds the index;
 Samwise reads it. Neither role crosses into the other.
 
+## Where the code lives
+
+Since 2026-09-24 the engine — chunking, models, SQLite store, incremental
+sync — is the `imladris-rag/` package at the repo root (see its README),
+written to know nothing about brain/. `index.py` is the brain/ adapter: it
+resolves `BRAIN_PATH`, defines what is not knowledge (`index/`,
+`current/smeagol/`, per-folder `CLAUDE.md`), reads the production model and
+chunker from `.claude/gandalf.env`, applies brain/'s folder-first privacy
+rules (`brain_privacy`: core/, current/, conversations/, backlog/, _meta/
+always private; knowledge/ public unless the file says private), records the
+indexed brain/ commit for the hook, and keeps the CLI below unchanged.
+
+The index (schema 2) holds more than vectors: each file's section tree with
+line ranges, its frontmatter and effective privacy, and the links between
+files — see `imladris-rag/imladris/store.py`.
+
 ## What it does
 
 1. Walks `brain/` for `*.md` files, excluding `current/smeagol/` (Smeagol's
@@ -103,7 +119,7 @@ variable > `gandalf.env` > built-in default (MiniLM + v1). Changing any of the
 three needs one `index.py --rebuild`; the index refuses to mix models or
 chunkers otherwise.
 
-- **Models** — `MODEL_REGISTRY` in `index.py`: `minilm`, `e5-small`,
+- **Models** — `MODEL_REGISTRY` in `imladris-rag/imladris/models.py`: `minilm`, `e5-small`,
   `granite-97m`, `granite-311m`, `arctic-m`, each pinned to a Hub commit, with
   the query/passage prefixes it was trained with. The query prefix,
   `trust_remote_code` and config overrides are recorded in `meta`, so Samwise
@@ -116,7 +132,7 @@ chunkers otherwise.
   granite ships bf16 weights; the Pi 5's Cortex-A76 has no bf16 support, so
   every matmul fell back to a path ~150× slower (a 30-hour build instead of
   4 minutes).
-- **Chunker v2 knobs** (`DEFAULT_CHUNK_PARAMS`): `prefix` (title+path | path
+- **Chunker v2 knobs** (`DEFAULT_CHUNK_PARAMS` in `imladris/chunking.py`): `prefix` (title+path | path
   | title | none), `target` tokens, `merge_tiny`, `skip_lines`. The ablation
   on 2026-09-24 kept title+path (every lighter prefix lost 2–18 MRR points),
   256 tokens, no merging, and a boilerplate-line filter — see
@@ -128,7 +144,7 @@ incremental runs from the hook touch only changed files.
 ## Model pinning
 
 Every model is pinned to a fixed **HF Hub commit revision**, not the moving
-`main` branch — see `MODEL_REGISTRY` in `index.py`. This means:
+`main` branch — see `MODEL_REGISTRY` in `imladris-rag/imladris/models.py`. This means:
 
 - A re-download on a new machine, or after `--rebuild`, always fetches the
   *exact same weights* — no risk of an upstream model update silently

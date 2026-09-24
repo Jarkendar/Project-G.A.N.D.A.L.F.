@@ -1,6 +1,7 @@
-# Pinned for reproducibility. The embedding model itself is pinned separately,
-# to a fixed Hugging Face Hub revision, inside index.py (see
-# DEFAULT_MODEL_REVISION / BILBO_EMBED_REVISION) — independent of these
+# Pinned for reproducibility; the same pins as imladris-rag/pyproject.toml.
+# The embedding models themselves are pinned separately, to fixed Hugging Face
+# Hub revisions in imladris-rag/imladris/models.py (MODEL_REGISTRY;
+# BILBO_EMBED_REVISION overrides) — independent of these
 # library versions, so a future `pip install` here can never silently change
 # which model weights get downloaded.
 #

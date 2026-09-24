@@ -1,42 +1,48 @@
 #!/usr/bin/env python3
 # S.A.M.W.I.S.E. — SQL And Markdown Wading Into Semantic Embeddings.
 #
-# The reader. B.I.L.B.O. (.claude/scripts/bilbo/index.py) WRITES the embedding
-# index at brain/index/bilbo.db; Samwise only READS it — encodes the query with
-# the same pinned model recorded in the index's `meta` table, cosine-ranks
-# chunks against it, and returns ranked paths + snippets. Neither role crosses
-# into the other: Samwise never touches brain/index/ with a writer connection,
-# never rebuilds or re-embeds the corpus.
+# The reader. B.I.L.B.O. (.claude/scripts/bilbo/index.py) WRITES the index at
+# brain/index/bilbo.db; Samwise only READS it — never a writer connection,
+# never a rebuild.
 #
-# Three strategies, one script, so the same code path serves both the live
-# `samwise` sub-agent and the comparative eval harness (eval/run_eval.py):
-#   - semantic: encode the query, rank brain/ chunks by cosine similarity
-#     (vectors are pre-normalized by Bilbo, so cosine == dot product).
-#   - grep:     keyword baseline — what Gandalf's Step 2b does today without
-#     Samwise. Ranks whole files by keyword hit count.
-#   - hybrid:   Reciprocal Rank Fusion (k=60) of the two rankings above.
+# Retrieval itself lives in the imladris-rag engine (imladris.search); this
+# adapter supplies brain/: where it is, what counts as knowledge (the same
+# rules Bilbo indexes by), the calibrated threshold, and the CLI.
+#
+# Strategies:
+#   - semantic:   encode the query exactly as the index was built (model,
+#     revision, query prefix, config overrides recorded in its meta) and rank
+#     chunks by cosine similarity.
+#   - fts:        BM25 over blocks (SQLite FTS5), query words cut to a stem.
+#   - hybrid-fts: Reciprocal Rank Fusion (k=60) of semantic and fts, per block.
+#   - grep:       keyword baseline — ranks whole files by keyword hit count.
+#   - hybrid:     RRF of semantic and grep (file level) — the older baseline.
+# --diversify keeps only the best block of each file.
 #
 # Usable two ways:
 #   1. CLI:    ./search.py "query" --strategy semantic --top-k 8
 #   2. Module: `import search; idx = search.load_index(brain_dir); ...` — the
-#      eval harness uses this so the (heavy) model loads once for all queries
-#      instead of once per subprocess invocation.
+#      eval harness uses this so the (heavy) model loads once for all queries.
 
 import argparse
 import json
-import re
-import sqlite3
 import sys
-from dataclasses import dataclass, field
 from pathlib import Path
 
-import numpy as np
+PROJECT_DIR = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(PROJECT_DIR / "imladris-rag"))
+sys.path.insert(0, str(PROJECT_DIR / ".claude" / "scripts" / "bilbo"))
 
-# --- Corpus rules — must match Bilbo's exactly, or Samwise would rank chunks
-# Bilbo never embedded, or grep files Bilbo excludes as non-knowledge. ---------
-EXCLUDED_DIR_PARTS = {"index"}
-EXCLUDED_SUBPATHS = ("current/smeagol",)
-EXCLUDED_FILENAMES = {"CLAUDE.md"}
+from imladris import context as context_engine  # noqa: E402
+from imladris import search as engine  # noqa: E402
+from imladris.models import load_model  # noqa: E402,F401  (re-exported for the eval)
+from index import brain_corpus, resolve_brain_path  # noqa: E402,F401  (Bilbo's brain/ rules)
+
+SamwiseIndex = engine.Index
+
+# Words that carry no meaning in brain/ queries (PL + EN), for the keyword
+# strategies. Config, not code: edit stopwords.txt.
+STOPWORDS = engine.load_stopwords(Path(__file__).with_name("stopwords.txt"))
 
 # Calibrated by eval/run_eval.py for the production index — granite-311m +
 # chunker v2 since 2026-09-24 — against the 63-query golden set (F1-optimal:
@@ -45,350 +51,115 @@ EXCLUDED_FILENAMES = {"CLAUDE.md"}
 # live on different scales (MiniLM's was 0.5047). Re-run the eval and update
 # this constant whenever BILBO_EMBED_MODEL or the chunker changes.
 #
-# Known limitation (measured, not theoretical): this threshold is tuned on a
-# mix of point-lookup and broad queries, but broad "list everything about X"
-# queries can still legitimately score below it on every relevant chunk (the
-# golden-set eval found 0/3 recall for "my side-projects" and "my cycling
-# trips" across ALL strategies, not just semantic). A fixed score cutoff
-# cannot fully solve this — see samwise.md's workflow for the mitigation
-# (widen --top-k / relax --min-score for enumerative-sounding questions).
+# Known limitation (measured, not theoretical): broad "list everything about
+# X" queries can legitimately score below any fixed cutoff on every relevant
+# chunk. A score threshold cannot fully solve this — see samwise.md's
+# workflow for the mitigation (widen --top-k / relax --min-score for
+# enumerative-sounding questions).
 DEFAULT_MIN_SCORE = 0.8684
 DEFAULT_TOP_K = 8
-RRF_K = 60  # standard Reciprocal Rank Fusion constant
-
-SNIPPET_CHARS = 240
-
-STOPWORDS = {
-    # English function words / query-pattern filler ("what do I know about...")
-    "the", "and", "for", "with", "this", "that", "from", "have", "what",
-    "about", "your", "how", "when", "where", "which", "does", "did", "was",
-    "were", "are", "into", "over", "under", "who", "whom", "will", "can",
-    "know", "tell", "find", "show", "any",
-    # Polish function words / query-pattern filler ("co wiem o... / jakie mam...")
-    # — an LLM curating keywords by hand would skip these too; extending the
-    # list is how a mechanical extractor approximates that judgment.
-    "wiem", "jak", "jakie", "jakich", "jaki", "jaka", "czy", "się", "nie",
-    "dla", "tego", "tym", "oraz", "moje", "moja", "mój", "moim", "jest",
-    "były", "była", "był", "coś", "tam", "tutaj", "znam", "znaj", "znać",
-    "powiedz", "pokaż", "znajdź", "mam", "masz", "ten", "ta", "już", "być",
-    "swoje", "swoja", "swój", "chcę", "chce",
-}
-
-
-# --- Environment --------------------------------------------------------------
-# Copy of Bilbo's resolve_brain_path (index.py), not a cross-import — the
-# writer and reader are deliberately independent scripts.
-
-def resolve_brain_path(project_dir: Path) -> Path:
-    env_file = project_dir / ".claude" / "gandalf.env"
-    raw = None
-    try:
-        for line in env_file.read_text().splitlines():
-            line = line.strip()
-            if line.startswith("BRAIN_PATH="):
-                raw = line.split("=", 1)[1].strip()
-                break
-    except OSError:
-        pass
-    if not raw:
-        sys.exit("SAMWISE: BRAIN_PATH not set in .claude/gandalf.env — aborting.")
-    path = Path(raw)
-    if not path.is_absolute():
-        path = project_dir / path
-    path = path.resolve()
-    if not path.is_dir():
-        sys.exit(f"SAMWISE: resolved BRAIN_PATH does not exist: {path}")
-    return path
 
 
 def default_project_dir() -> Path:
-    # this file: .claude/scripts/samwise/search.py -> parents[3] == project root
-    return Path(__file__).resolve().parents[3]
-
-
-# --- Discovery (mirrors Bilbo's is_excluded/discover_files) -------------------
-
-def is_excluded(rel_path: Path) -> bool:
-    parts = rel_path.parts
-    if parts and parts[0] in EXCLUDED_DIR_PARTS:
-        return True
-    posix = rel_path.as_posix()
-    if any(posix.startswith(sub) for sub in EXCLUDED_SUBPATHS):
-        return True
-    if rel_path.name in EXCLUDED_FILENAMES:
-        return True
-    return False
-
-
-def discover_files(brain_dir: Path) -> list[Path]:
-    found = []
-    for p in brain_dir.rglob("*.md"):
-        if not p.is_file():
-            continue
-        rel = p.relative_to(brain_dir)
-        if is_excluded(rel):
-            continue
-        found.append(rel)
-    return sorted(found, key=lambda r: r.as_posix())
-
-
-# --- Index (read-only) --------------------------------------------------------
-
-@dataclass
-class SamwiseIndex:
-    """Loaded, read-only view of brain/index/bilbo.db."""
-    brain_dir: Path
-    db_path: Path
-    model_name: str
-    model_revision: str
-    embed_dim: int
-    query_prefix: str = ""          # what the model was trained to see before a query
-    trust_remote_code: bool = False  # model ships its own (pinned) modeling code
-    config_kwargs: dict = field(default_factory=dict)  # model config overrides Bilbo used
-    paths: list[str] = field(default_factory=list)
-    ords: list[int] = field(default_factory=list)
-    headings: list[str] = field(default_factory=list)
-    texts: list[str] = field(default_factory=list)
-    vectors: np.ndarray = None  # shape (n_chunks, embed_dim), float32, normalized
+    return PROJECT_DIR
 
 
 def load_index(brain_dir: Path, db_path: Path | None = None) -> SamwiseIndex:
     """db_path defaults to Bilbo's production index; the eval harness passes an
     experimental one (built with `index.py --db`) to compare variants."""
     db_path = db_path or brain_dir / "index" / "bilbo.db"
-    if not db_path.is_file():
-        sys.exit(
-            f"SAMWISE: no index at {db_path} — run B.I.L.B.O. "
-            f"(.claude/scripts/bilbo/index.py) first."
-        )
-    # Read-only URI connection: Samwise is never a writer of this database.
-    conn = sqlite3.connect(f"file:{db_path.as_posix()}?mode=ro", uri=True)
     try:
-        meta = dict(conn.execute("SELECT key, value FROM meta").fetchall())
-        if not meta.get("model_name"):
-            sys.exit(f"SAMWISE: index at {db_path} has no meta — run Bilbo to build it.")
-        rows = conn.execute(
-            "SELECT path, ord, heading, text, vector FROM chunks ORDER BY id"
-        ).fetchall()
-    finally:
-        conn.close()
-
-    if not rows:
-        sys.exit(f"SAMWISE: index at {db_path} has no chunks — run Bilbo to build it.")
-
-    embed_dim = int(meta.get("embed_dim", "0"))
-    vectors = np.stack(
-        [np.frombuffer(r[4], dtype=np.float32) for r in rows]
-    ) if rows else np.zeros((0, embed_dim), dtype=np.float32)
-
-    return SamwiseIndex(
-        brain_dir=brain_dir,
-        db_path=db_path,
-        model_name=meta["model_name"],
-        model_revision=meta.get("model_revision", ""),
-        embed_dim=embed_dim,
-        query_prefix=meta.get("query_prefix", ""),
-        trust_remote_code=meta.get("trust_remote_code") == "1",
-        config_kwargs=json.loads(meta.get("config_kwargs") or "{}"),
-        paths=[r[0] for r in rows],
-        ords=[r[1] for r in rows],
-        headings=[r[2] or "" for r in rows],
-        texts=[r[3] for r in rows],
-        vectors=vectors,
-    )
+        return engine.load_index(db_path)
+    except engine.IndexUnavailable as err:
+        sys.exit(f"SAMWISE: {err} — run B.I.L.B.O. (.claude/scripts/bilbo/index.py) first.")
 
 
-_model_cache = {}
+semantic_search = engine.semantic_search
 
 
-def load_model(model_name: str, revision: str, trust_remote_code: bool = False,
-               config_kwargs: dict | None = None):
-    """Lazy, cached load of the sentence-transformers model. Kept out of the
-    module's top-level imports so `--strategy grep` never pays the (heavy)
-    torch/sentence-transformers import cost."""
-    key = (model_name, revision)
-    if key not in _model_cache:
-        import torch
-        from sentence_transformers import SentenceTransformer
-        # float32 like Bilbo: bf16 checkpoints are ~150x slower on the Pi's CPU.
-        _model_cache[key] = SentenceTransformer(model_name, revision=revision,
-                                                trust_remote_code=trust_remote_code,
-                                                model_kwargs={"dtype": torch.float32},
-                                                config_kwargs=config_kwargs or None)
-    return _model_cache[key]
+def grep_search(brain_dir: Path, query: str, top_k: int, stopwords: frozenset = STOPWORDS) -> list[dict]:
+    return engine.keyword_search(brain_corpus(brain_dir), query, top_k, stopwords)
 
 
-def embed_query(idx: SamwiseIndex, query: str) -> np.ndarray:
-    model = load_model(idx.model_name, idx.model_revision, idx.trust_remote_code,
-                       idx.config_kwargs)
-    vec = model.encode([idx.query_prefix + query], normalize_embeddings=True)[0]
-    return vec.astype(np.float32)
+STRATEGIES = ("semantic", "fts", "hybrid-fts", "grep", "hybrid")
+DEFAULT_BUDGET = 1500  # tokens; Index v2 phase C4: answer in bundle 0.95 at this budget
+DEFAULT_STEM = 5  # FTS query words are cut to this many characters (0 = whole words)
 
-
-def make_snippet(text: str) -> str:
-    collapsed = re.sub(r"\s+", " ", text).strip()
-    if len(collapsed) <= SNIPPET_CHARS:
-        return collapsed
-    return collapsed[:SNIPPET_CHARS].rsplit(" ", 1)[0] + "…"
-
-
-# --- Strategy: semantic -------------------------------------------------------
-
-def semantic_search(idx: SamwiseIndex, query: str, top_k: int, min_score: float) -> list[dict]:
-    if idx.vectors.shape[0] == 0:
-        return []
-    query_vec = embed_query(idx, query)
-    scores = idx.vectors @ query_vec  # normalized vectors -> cosine similarity
-    order = np.argsort(-scores)
-    results = []
-    for i in order:
-        score = float(scores[i])
-        if score < min_score:
-            break  # order is descending, so nothing further clears the bar
-        results.append({
-            "score": round(score, 4),
-            "path": idx.paths[i],
-            "heading": idx.headings[i],
-            "ord": idx.ords[i],
-            "snippet": make_snippet(idx.texts[i]),
-            "chunk": int(i),  # position in idx.texts — the eval reads full chunk text
-        })
-        if len(results) >= top_k:
-            break
-    return results
-
-
-# --- Strategy: grep (baseline — what Gandalf's Step 2b does without Samwise) --
-
-def keywords_from_query(query: str) -> list[str]:
-    # Case-preserving pass first so all-caps acronyms (CV, AI, US) survive even
-    # at 2 characters — lowercasing before the length check would drop them
-    # alongside genuine 2-letter stopwords (o, w, z, do, na, i, a...).
-    tokens = re.findall(r"\w+", query)
-    keywords = []
-    for t in tokens:
-        low = t.lower()
-        if low in STOPWORDS:
-            continue
-        if len(t) >= 3 or (t.isupper() and len(t) >= 2):
-            keywords.append(low)
-    return keywords
-
-
-def grep_search(brain_dir: Path, query: str, top_k: int) -> list[dict]:
-    keywords = keywords_from_query(query)
-    if not keywords:
-        return []
-    results = []
-    for rel in discover_files(brain_dir):
-        abs_path = brain_dir / rel
-        try:
-            text = abs_path.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            continue
-        lower = text.lower()
-        count = sum(lower.count(kw) for kw in keywords)
-        if count == 0:
-            continue
-        # Snippet: first line containing any keyword, for a representative excerpt.
-        snippet = next(
-            (line.strip() for line in text.splitlines()
-             if any(kw in line.lower() for kw in keywords) and line.strip()),
-            text.strip().splitlines()[0] if text.strip() else "",
-        )
-        results.append({
-            "score": count,
-            "path": rel.as_posix(),
-            "heading": None,
-            "ord": None,
-            "snippet": make_snippet(snippet),
-        })
-    results.sort(key=lambda r: -r["score"])
-    return results[:top_k]
-
-
-# --- Strategy: hybrid (Reciprocal Rank Fusion of semantic + grep) -------------
-
-def _dedup_by_path_keep_best(results: list[dict]) -> list[dict]:
-    """Semantic results are per-chunk; collapse to one (best-scoring) row per
-    path before rank-fusing with grep's per-file results."""
-    best: dict[str, dict] = {}
-    for rank, r in enumerate(results):
-        if r["path"] not in best:
-            best[r["path"]] = r
-    return list(best.values())
-
-
-def hybrid_search(idx: SamwiseIndex, brain_dir: Path, query: str, top_k: int) -> list[dict]:
-    # Pull generous candidate pools from both strategies so RRF has enough to
-    # fuse over, independent of the final top_k requested.
-    pool = max(top_k * 5, 40)
-    semantic_hits = _dedup_by_path_keep_best(
-        semantic_search(idx, query, top_k=pool, min_score=-1.0)
-    )
-    grep_hits = grep_search(brain_dir, query, top_k=pool)
-
-    rrf_scores: dict[str, float] = {}
-    by_path: dict[str, dict] = {}
-    for rank, r in enumerate(semantic_hits):
-        rrf_scores[r["path"]] = rrf_scores.get(r["path"], 0.0) + 1.0 / (RRF_K + rank + 1)
-        by_path.setdefault(r["path"], r)
-    for rank, r in enumerate(grep_hits):
-        rrf_scores[r["path"]] = rrf_scores.get(r["path"], 0.0) + 1.0 / (RRF_K + rank + 1)
-        by_path.setdefault(r["path"], r)
-
-    fused = []
-    for path, score in rrf_scores.items():
-        base = by_path[path]
-        fused.append({
-            "score": round(score, 6),
-            "path": path,
-            "heading": base.get("heading"),
-            "ord": base.get("ord"),
-            "snippet": base.get("snippet"),
-            "chunk": base.get("chunk"),
-        })
-    fused.sort(key=lambda r: -r["score"])
-    return fused[:top_k]
-
-
-# --- Dispatch ------------------------------------------------------------------
 
 def search(brain_dir: Path, query: str, strategy: str, top_k: int,
-           min_score: float, idx: "SamwiseIndex | None" = None) -> list[dict]:
+           min_score: float, idx: SamwiseIndex | None = None,
+           diversify: bool = False, stem: int = DEFAULT_STEM,
+           fts_weight: float = 1.0, stopwords: frozenset = STOPWORDS) -> list[dict]:
     if strategy == "grep":
-        return grep_search(brain_dir, query, top_k)
+        return grep_search(brain_dir, query, top_k, stopwords)
     if idx is None:
         idx = load_index(brain_dir)
+    pool = top_k * 4 if diversify else top_k  # room to drop same-file blocks
     if strategy == "semantic":
-        return semantic_search(idx, query, top_k, min_score)
-    if strategy == "hybrid":
-        return hybrid_search(idx, brain_dir, query, top_k)
-    raise ValueError(f"unknown strategy: {strategy}")
+        results = engine.semantic_search(idx, query, pool, min_score)
+    elif strategy == "fts":
+        results = engine.fts_search(idx, query, pool, stem, stopwords)
+    elif strategy == "hybrid-fts":
+        results = engine.hybrid_fts_search(idx, query, pool, stem, fts_weight, stopwords)
+    elif strategy == "hybrid":
+        results = engine.hybrid_search(idx, brain_corpus(brain_dir), query, pool, stopwords)
+    else:
+        raise ValueError(f"unknown strategy: {strategy}")
+    return engine.diversify(results, top_k) if diversify else results[:top_k]
 
 
-# --- CLI -----------------------------------------------------------------------
+def build_context(idx: SamwiseIndex, query: str, **options) -> list:
+    """A token-budgeted bundle of passages (imladris.context.build_context),
+    counted with the index's own tokenizer."""
+    from imladris.models import token_counter
+    return context_engine.build_context(idx, query, token_counter(load_model(idx.spec)), **options)
+
 
 def main():
     parser = argparse.ArgumentParser(
         description="S.A.M.W.I.S.E. — query-time reader over B.I.L.B.O.'s embedding index"
     )
     parser.add_argument("query", type=str, help="the natural-language question")
-    parser.add_argument("--strategy", choices=["semantic", "grep", "hybrid"],
-                         default="semantic")
+    parser.add_argument("--strategy", choices=STRATEGIES, default="semantic")
+    parser.add_argument("--diversify", action="store_true", help="at most one block per file")
+    parser.add_argument("--stem", type=int, default=DEFAULT_STEM,
+                        help="fts / hybrid-fts: cut query words to this many characters (0 = off)")
     parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K)
     parser.add_argument("--min-score", type=float, default=DEFAULT_MIN_SCORE,
-                         help="semantic-only: drop hits below this cosine score")
+                        help="semantic-only: drop hits below this cosine score")
     parser.add_argument("--format", choices=["json", "text"], default="json")
+    parser.add_argument("--context", action="store_true",
+                        help="return a context bundle (widened passages with citations) "
+                             "instead of ranked hits")
+    parser.add_argument("--budget", type=int, default=DEFAULT_BUDGET,
+                        help="--context: token budget of the bundle")
+    parser.add_argument("--no-links", action="store_true", help="--context: do not follow links")
     args = parser.parse_args()
 
-    project_dir = default_project_dir()
-    brain_dir = resolve_brain_path(project_dir)
-
-    results = search(brain_dir, args.query, args.strategy, args.top_k, args.min_score)
+    brain_dir = resolve_brain_path(PROJECT_DIR)
+    if args.context:
+        items = build_context(load_index(brain_dir), args.query, budget=args.budget,
+                              links=not args.no_links)
+        if args.format == "json":
+            print(json.dumps([vars(it) for it in items], ensure_ascii=False, indent=2))
+        else:
+            if not items:
+                print("SAMWISE: no hits.")
+            for it in items:
+                number = f"{it.section_no} " if it.section_no else ""
+                where = f" § {number}{it.heading}" if it.kind != "document" else " (whole file)"
+                lines = f" L{it.lines[0]}-{it.lines[1]}" if it.lines else ""
+                note = "" if it.reason == "hit" else f" [{it.reason}]"
+                print(f"=== {it.path}{where}{lines} — {it.privacy}, {it.tokens} tok, score {it.score}{note}")
+                print(it.text)
+                print()
+        return
+    results = search(brain_dir, args.query, args.strategy, args.top_k, args.min_score,
+                     diversify=args.diversify, stem=args.stem)
 
     if args.format == "json":
-        print(json.dumps(results, ensure_ascii=False, indent=2))
+        print(json.dumps([{k: v for k, v in r.items() if k != "chunk"} for r in results],
+                         ensure_ascii=False, indent=2))
     else:
         if not results:
             print("SAMWISE: no hits.")

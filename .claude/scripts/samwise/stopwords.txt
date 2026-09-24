@@ -1,0 +1,83 @@
+# Stopwords for keyword search over brain/ (PL + EN) — used by Samwise's
+# fts / grep / hybrid strategies only; semantic search and --context ignore it.
+# One word per line; "#" starts a comment. Loaded by .claude/scripts/samwise/search.py
+# and passed to imladris-rag, which ships no stopwords of its own.
+
+# English function words / query-pattern filler ("what do I know about...")
+what do I know about...
+the
+and
+for
+with
+this
+that
+from
+have
+what
+about
+your
+how
+when
+where
+which
+does
+did
+was
+were
+are
+into
+over
+under
+who
+whom
+will
+can
+know
+tell
+find
+show
+any
+co wiem o... / jakie mam...
+
+# Polish function words / query-pattern filler ("co wiem o... / jakie mam...")
+wiem
+jak
+jakie
+jakich
+jaki
+jaka
+czy
+się
+nie
+dla
+tego
+tym
+oraz
+moje
+moja
+mój
+moim
+jest
+były
+była
+był
+coś
+tam
+tutaj
+znam
+znaj
+znać
+powiedz
+pokaż
+znajdź
+mam
+masz
+ten
+ta
+już
+być
+swoje
+swoja
+swój
+chcę
+chce

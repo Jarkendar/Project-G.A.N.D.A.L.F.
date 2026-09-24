@@ -41,14 +41,40 @@ yourself.
    # BRAIN_PATH is now available.
    ```
 2. **Judge whether the question is a point-lookup or a broad/enumerative
-   one** before choosing flags — this distinction matters (see step 2a/2b):
+   one** before choosing flags — this distinction matters (see step 2a/2b).
+   It is your judgment from the wording; measured against the golden set's
+   labels this rule is right ~80% of the time and over-calls "broad" (Polish
+   "jakie…" is plural-sounding even when one file answers), so when unsure,
+   treat the question as a point-lookup and widen only if the bundle looks
+   thin:
    - **Point-lookup** ("what do I know about my CV gaps", "a broker's
      business profile") — one document is the expected answer.
    - **Broad/enumerative** ("what are my side-projects", "what cycling trips
      have I done", "tell me about my family") — plural nouns, "all", "every",
      or a category name are the signal. Multiple distinct documents are the
      expected answer.
-2a. **Point-lookup — use the calibrated default:**
+3. **Default — ask for a context bundle:**
+   ```bash
+   .claude/scripts/bilbo/.venv/bin/python .claude/scripts/samwise/search.py \
+     "<the user's question>" --context --format text
+   ```
+   Returns widened passages, not bare chunks: the best block of each of the
+   top 3 files first, then further hits by score, each widened to its whole
+   section when the section is short (or to the whole file when several of
+   its sections hit and it is short), plus files linked to/from the lead
+   files when they score close to the top — all within a 1500-token budget
+   (`--budget`). Every passage is headed with path, section number, line
+   range, privacy and why it was included, so cite from the header. Measured
+   on the golden set: the answer is inside the bundle for 95% of queries
+   (top-5 chunks: 84%), the right section for 92% (85%). Do not raise
+   `--budget` for broad questions expecting more files: measured, a bigger
+   budget or more lead files barely helps them (full file recall 0.50 →
+   0.58 even at 3000 tokens and 12 files) because the missing documents rank
+   30th–85th — no chunk says "side project" or "cycling race". For a broad
+   question, also run the widened ranked list (2b) and judge by eye.
+   `--no-links` if links pull in noise. Use the ranked modes below when you
+   need scores or a wide list.
+2a. **Point-lookup — ranked hits with the calibrated default:**
    ```bash
    .claude/scripts/bilbo/.venv/bin/python .claude/scripts/samwise/search.py \
      "<the user's question>" --strategy semantic --top-k 8
@@ -61,11 +87,20 @@ yourself.
    rarely below ~0.80), so read the ranking, not the absolute number.
    Semantic beats hybrid with this model (hit@1 0.76 vs. 0.62) — the grep
    side of hybrid adds more false positives than it recovers.
+2a'. **Exact names, numbers, identifiers** (a policy number, a ticker, a
+   rare surname) — also try `--strategy fts`: BM25 full-text search over the
+   same blocks, ~2 ms, with Polish-friendly prefix matching. On its own it is
+   weaker than semantic (hit@1 0.59) and useless across languages, and
+   fusing it into semantic (`hybrid-fts`) lowered hit@1 on the golden set at
+   every weight tried — so use it as a second look, not a replacement.
 2b. **Broad/enumerative — widen the net, then use your own judgment:**
    ```bash
    .claude/scripts/bilbo/.venv/bin/python .claude/scripts/samwise/search.py \
-     "<the user's question>" --strategy semantic --top-k 20 --min-score 0.0
+     "<the user's question>" --strategy semantic --top-k 20 --min-score 0.0 --diversify
    ```
+   `--diversify` keeps only the best block of each file, so the 20 slots
+   cover 20 files instead of several blocks of the same few (measured: file
+   recall@5 0.84 → 0.89, hit@5 0.89 → 0.94).
    **Known, measured limitation:** the calibration eval found that broad
    topical queries can score *every* relevant chunk below the default
    threshold — two broad, category-shaped golden-set queries each scored 0/3

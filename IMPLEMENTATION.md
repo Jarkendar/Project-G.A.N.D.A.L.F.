@@ -621,8 +621,137 @@ move to its own repo and serve other projects.
         Samwise threshold recalibrated to **0.8684** (F1 0.645). Final:
         hit@1 0.76, MRR 0.82, sec@5 0.85, ans@5 0.84. granite-97m stays as
         the lighter fallback if the reranker squeezes RAM.
-- [ ] **C — Hierarchical index:** nodes, metadata, links, FTS5 hybrid,
-      context expansion, Samwise v2 returning context bundles.
+- [x] **C — Hierarchical index:** nodes, metadata, links, FTS5 hybrid,
+      context expansion, Samwise v2 returning context bundles. Four steps,
+      each eval-gated:
+  - [x] **C1 — engine extracted (2026-09-24).** `imladris-rag/` at the repo
+        root (owner-approved location and name: Imladris, Elrond's house of
+        lore; package `imladris`), with `pyproject.toml`, README and unit
+        tests (13, no model needed). Modules: `models`, `chunking`, `corpus`,
+        `store`, `indexer`, `search` — none knows about brain/. Bilbo's
+        `index.py` and Samwise's `search.py` are now brain/ adapters; their
+        CLIs, the hook and `gandalf.env` config are unchanged. Verified as a
+        pure refactor: chunks identical for all 275 files, vectors equal to
+        float noise (1.2e-7), the 63-query eval identical per query for all
+        three strategies.
+  - [x] **C2 — nodes and links (2026-09-24).** Store schema 2:
+        `documents` (hash, title, frontmatter JSON, privacy, superseded_by),
+        `nodes` (`doc → section → block` tree; sections carry heading path,
+        number such as "2.3", line range and body; blocks are the embedded
+        chunks with line ranges), `links` (markdown, wikilink, path mention;
+        re-resolved on every change to the file set, so backlinks are a
+        query on `dst`). Privacy is a corpus rule supplied by the adapter —
+        Bilbo encodes brain/'s folder-first rules (core/, current/,
+        conversations/, backlog/, _meta/ always private; knowledge/ public
+        unless the file says private). The chunker now tracks line numbers;
+        its output is byte-identical to C1 on all 275 files (a piece of a
+        split oversized block keeps the whole block's range). Production
+        index: 275 docs, 1269 sections, 1540 blocks, 182 of 198 links
+        resolved (the rest are URLs, format examples, excluded files);
+        vectors identical to the schema-1 index, eval identical per query.
+        Samwise results now carry `section_no` and `lines`. A schema-1
+        index stays readable until rebuilt. Tests: 25.
+        Found on the way: the fixed threshold (0.868) drops a correct 0.860
+        hit for a short query ("kto jest uposażonym w polisie") — a
+        threshold relative to the top score is worth trying in C3.
+  - [x] **C3 — FTS5 hybrid, diversity, relative threshold (2026-09-24).**
+        `blocks_fts` (FTS5, unicode61 without diacritics) is an additive
+        table, backfilled from `nodes` in 0.1 s — no rebuild. New strategies
+        `fts` (BM25; query words cut to a 5-character prefix as a stand-in
+        for Polish stemming) and `hybrid-fts` (weighted RRF of semantic and
+        fts, block level); `--diversify` keeps one block per file; the eval
+        also calibrates a cutoff relative to each query's top score.
+
+        | strategy | hit@1 | hit@5 | MRR | R@5 | sec@5 | ans@5 | p50 |
+        |---|---|---|---|---|---|---|---|
+        | semantic | 0.76 | 0.89 | 0.82 | 0.84 | 0.85 | 0.84 | 324 ms |
+        | semantic + diversify | 0.76 | **0.94** | 0.83 | **0.89** | 0.62 | 0.59 | 325 ms |
+        | fts | 0.59 | 0.73 | 0.64 | 0.64 | 0.54 | 0.62 | **1 ms** |
+        | hybrid-fts (w 1.0) | 0.71 | 0.83 | 0.77 | 0.76 | 0.62 | 0.73 | 326 ms |
+        | hybrid-fts (w 0.25) | 0.70 | 0.87 | 0.77 | 0.82 | 0.73 | 0.78 | 327 ms |
+        | hybrid-fts (w 0.25) + diversify | 0.68 | 0.95 | 0.79 | 0.90 | 0.58 | 0.51 | 331 ms |
+
+        **FTS does not earn a place in the fusion:** every weight (1.0, 0.5,
+        0.25) and stem setting (5, whole words) lowered hit@1/MRR; it is
+        useless across languages (cross hit@5 0.12) and granite-311m already
+        catches what keywords would. Its edge — exact names and identifiers —
+        is barely covered by the golden set (3 entity queries), so it stays
+        available as a ~2 ms second look (samwise.md 2a'), not a default.
+        **Diversify is the keeper for file selection** (hit@5 0.94, recall
+        0.89, multi 0.56 → 0.67); its drop in sec@5/ans@5 is expected — one
+        block per file — and is what C4's in-file expansion is for. The
+        relative cutoff (top − 0.047) raises recall (0.78 → 0.88) but loses
+        on F1 (0.615 vs 0.645): the absolute threshold stays; the reranker
+        (phase E) will own this. Samwise's default remains `semantic`.
+        **Stopwords (measured afterwards):** the PL/EN list moved out of the
+        engine into `.claude/scripts/samwise/stopwords.txt` (the engine takes
+        a `stopwords` set and ships none — which words are noise depends on
+        the corpus' languages). They matter most where nothing else weighs
+        words: grep hit@1 0.30 vs 0.25 without, grep-based hybrid 0.62 vs
+        0.49 (MRR 0.73 vs 0.63); for BM25 they help less (fts hit@1 0.59 vs
+        0.54, MRR 0.64 vs 0.61) since IDF already discounts common words;
+        weighted hybrid-fts is unchanged (0.70). Semantic search and context
+        bundles never use them.
+  - [x] **C4 — context expansion (2026-09-24).** `imladris.context`
+        builds a token-budgeted bundle: the best block of each of the top 3
+        files first (breadth), then the other hit blocks in score order
+        (depth, as top-k would), each widened — whole document when two or
+        more of its sections hit and it is short (≤800 tokens), whole
+        section when short (≤400), else the bare block; a covered section is
+        never added twice; linked files (either direction) join the lead
+        files when their best block is within 0.03 of the top score. Each
+        item carries path, section number, line range, privacy, score and
+        reason. Samwise: `search.py --context [--budget N] [--no-links]`,
+        now the default mode in samwise.md.
+
+        | mode | sec | answer | file R | full R | context |
+        |---|---|---|---|---|---|
+        | semantic top-5 (C3) | 0.85 | 0.84 | 0.84 | 0.79 | 2.3 k chars |
+        | bundle, 800 tokens | 0.77 | 0.76 | 0.85 | 0.81 | 2.3 k chars |
+        | **bundle, 1500 tokens (default)** | **0.92** | **0.95** | **0.92** | **0.89** | 4.2 k chars |
+        | bundle, 3000 tokens | 0.96 | 0.97 | 0.95 | 0.90 | 7.8 k chars |
+        | bundle, 1500, no links | 0.96 | 0.97 | 0.90 | 0.86 | 4.2 k chars |
+
+        Two designs lost before this one, both measured: file-by-file
+        expansion (answer 0.68–0.70 at 1500 — low-ranked files' neighbour
+        windows ate the budget while the top file's second and third hit
+        sections were cut) and a breadth-then-depth pass per file (0.70).
+        Links trade one answer for more complete file coverage (4 of 63
+        queries change; "my goals this year" is found only through a link);
+        kept on for multi-file questions. Latency +60 ms over plain
+        semantic (document loads). Tests: 28.
+
+        **Budget and query-breadth study (2026-09-24).** Why 1500 tokens,
+        and should point and broad questions get different budgets? The
+        1500 default was a starting value, checked afterwards on a denser
+        grid (answer / section / file recall / avg tokens used):
+
+        | budget | 800 | 1000 | 1200 | **1500** | 2000 | 2500 | 3000 |
+        |---|---|---|---|---|---|---|---|
+        | all 63 | .76/.77/.85 | .76/.77/.90 | .84/.88/.90 | **.95/.92/.92** | .95/.92/.93 | .97/.96/.93 | .97/.96/.95 |
+        | point 51 | .76/.79/.92 | .76/.79/.96 | .85/.92/.97 | **.97/.96/.98** | .97/.96/.98 | 1.0/1.0/.98 | 1.0/1.0/1.0 |
+        | broad 12 | .67/.50/.55 | .67/.50/.63 | .67/.50/.63 | .67/.50/.69 | .67/.50/.74 | .67/.50/.74 | .67/.50/.75 |
+
+        The knee is between 1200 and 1500 (a budget "unlocks" whole sections
+        in steps); 2000 adds nothing; 2500 adds one query. **Broad questions
+        do not respond to budget** (full file recall 0.50 at every budget),
+        nor to breadth: 5/8/12 lead files with pools of 30–60 lift their full
+        recall only to 0.58 at 3000 tokens, while dropping point answers from
+        0.97 to 0.68 at 1500 (more files eat the budget). The cause is
+        retrieval, not packing — the missing documents rank far down
+        ("my side projects": photovault #85, gandalf #37; "cycling races":
+        gran fondo files #61, #39): nothing in their chunks names the
+        category. That is a document-level problem — summaries, keywords
+        and topics per file (phase D) are the lever, not the bundle.
+        Routing was measured too, against the golden types (broad =
+        multi/link): the samwise.md rule applied by Haiku — the way Samwise
+        decides today, by its own judgment of the wording — scores accuracy
+        0.78 (broad precision 0.45: it over-calls "broad"); a lexical
+        heuristic 0.84; a retrieval signal (files scoring near the top)
+        0.81. With any router, including the oracle, adaptive budgets
+        (point 1000–1500 / broad 2500–3000) never beat a flat 1500 at equal
+        or lower cost. **Decision: 1500 stays, flat;** breadth for broad
+        questions is deferred to phase D.
 - [ ] **D — Enrichment ablation:** heuristic headers vs. late chunking vs.
       Haiku per-file vs. Haiku per-chunk.
 - [ ] **E — Reranker (in this stage, not Stage 3):** bge-reranker-v2-m3
