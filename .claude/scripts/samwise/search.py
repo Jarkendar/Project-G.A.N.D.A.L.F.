@@ -33,6 +33,7 @@ PROJECT_DIR = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(PROJECT_DIR / "imladris-rag"))
 sys.path.insert(0, str(PROJECT_DIR / ".claude" / "scripts" / "bilbo"))
 
+from imladris import context as context_engine  # noqa: E402
 from imladris import search as engine  # noqa: E402
 from imladris.models import load_model  # noqa: E402,F401  (re-exported for the eval)
 from index import brain_corpus, resolve_brain_path  # noqa: E402,F401  (Bilbo's brain/ rules)
@@ -77,6 +78,7 @@ def grep_search(brain_dir: Path, query: str, top_k: int) -> list[dict]:
 
 
 STRATEGIES = ("semantic", "fts", "hybrid-fts", "grep", "hybrid")
+DEFAULT_BUDGET = 1500  # tokens; Index v2 phase C4: answer in bundle 0.95 at this budget
 DEFAULT_STEM = 5  # FTS query words are cut to this many characters (0 = whole words)
 
 
@@ -102,6 +104,13 @@ def search(brain_dir: Path, query: str, strategy: str, top_k: int,
     return engine.diversify(results, top_k) if diversify else results[:top_k]
 
 
+def build_context(idx: SamwiseIndex, query: str, **options) -> list:
+    """A token-budgeted bundle of passages (imladris.context.build_context),
+    counted with the index's own tokenizer."""
+    from imladris.models import token_counter
+    return context_engine.build_context(idx, query, token_counter(load_model(idx.spec)), **options)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="S.A.M.W.I.S.E. — query-time reader over B.I.L.B.O.'s embedding index"
@@ -115,9 +124,32 @@ def main():
     parser.add_argument("--min-score", type=float, default=DEFAULT_MIN_SCORE,
                         help="semantic-only: drop hits below this cosine score")
     parser.add_argument("--format", choices=["json", "text"], default="json")
+    parser.add_argument("--context", action="store_true",
+                        help="return a context bundle (widened passages with citations) "
+                             "instead of ranked hits")
+    parser.add_argument("--budget", type=int, default=DEFAULT_BUDGET,
+                        help="--context: token budget of the bundle")
+    parser.add_argument("--no-links", action="store_true", help="--context: do not follow links")
     args = parser.parse_args()
 
     brain_dir = resolve_brain_path(PROJECT_DIR)
+    if args.context:
+        items = build_context(load_index(brain_dir), args.query, budget=args.budget,
+                              links=not args.no_links)
+        if args.format == "json":
+            print(json.dumps([vars(it) for it in items], ensure_ascii=False, indent=2))
+        else:
+            if not items:
+                print("SAMWISE: no hits.")
+            for it in items:
+                number = f"{it.section_no} " if it.section_no else ""
+                where = f" § {number}{it.heading}" if it.kind != "document" else " (whole file)"
+                lines = f" L{it.lines[0]}-{it.lines[1]}" if it.lines else ""
+                note = "" if it.reason == "hit" else f" [{it.reason}]"
+                print(f"=== {it.path}{where}{lines} — {it.privacy}, {it.tokens} tok, score {it.score}{note}")
+                print(it.text)
+                print()
+        return
     results = search(brain_dir, args.query, args.strategy, args.top_k, args.min_score,
                      diversify=args.diversify, stem=args.stem)
 

@@ -21,6 +21,7 @@ The package is meant to move to its own repository later without changes.
 | `imladris.corpus` | What to index: a root, a glob, exclusion rules, and a privacy rule (callable) so a caller can impose folder-level privacy. |
 | `imladris.store` | SQLite index, schema 2: `documents` (hash, title, frontmatter, privacy, supersession), `nodes` — a `doc → section → block` tree with heading paths, section numbers and line ranges, blocks carrying the vectors — and `links`; a `meta` table records how the index was built and the store refuses to mix models, chunkers or schemas. |
 | `imladris.indexer` | Incremental sync by content hash: only changed files are re-chunked and re-embedded, and the model is not even loaded on a no-op run. |
+| `imladris.context` | Context bundles: ranked blocks widened along the document tree (section, whole document) and the link graph, within a token budget, each passage carrying path, section, line range, privacy and reason. |
 | `imladris.search` | Semantic (cosine over normalized vectors), full-text (SQLite FTS5 / BM25 over blocks, prefix-stemmed queries), keyword baseline, weighted Reciprocal Rank Fusion hybrids, and per-file diversification. |
 
 ## Minimal use
@@ -40,12 +41,24 @@ for hit in search.semantic_search(idx, "what did I plan for Q3?", top_k=5, min_s
     print(hit["score"], hit["path"], hit["heading"])
 ```
 
+Context bundle instead of ranked hits:
+
+```python
+from imladris.context import build_context
+from imladris.models import load_model, token_counter
+
+bundle = build_context(idx, "what did I plan for Q3?", token_counter(load_model(idx.spec)), budget=1500)
+for item in bundle:
+    print(item.path, item.section_no, item.lines, item.kind, item.tokens)
+```
+
 ## Measured on a Raspberry Pi 5
 
 Against a private 63-query golden set over a ~275-file personal knowledge
 base (PL/EN), the production configuration — `granite-311m` + chunker `v2` —
 scores hit@1 0.76, hit@5 0.89, MRR 0.82, up from 0.60 / 0.81 / 0.69 for the
-MiniLM + `v1` baseline. A full index build takes ~18 minutes; a query ~0.3 s;
+MiniLM + `v1` baseline. A 1500-token context bundle holds the answer for
+95% of queries and the right section for 92% (top-5 chunks: 84% / 85%). A full index build takes ~18 minutes; a query ~0.3 s;
 peak memory ~2.4 GB. The bake-off, the chunking ablation and two traps worth
 knowing (bf16 checkpoints are ~150× slower on this CPU; `arctic-m-v2.0`'s
 bundled code does not run under transformers 5) are recorded in
@@ -61,5 +74,5 @@ The chunker and corpus tests need no model.
 
 ## Roadmap
 
-Context expansion under a token budget along the section tree and the link
-graph, LLM enrichment, and a reranker — Index v2 phases C4–E.
+LLM enrichment (summaries, keywords, a context line per section) and a
+reranker — Index v2 phases D–E.

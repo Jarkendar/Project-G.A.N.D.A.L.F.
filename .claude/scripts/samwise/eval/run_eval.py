@@ -96,39 +96,47 @@ def _chunk_text(idx: "search.SamwiseIndex", result: dict) -> str:
 
 def evaluate_strategy(strategy: str, golden: list[dict], brain_dir: Path,
                        idx: "search.SamwiseIndex", stem: int = 5,
-                       fts_weight: float = 1.0) -> tuple[dict, list[dict]]:
+                       fts_weight: float = 1.0, context_args: dict | None = None) -> tuple[dict, list[dict]]:
     """`strategy` is a search.py strategy, optionally suffixed "+div" for
     one block per file (e.g. "hybrid-fts+div")."""
     name, _, flag = strategy.partition("+")
     per_query = []
     for item in golden:
         start = time.perf_counter()
-        results = search.search(brain_dir, item["query"], name, TOP_K, -1.0, idx=idx,
-                                diversify=flag == "div", stem=stem, fts_weight=fts_weight)
+        if name == "context":
+            # the bundle is the unit: every item counts, however many there are
+            items = search.build_context(idx, item["query"], **(context_args or {}))
+            results = [{"path": it.path, "chunk": None, "text": it.text, "tokens": it.tokens,
+                        "heading": "\u0000document" if it.kind == "document" else it.heading}
+                       for it in items]
+        else:
+            results = search.search(brain_dir, item["query"], name, TOP_K, -1.0, idx=idx,
+                                    diversify=flag == "div", stem=stem, fts_weight=fts_weight)
         latency_ms = (time.perf_counter() - start) * 1000
         expected = set(item["expected_paths"])
         rank = rank_of_first_relevant(results, item["expected_paths"])
 
-        top_k_paths = [r["path"] for r in results[:PRECISION_RECALL_K]]
+        top_k_paths = [r["path"] for r in (results if name == "context" else results[:PRECISION_RECALL_K])]
         # dedupe while preserving order (semantic results are per-chunk, so
         # the same file can appear more than once in a raw top-k slice)
         seen: set[str] = set()
         top_k_unique = [p for p in top_k_paths if not (p in seen or seen.add(p))]
         found = set(top_k_unique) & expected
 
-        top_chunks = results[:PRECISION_RECALL_K]
+        top_chunks = results if name == "context" else results[:PRECISION_RECALL_K]
         section_hit = None
         sections = item.get("expected_sections")
         if sections and name != "grep":
             wanted = [sec.lower() for sec in sections]
             section_hit = any(
-                r["path"] in expected and any(w in (r.get("heading") or "").lower() for w in wanted)
+                r["path"] in expected and (r.get("heading") == "\u0000document"  # a whole file covers it
+                                           or any(w in (r.get("heading") or "").lower() for w in wanted))
                 for r in top_chunks
             )
         answer_hit = None
         ctx_chars = None
         if name != "grep":
-            context = "\n".join(_chunk_text(idx, r) for r in top_chunks)
+            context = "\n".join(r["text"] if name == "context" else _chunk_text(idx, r) for r in top_chunks)
             ctx_chars = len(context)
             if item.get("answer_snippet"):
                 answer_hit = _norm(item["answer_snippet"]) in _norm(context)
@@ -256,6 +264,10 @@ def main():
                              + "), each optionally suffixed +div for one block per file")
     parser.add_argument("--fts-weight", type=float, default=1.0,
                         help="hybrid-fts: weight of the FTS ranking in the fusion (1.0 = plain RRF)")
+    parser.add_argument("--budget", type=int, default=1500,
+                        help="context: token budget of the bundle")
+    parser.add_argument("--files", type=int, default=3, help="context: lead files (best block of each goes first)")
+    parser.add_argument("--no-links", action="store_true", help="context: do not follow links")
     parser.add_argument("--stem", type=int, default=5,
                         help="fts / hybrid-fts: cut query words to this many characters (0 = off)")
     parser.add_argument("--json-out", type=str, default=None,
@@ -284,7 +296,9 @@ def main():
     summary = {}
     details = {}
     for strategy in strategies:
-        metrics, per_query = evaluate_strategy(strategy, golden, brain_dir, idx, args.stem, args.fts_weight)
+        metrics, per_query = evaluate_strategy(strategy, golden, brain_dir, idx, args.stem, args.fts_weight,
+                                                {"budget": args.budget, "lead_files": args.files,
+                                                 "links": not args.no_links})
         summary[strategy] = metrics
         details[strategy] = per_query
 

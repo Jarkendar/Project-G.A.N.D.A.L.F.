@@ -621,7 +621,7 @@ move to its own repo and serve other projects.
         Samwise threshold recalibrated to **0.8684** (F1 0.645). Final:
         hit@1 0.76, MRR 0.82, sec@5 0.85, ans@5 0.84. granite-97m stays as
         the lighter fallback if the reranker squeezes RAM.
-- [ ] **C — Hierarchical index:** nodes, metadata, links, FTS5 hybrid,
+- [x] **C — Hierarchical index:** nodes, metadata, links, FTS5 hybrid,
       context expansion, Samwise v2 returning context bundles. Four steps,
       each eval-gated:
   - [x] **C1 — engine extracted (2026-09-24).** `imladris-rag/` at the repo
@@ -683,8 +683,34 @@ move to its own repo and serve other projects.
         relative cutoff (top − 0.047) raises recall (0.78 → 0.88) but loses
         on F1 (0.615 vs 0.645): the absolute threshold stays; the reranker
         (phase E) will own this. Samwise's default remains `semantic`.
-  - [ ] **C4 — context expansion** under a token budget, 1-hop links;
-        Samwise returns context bundles with citations.
+  - [x] **C4 — context expansion (2026-09-24).** `imladris.context`
+        builds a token-budgeted bundle: the best block of each of the top 3
+        files first (breadth), then the other hit blocks in score order
+        (depth, as top-k would), each widened — whole document when two or
+        more of its sections hit and it is short (≤800 tokens), whole
+        section when short (≤400), else the bare block; a covered section is
+        never added twice; linked files (either direction) join the lead
+        files when their best block is within 0.03 of the top score. Each
+        item carries path, section number, line range, privacy, score and
+        reason. Samwise: `search.py --context [--budget N] [--no-links]`,
+        now the default mode in samwise.md.
+
+        | mode | sec | answer | file R | full R | context |
+        |---|---|---|---|---|---|
+        | semantic top-5 (C3) | 0.85 | 0.84 | 0.84 | 0.79 | 2.3 k chars |
+        | bundle, 800 tokens | 0.77 | 0.76 | 0.85 | 0.81 | 2.3 k chars |
+        | **bundle, 1500 tokens (default)** | **0.92** | **0.95** | **0.92** | **0.89** | 4.2 k chars |
+        | bundle, 3000 tokens | 0.96 | 0.97 | 0.95 | 0.90 | 7.8 k chars |
+        | bundle, 1500, no links | 0.96 | 0.97 | 0.90 | 0.86 | 4.2 k chars |
+
+        Two designs lost before this one, both measured: file-by-file
+        expansion (answer 0.68–0.70 at 1500 — low-ranked files' neighbour
+        windows ate the budget while the top file's second and third hit
+        sections were cut) and a breadth-then-depth pass per file (0.70).
+        Links trade one answer for more complete file coverage (4 of 63
+        queries change; "my goals this year" is found only through a link);
+        kept on for multi-file questions. Latency +60 ms over plain
+        semantic (document loads). Tests: 28.
 - [ ] **D — Enrichment ablation:** heuristic headers vs. late chunking vs.
       Haiku per-file vs. Haiku per-chunk.
 - [ ] **E — Reranker (in this stage, not Stage 3):** bge-reranker-v2-m3

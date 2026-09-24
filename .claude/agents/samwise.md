@@ -48,7 +48,23 @@ yourself.
      have I done", "tell me about my family") — plural nouns, "all", "every",
      or a category name are the signal. Multiple distinct documents are the
      expected answer.
-2a. **Point-lookup — use the calibrated default:**
+2. **Default — ask for a context bundle:**
+   ```bash
+   .claude/scripts/bilbo/.venv/bin/python .claude/scripts/samwise/search.py \
+     "<the user's question>" --context --format text
+   ```
+   Returns widened passages, not bare chunks: the best block of each of the
+   top 3 files first, then further hits by score, each widened to its whole
+   section when the section is short (or to the whole file when several of
+   its sections hit and it is short), plus files linked to/from the lead
+   files when they score close to the top — all within a 1500-token budget
+   (`--budget`). Every passage is headed with path, section number, line
+   range, privacy and why it was included, so cite from the header. Measured
+   on the golden set: the answer is inside the bundle for 95% of queries
+   (top-5 chunks: 84%), the right section for 92% (85%). Raise `--budget`
+   (3000: answer 97%) for broad questions; `--no-links` if links pull in
+   noise. Use the ranked modes below when you need scores or a wide list.
+2a. **Point-lookup — ranked hits with the calibrated default:**
    ```bash
    .claude/scripts/bilbo/.venv/bin/python .claude/scripts/samwise/search.py \
      "<the user's question>" --strategy semantic --top-k 8

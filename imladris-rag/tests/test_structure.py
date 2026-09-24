@@ -107,6 +107,48 @@ class SearchHelpersTest(unittest.TestCase):
         self.assertEqual([h["path"] for h in search.diversify(hits, 2)], ["a", "b"])
 
 
+class ContextTest(unittest.TestCase):
+    """build_context over a two-file store, with the query embedding faked."""
+
+    def test_bundle_widens_hits_and_respects_budget(self):
+        from unittest import mock
+        from imladris import context
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / "i.db"
+            conn = store.open_store(db)
+            for path, axis in (("a.md", 0), ("b.md", 1)):
+                doc = parse_markdown(Path(path), DOC, count)
+                sections = [{"heading": " > ".join(s.path) or "Doc", "section_no": s.number,
+                             "line_start": s.line_start, "line_end": s.line_end, "text": s.text}
+                            for s in doc.sections]
+                blocks = []
+                for n, c in enumerate(doc.chunks):
+                    vec = np.zeros(4, dtype=np.float32)
+                    vec[axis] = 1.0 - 0.1 * n            # a.md along x, b.md along y; earlier blocks score higher
+                    vec[2] = 0.1 * n
+                    vec /= np.linalg.norm(vec)
+                    blocks.append({"heading": c.heading, "text": c.text, "section": c.section,
+                                   "line_start": c.line_start, "line_end": c.line_end,
+                                   "token_count": count(c.text), "vector": vec.tobytes()})
+                store.write_document(conn, path, content_hash="h", mtime=0.0, indexed_at="now", title="Doc",
+                                     frontmatter={}, privacy="private", sections=sections, blocks=blocks,
+                                     links=[])
+            store.set_meta(conn, model_name="m", model_revision="r", embed_dim="4",
+                           schema_version=store.SCHEMA_VERSION)
+            conn.commit()
+            conn.close()
+
+            idx = search.load_index(db)
+            query = np.array([0.9, 0.44, 0.0, 0.0], dtype=np.float32)
+            with mock.patch.object(context, "embed_query", return_value=query / np.linalg.norm(query)):
+                items = context.build_context(idx, "q", count, budget=1000, lead_files=2, doc_max=5)
+                self.assertEqual([it.path for it in items[:2]], ["a.md", "b.md"])  # both lead files first
+                self.assertTrue(all(it.kind == "section" for it in items))       # short sections widened
+                self.assertEqual(len({(it.path, it.section_no) for it in items}), len(items))  # no repeats
+                tight = context.build_context(idx, "q", count, budget=4, lead_files=2, doc_max=5)
+                self.assertLessEqual(sum(it.tokens for it in tight), 4)
+
+
 class StoreTest(unittest.TestCase):
     def test_document_tree_roundtrip(self):
         doc = parse_markdown(Path("d.md"), DOC, count)
