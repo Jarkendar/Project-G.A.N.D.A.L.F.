@@ -21,7 +21,7 @@ The package is meant to move to its own repository later without changes.
 | `imladris.corpus` | What to index: a root, a glob, exclusion rules, and a privacy rule (callable) so a caller can impose folder-level privacy. |
 | `imladris.store` | SQLite index, schema 2: `documents` (hash, title, frontmatter, privacy, supersession), `nodes` — a `doc → section → block` tree with heading paths, section numbers and line ranges, blocks carrying the vectors — and `links`; a `meta` table records how the index was built and the store refuses to mix models, chunkers or schemas. |
 | `imladris.indexer` | Incremental sync by content hash: only changed files are re-chunked and re-embedded, and the model is not even loaded on a no-op run. |
-| `imladris.search` | Semantic (cosine over normalized vectors), keyword and hybrid (Reciprocal Rank Fusion) retrieval. |
+| `imladris.search` | Semantic (cosine over normalized vectors), full-text (SQLite FTS5 / BM25 over blocks, prefix-stemmed queries), keyword baseline, weighted Reciprocal Rank Fusion hybrids, and per-file diversification. |
 
 ## Minimal use
 
@@ -61,6 +61,5 @@ The chunker and corpus tests need no model.
 
 ## Roadmap
 
-FTS5 hybrid retrieval, context expansion under a token budget along the
-section tree and the link graph, LLM enrichment, and a reranker — Index v2
-phases C3–E.
+Context expansion under a token budget along the section tree and the link
+graph, LLM enrichment, and a reranker — Index v2 phases C4–E.

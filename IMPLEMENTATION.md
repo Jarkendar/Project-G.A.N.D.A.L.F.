@@ -654,8 +654,35 @@ move to its own repo and serve other projects.
         Found on the way: the fixed threshold (0.868) drops a correct 0.860
         hit for a short query ("kto jest uposażonym w polisie") — a
         threshold relative to the top score is worth trying in C3.
-  - [ ] **C3 — FTS5 hybrid** in place of the grep baseline, one result per
-        file in the top-k.
+  - [x] **C3 — FTS5 hybrid, diversity, relative threshold (2026-09-24).**
+        `blocks_fts` (FTS5, unicode61 without diacritics) is an additive
+        table, backfilled from `nodes` in 0.1 s — no rebuild. New strategies
+        `fts` (BM25; query words cut to a 5-character prefix as a stand-in
+        for Polish stemming) and `hybrid-fts` (weighted RRF of semantic and
+        fts, block level); `--diversify` keeps one block per file; the eval
+        also calibrates a cutoff relative to each query's top score.
+
+        | strategy | hit@1 | hit@5 | MRR | R@5 | sec@5 | ans@5 | p50 |
+        |---|---|---|---|---|---|---|---|
+        | semantic | 0.76 | 0.89 | 0.82 | 0.84 | 0.85 | 0.84 | 324 ms |
+        | semantic + diversify | 0.76 | **0.94** | 0.83 | **0.89** | 0.62 | 0.59 | 325 ms |
+        | fts | 0.59 | 0.73 | 0.64 | 0.64 | 0.54 | 0.62 | **1 ms** |
+        | hybrid-fts (w 1.0) | 0.71 | 0.83 | 0.77 | 0.76 | 0.62 | 0.73 | 326 ms |
+        | hybrid-fts (w 0.25) | 0.70 | 0.87 | 0.77 | 0.82 | 0.73 | 0.78 | 327 ms |
+        | hybrid-fts (w 0.25) + diversify | 0.68 | 0.95 | 0.79 | 0.90 | 0.58 | 0.51 | 331 ms |
+
+        **FTS does not earn a place in the fusion:** every weight (1.0, 0.5,
+        0.25) and stem setting (5, whole words) lowered hit@1/MRR; it is
+        useless across languages (cross hit@5 0.12) and granite-311m already
+        catches what keywords would. Its edge — exact names and identifiers —
+        is barely covered by the golden set (3 entity queries), so it stays
+        available as a ~2 ms second look (samwise.md 2a'), not a default.
+        **Diversify is the keeper for file selection** (hit@5 0.94, recall
+        0.89, multi 0.56 → 0.67); its drop in sec@5/ans@5 is expected — one
+        block per file — and is what C4's in-file expansion is for. The
+        relative cutoff (top − 0.047) raises recall (0.78 → 0.88) but loses
+        on F1 (0.615 vs 0.645): the absolute threshold stays; the reranker
+        (phase E) will own this. Samwise's default remains `semantic`.
   - [ ] **C4 — context expansion** under a token budget, 1-hop links;
         Samwise returns context bundles with citations.
 - [ ] **D — Enrichment ablation:** heuristic headers vs. late chunking vs.

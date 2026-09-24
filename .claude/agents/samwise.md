@@ -61,11 +61,20 @@ yourself.
    rarely below ~0.80), so read the ranking, not the absolute number.
    Semantic beats hybrid with this model (hit@1 0.76 vs. 0.62) — the grep
    side of hybrid adds more false positives than it recovers.
+2a'. **Exact names, numbers, identifiers** (a policy number, a ticker, a
+   rare surname) — also try `--strategy fts`: BM25 full-text search over the
+   same blocks, ~2 ms, with Polish-friendly prefix matching. On its own it is
+   weaker than semantic (hit@1 0.59) and useless across languages, and
+   fusing it into semantic (`hybrid-fts`) lowered hit@1 on the golden set at
+   every weight tried — so use it as a second look, not a replacement.
 2b. **Broad/enumerative — widen the net, then use your own judgment:**
    ```bash
    .claude/scripts/bilbo/.venv/bin/python .claude/scripts/samwise/search.py \
-     "<the user's question>" --strategy semantic --top-k 20 --min-score 0.0
+     "<the user's question>" --strategy semantic --top-k 20 --min-score 0.0 --diversify
    ```
+   `--diversify` keeps only the best block of each file, so the 20 slots
+   cover 20 files instead of several blocks of the same few (measured: file
+   recall@5 0.84 → 0.89, hit@5 0.89 → 0.94).
    **Known, measured limitation:** the calibration eval found that broad
    topical queries can score *every* relevant chunk below the default
    threshold — two broad, category-shaped golden-set queries each scored 0/3

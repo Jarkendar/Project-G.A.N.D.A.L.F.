@@ -97,6 +97,16 @@ class LinksTest(unittest.TestCase):
         self.assertEqual([l.kind for l in links], ["markdown"])
 
 
+class SearchHelpersTest(unittest.TestCase):
+    def test_fts_query_stems_and_drops_stopwords(self):
+        self.assertEqual(search.fts_query("kto jest uposażonym w polisie", 5), '"kto" OR "uposa"* OR "polis"*')
+        self.assertEqual(search.fts_query("polisie", 0), '"polisie"')
+
+    def test_diversify_keeps_best_block_per_file(self):
+        hits = [{"path": "a"}, {"path": "a"}, {"path": "b"}, {"path": "c"}]
+        self.assertEqual([h["path"] for h in search.diversify(hits, 2)], ["a", "b"])
+
+
 class StoreTest(unittest.TestCase):
     def test_document_tree_roundtrip(self):
         doc = parse_markdown(Path("d.md"), DOC, count)
@@ -129,6 +139,9 @@ class StoreTest(unittest.TestCase):
             idx = search.load_index(db)
             self.assertEqual(len(idx.texts), 4)
             self.assertEqual(idx.section_nos, ["", "1", "1.1", "2"])
+            # full text: backfilled blocks are searchable; "Dee" prefix-matches "Deep"
+            hits = search.fts_search(idx, "Deeper things", top_k=3, stem=3)
+            self.assertEqual([h["section_no"] for h in hits], ["1.1"])
 
             conn = store.open_store(db)
             store.delete_document(conn, "d.md")

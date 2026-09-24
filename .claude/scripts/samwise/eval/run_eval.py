@@ -95,11 +95,16 @@ def _chunk_text(idx: "search.SamwiseIndex", result: dict) -> str:
 
 
 def evaluate_strategy(strategy: str, golden: list[dict], brain_dir: Path,
-                       idx: "search.SamwiseIndex") -> tuple[dict, list[dict]]:
+                       idx: "search.SamwiseIndex", stem: int = 5,
+                       fts_weight: float = 1.0) -> tuple[dict, list[dict]]:
+    """`strategy` is a search.py strategy, optionally suffixed "+div" for
+    one block per file (e.g. "hybrid-fts+div")."""
+    name, _, flag = strategy.partition("+")
     per_query = []
     for item in golden:
         start = time.perf_counter()
-        results = search.search(brain_dir, item["query"], strategy, TOP_K, -1.0, idx=idx)
+        results = search.search(brain_dir, item["query"], name, TOP_K, -1.0, idx=idx,
+                                diversify=flag == "div", stem=stem, fts_weight=fts_weight)
         latency_ms = (time.perf_counter() - start) * 1000
         expected = set(item["expected_paths"])
         rank = rank_of_first_relevant(results, item["expected_paths"])
@@ -114,7 +119,7 @@ def evaluate_strategy(strategy: str, golden: list[dict], brain_dir: Path,
         top_chunks = results[:PRECISION_RECALL_K]
         section_hit = None
         sections = item.get("expected_sections")
-        if sections and strategy != "grep":
+        if sections and name != "grep":
             wanted = [sec.lower() for sec in sections]
             section_hit = any(
                 r["path"] in expected and any(w in (r.get("heading") or "").lower() for w in wanted)
@@ -122,7 +127,7 @@ def evaluate_strategy(strategy: str, golden: list[dict], brain_dir: Path,
             )
         answer_hit = None
         ctx_chars = None
-        if strategy != "grep":
+        if name != "grep":
             context = "\n".join(_chunk_text(idx, r) for r in top_chunks)
             ctx_chars = len(context)
             if item.get("answer_snippet"):
@@ -199,6 +204,25 @@ def calibrate_threshold(golden: list[dict], idx: "search.SamwiseIndex") -> tuple
             label = 1 if r["path"] in item["expected_paths"] else 0
             pairs.append((r["score"], label))
 
+    return _best_f1(pairs), pairs
+
+
+def calibrate_relative(golden: list[dict], idx: "search.SamwiseIndex") -> dict:
+    """Like calibrate_threshold, but the cutoff is a drop below the query's
+    own top score (keep hits with score >= top - delta) — robust to queries
+    whose scores all sit lower, as short ones do."""
+    pairs: list[tuple[float, int]] = []
+    for item in golden:
+        results = search.semantic_search(idx, item["query"], top_k=20, min_score=-1.0)
+        if results:
+            top = results[0]["score"]
+            pairs += [(-(top - r["score"]), 1 if r["path"] in item["expected_paths"] else 0)
+                      for r in results]
+    best = _best_f1(pairs)
+    return {**best, "delta": round(-best["threshold"], 4)}
+
+
+def _best_f1(pairs: list[tuple[float, int]]) -> dict:
     total_positive = sum(label for _, label in pairs)
     thresholds = sorted({score for score, _ in pairs})
     best = {"threshold": 0.0, "f1": -1.0, "precision": 0.0, "recall": 0.0}
@@ -212,7 +236,7 @@ def calibrate_threshold(golden: list[dict], idx: "search.SamwiseIndex") -> tuple
         if f1 > best["f1"]:
             best = {"threshold": round(t, 4), "f1": round(f1, 4),
                      "precision": round(precision, 4), "recall": round(recall, 4)}
-    return best, pairs
+    return best
 
 
 def _fmt(value, width=6):
@@ -228,7 +252,12 @@ def main():
     parser.add_argument("--index", type=str, default=None,
                         help="evaluate this index instead of brain/index/bilbo.db")
     parser.add_argument("--strategies", type=str, default="grep,semantic,hybrid",
-                        help="comma-separated subset of grep,semantic,hybrid")
+                        help="comma-separated search.py strategies (" + ",".join(search.STRATEGIES)
+                             + "), each optionally suffixed +div for one block per file")
+    parser.add_argument("--fts-weight", type=float, default=1.0,
+                        help="hybrid-fts: weight of the FTS ranking in the fusion (1.0 = plain RRF)")
+    parser.add_argument("--stem", type=int, default=5,
+                        help="fts / hybrid-fts: cut query words to this many characters (0 = off)")
     parser.add_argument("--json-out", type=str, default=None,
                         help="write summary + per-query results here (keep it inside "
                              "brain/ — queries are private)")
@@ -255,19 +284,19 @@ def main():
     summary = {}
     details = {}
     for strategy in strategies:
-        metrics, per_query = evaluate_strategy(strategy, golden, brain_dir, idx)
+        metrics, per_query = evaluate_strategy(strategy, golden, brain_dir, idx, args.stem, args.fts_weight)
         summary[strategy] = metrics
         details[strategy] = per_query
 
     print("## Strategy comparison\n")
-    header = (f"{'strategy':<10} {'hit@1':>6} {'hit@3':>6} {'hit@5':>6} {'MRR':>6} "
+    header = (f"{'strategy':<16} {'hit@1':>6} {'hit@3':>6} {'hit@5':>6} {'MRR':>6} "
               f"{'P@5':>6} {'R@5':>6} {'fullR@5':>8} {'sec@5':>6} {'ans@5':>6} "
               f"{'ctx@5':>7} {'p50ms':>6} {'p95ms':>6}")
     print(header)
     print("-" * len(header))
     for strategy, m in summary.items():
         ctx = f"{m['ctx_chars@5']:>7.0f}" if m["ctx_chars@5"] is not None else f"{'—':>7}"
-        print(f"{strategy:<10} {m['hit@1']:>6.2f} {m['hit@3']:>6.2f} {m['hit@5']:>6.2f} "
+        print(f"{strategy:<16} {m['hit@1']:>6.2f} {m['hit@3']:>6.2f} {m['hit@5']:>6.2f} "
               f"{m['mrr']:>6.2f} {m['precision@5']:>6.2f} {m['recall@5']:>6.2f} "
               f"{m['full_recall@5']:>8.2f} {_fmt(m['section_hit@5'])} {_fmt(m['answer@5'])} "
               f"{ctx} {m['latency_p50_ms']:>6.0f} {m['latency_p95_ms']:>6.0f}")
@@ -305,8 +334,8 @@ def main():
                       f"found {len(pq['found_at_5'])}/{n_exp} in top-5{extra}")
             print()
 
-    best = None
-    if "semantic" in strategies:
+    best = relative = None
+    if any(s.partition("+")[0] == "semantic" for s in strategies):
         print("## Semantic threshold calibration (F1-optimal over golden set)\n")
         best, pairs = calibrate_threshold(golden, idx)
         correct = sorted((s for s, l in pairs if l == 1), reverse=True)
@@ -319,6 +348,9 @@ def main():
             print(f"Incorrect-hit scores: min={min(incorrect):.4f} max={max(incorrect):.4f} (n={len(incorrect)})")
         print(f"\nBest threshold: {best['threshold']} "
               f"(F1={best['f1']}, precision={best['precision']}, recall={best['recall']})")
+        relative = calibrate_relative(golden, idx)
+        print(f"Best relative cutoff: top - {relative['delta']} "
+              f"(F1={relative['f1']}, precision={relative['precision']}, recall={relative['recall']})")
 
     peak_rss_mb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
     print(f"\nPeak RSS: {peak_rss_mb:.0f} MB")
@@ -339,6 +371,7 @@ def main():
             "model_load_s": model_load_s,
             "peak_rss_mb": peak_rss_mb,
             "threshold": best,
+            "relative_threshold": relative,
             "summary": summary,
             "per_query": {
                 strategy: [{**pq, "found_at_5": sorted(pq["found_at_5"])} for pq in rows]

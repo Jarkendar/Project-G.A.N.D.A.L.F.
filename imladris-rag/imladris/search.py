@@ -4,7 +4,11 @@ semantic — encode the query the way the index was built (model, revision,
            query prefix, config overrides from `meta`) and rank chunks by
            cosine similarity (vectors are normalized, so a dot product).
 keyword  — baseline: rank whole files by keyword hit count.
-hybrid   — Reciprocal Rank Fusion of the two.
+hybrid   — Reciprocal Rank Fusion of semantic and keyword (file level).
+fts      — BM25 over blocks (SQLite FTS5); query words are cut to a stem
+           prefix, a cheap stand-in for stemming inflected languages.
+hybrid_fts — Reciprocal Rank Fusion of semantic and fts, both block level.
+diversify — keep only the best block of each file.
 """
 
 import json
@@ -46,6 +50,7 @@ class Index:
     db_path: Path
     spec: ModelSpec
     embed_dim: int
+    ids: list = field(default_factory=list)          # nodes.id per chunk (schema 2), else None
     paths: list[str] = field(default_factory=list)
     ords: list[int] = field(default_factory=list)
     headings: list[str] = field(default_factory=list)
@@ -65,10 +70,10 @@ def load_index(db_path: Path) -> Index:
             raise IndexUnavailable(f"index at {db_path} has no meta")
         if store._has_table(conn, "nodes"):
             rows = conn.execute(
-                "SELECT path, ord, heading, text, vector, section_no, line_start, line_end "
+                "SELECT path, ord, heading, text, vector, section_no, line_start, line_end, id "
                 "FROM nodes WHERE level = 'block' AND vector IS NOT NULL ORDER BY id").fetchall()
         else:  # schema 1: read-only compatibility until the index is rebuilt
-            rows = [r + (None, None, None) for r in conn.execute(
+            rows = [r + (None, None, None, None) for r in conn.execute(
                 "SELECT path, ord, heading, text, vector FROM chunks ORDER BY id").fetchall()]
     finally:
         conn.close()
@@ -86,6 +91,7 @@ def load_index(db_path: Path) -> Index:
         db_path=db_path,
         spec=spec,
         embed_dim=int(meta.get("embed_dim", "0")),
+        ids=[r[8] for r in rows],
         paths=[r[0] for r in rows],
         ords=[r[1] for r in rows],
         headings=[r[2] or "" for r in rows],
@@ -196,3 +202,58 @@ def hybrid_search(idx: Index, corpus: Corpus, query: str, top_k: int) -> list[di
              for path, score in rrf.items()]
     fused.sort(key=lambda r: -r["score"])
     return fused[:top_k]
+
+
+# --- full text (FTS5) ----------------------------------------------------------
+
+def _hit(idx: Index, i: int, score: float) -> dict:
+    return {"score": round(score, 4), "path": idx.paths[i], "heading": idx.headings[i],
+            "ord": idx.ords[i], "snippet": make_snippet(idx.texts[i]),
+            "section_no": idx.section_nos[i],
+            "lines": list(idx.line_ranges[i]) if idx.line_ranges[i][0] is not None else None,
+            "chunk": int(i)}
+
+
+def fts_query(query: str, stem: int) -> str:
+    """An FTS5 OR-query of the query's keywords, each cut to `stem` characters
+    and prefix-matched (0 = whole words)."""
+    terms = []
+    for kw in dict.fromkeys(keywords_from_query(query)):
+        kw = kw.replace('"', "")
+        terms.append(f'"{kw[:stem]}"*' if stem and len(kw) > stem else f'"{kw}"')
+    return " OR ".join(terms)
+
+
+def fts_search(idx: Index, query: str, top_k: int, stem: int = 5) -> list[dict]:
+    """BM25-ranked blocks. Empty on a schema-1 index or without keywords."""
+    match = fts_query(query, stem)
+    if not match or idx.ids[0] is None:
+        return []
+    positions = {node_id: i for i, node_id in enumerate(idx.ids)}
+    conn = store.open_readonly(idx.db_path)
+    try:
+        rows = conn.execute("SELECT rowid, bm25(blocks_fts) FROM blocks_fts WHERE blocks_fts MATCH ? "
+                            "ORDER BY bm25(blocks_fts) LIMIT ?", (match, top_k)).fetchall()
+    finally:
+        conn.close()
+    return [_hit(idx, positions[rowid], -rank) for rowid, rank in rows if rowid in positions]
+
+
+def hybrid_fts_search(idx: Index, query: str, top_k: int, stem: int = 5,
+                      fts_weight: float = 1.0) -> list[dict]:
+    """Reciprocal Rank Fusion of semantic and FTS rankings, block by block;
+    `fts_weight` scales the FTS side (1.0 = plain RRF)."""
+    pool = max(top_k * 5, 40)
+    rrf: dict[int, float] = {}
+    for weight, hits in ((1.0, semantic_search(idx, query, top_k=pool, min_score=-1.0)),
+                         (fts_weight, fts_search(idx, query, top_k=pool, stem=stem))):
+        for rank, hit in enumerate(hits):
+            rrf[hit["chunk"]] = rrf.get(hit["chunk"], 0.0) + weight / (RRF_K + rank + 1)
+    fused = sorted(rrf.items(), key=lambda kv: -kv[1])[:top_k]
+    return [_hit(idx, i, score) for i, score in fused]
+
+
+def diversify(results: list[dict], top_k: int) -> list[dict]:
+    """The best-ranked block of each file, in order — so a multi-file question
+    is not answered by five blocks of one file."""
+    return _best_per_path(results)[:top_k]

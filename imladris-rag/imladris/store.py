@@ -57,6 +57,11 @@ CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+-- Full-text index over blocks (rowid = nodes.id). Additive: an index built
+-- before it existed is backfilled from `nodes` by ensure_fts, no re-embedding.
+CREATE VIRTUAL TABLE IF NOT EXISTS blocks_fts USING fts5(
+    heading, text, tokenize = 'unicode61 remove_diacritics 2'
+);
 """
 
 
@@ -72,8 +77,17 @@ def open_store(db_path: Path) -> sqlite3.Connection:
     if _has_table(conn, "chunks"):
         return conn  # a schema-1 index: leave it alone, check_consistency reports it
     conn.executescript(SCHEMA)
+    ensure_fts(conn)
     conn.commit()
     return conn
+
+
+def ensure_fts(conn: sqlite3.Connection):
+    """Backfill blocks_fts from nodes when it is empty but blocks exist."""
+    if conn.execute("SELECT 1 FROM blocks_fts LIMIT 1").fetchone():
+        return
+    conn.execute("INSERT INTO blocks_fts(rowid, heading, text) "
+                 "SELECT id, heading, text FROM nodes WHERE level = 'block'")
 
 
 def open_readonly(db_path: Path) -> sqlite3.Connection:
@@ -105,6 +119,7 @@ def reset(conn: sqlite3.Connection):
         DROP TABLE IF EXISTS chunks; DROP TABLE IF EXISTS files;
         DROP TABLE IF EXISTS links; DROP TABLE IF EXISTS nodes;
         DROP TABLE IF EXISTS documents; DROP TABLE IF EXISTS meta;
+        DROP TABLE IF EXISTS blocks_fts;
     """)
     conn.executescript(SCHEMA)
     conn.commit()
@@ -139,6 +154,8 @@ def stored_hashes(conn: sqlite3.Connection) -> dict:
 
 
 def delete_document(conn: sqlite3.Connection, path: str):
+    conn.execute("DELETE FROM blocks_fts WHERE rowid IN "
+                 "(SELECT id FROM nodes WHERE path = ? AND level = 'block')", (path,))
     conn.execute("DELETE FROM nodes WHERE path = ?", (path,))
     conn.execute("DELETE FROM links WHERE src = ?", (path,))
     conn.execute("DELETE FROM documents WHERE path = ?", (path,))
@@ -176,5 +193,7 @@ def write_document(conn: sqlite3.Connection, path: str, *, content_hash: str, mt
           b["line_start"], b["line_end"], b["text"], b["token_count"], b["vector"])
          for i, b in enumerate(blocks)],
     )
+    conn.execute("INSERT INTO blocks_fts(rowid, heading, text) "
+                 "SELECT id, heading, text FROM nodes WHERE path = ? AND level = 'block'", (path,))
     conn.executemany("INSERT INTO links(src, dst, raw, kind, line) VALUES (?, ?, ?, ?, ?)",
                      [(path, l["dst"], l["raw"], l["kind"], l["line"]) for l in links])
