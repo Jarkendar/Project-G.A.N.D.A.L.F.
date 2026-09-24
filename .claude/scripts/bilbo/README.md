@@ -116,8 +116,8 @@ conflict with sentence-transformers' own version bounds.
   (41%) exceed the model's 128-token window and ~19% of all tokens are
   silently dropped before embedding. Polish text runs ~1.5–2 tokens per word,
   and table-heavy sections are far worse — a 49-word chunk of one table
-  tokenized to 323. Chunking v2 (token-based limits, table-aware splitting)
-  is a planned step.
+  tokenized to 323. Fixed by the planned Index v2 (hierarchical chunks, a
+  long-window model, no word limits) — see IMPLEMENTATION.md Step 9.
 - No privacy gate — the index includes `core/`/`current/` content today, same
   as the rest of the MVP's documented privacy exception.
 

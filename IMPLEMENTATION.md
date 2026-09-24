@@ -465,6 +465,116 @@ against the real `brain/` at its current size:
   `search.py` (`DEFAULT_MIN_SCORE`) — not yet changed, since a threshold bump
   narrows what Samwise returns and belongs with chunking v2's recalibration.
 
+**Index v2 — planned (2026-09-24).** "Chunking v2" grew into a redesign of
+the whole index after the owner set the requirements and a round of research.
+Planned only; no phase has started.
+
+*Requirements (owner):* no word limits and no rigid embedding window;
+logically coherent chunks; **hierarchical chunking** with rich per-chunk
+metadata stored next to the vector; at query time the best (smallest) hit is
+**expanded** a level up and to the most relevant linked neighbours; PL + EN;
+fits a Raspberry Pi 5 with 8 GB; reranker included; the engine must later
+move to its own repo and serve other projects.
+
+*What the research changed:*
+- **The model is the bigger bottleneck than chunking.** On PL-MTEB the current
+  `paraphrase-multilingual-MiniLM-L12-v2` scores **30.4** on Polish retrieval
+  — the lowest of all models listed (multilingual-e5-small 46.0,
+  snowflake-arctic-embed-m-v2.0 52.2, Qwen3-Embedding-0.6B 48.6) — on top of
+  its 128-token window. Pi-sized candidates with long windows:
+  `granite-embedding-97m-multilingual-r2` (97M, 32K, Polish explicitly
+  trained, not in PL-MTEB), `granite-embedding-311m-multilingual-r2` (311M,
+  32K, Matryoshka), `snowflake-arctic-embed-m-v2.0` (305M, 8K, Matryoshka),
+  `multilingual-e5-small` (118M, 512). A long window turns chunk size into a
+  structural choice instead of a model limit.
+- **Segmentation stays heuristic.** Semantic/LLM-driven splitting does not
+  reliably beat structure-based splitting and costs far more (Qu et al.,
+  NAACL 2025 Findings), and brain/ is markdown whose headings already mark
+  the boundaries. The LLM is used for **enrichment** instead: summaries,
+  keywords, topic and a per-chunk context line (Anthropic's Contextual
+  Retrieval: −35% top-20 retrieval failures, −49% with BM25, −67% with a
+  reranker). Local alternative to measure against it: **late chunking**
+  (encode the whole file, pool per chunk) — works best with mean-pooling
+  models, to be checked per candidate.
+- Current chunk stats (1779 chunks, 2026-09-24): prose loses the most text to
+  truncation (22% of its tokens), then lists and tables (17% each) — the
+  problem is the word-based limit in general, not tables specifically.
+
+*Design:*
+- **Data model — SQLite is the source of truth; a vector store mirrors it**
+  (Qdrant in Stage 3 gets the same fields as payload). `nodes`: three levels
+  `doc → section → block` (block = paragraph, list-item group, or table-row
+  group with the header row repeated; an oversize paragraph splits on
+  sentence boundaries), with `parent_id`, `ord`, `heading_path`,
+  `section_no`, `line_start`/`line_end`, `text`, `token_count`, `lang`,
+  `content_hash`. Per-document metadata: `title`, `tags`, `date`, `updated`,
+  `status`, `folder`, `privacy` (folder-derived), `superseded_by`, `summary`,
+  `keywords`, `topic`. `links`: source, target, anchor, kind (markdown link,
+  wikilink, path mention), with backlinks derived. Chunker and model versions
+  are recorded in `meta` under the same `--rebuild` guard as the model today.
+- **Vectors** on blocks; section- and document-level vectors (title +
+  summary + keywords) as a measured variant. **FTS5** over block text,
+  heading path and keywords for names and exact terms.
+- **Retrieval (Samwise v2):** hybrid dense + FTS5 fused with RRF, filtered by
+  privacy / `superseded_by` / folder / date → **reranker** (top-20/30 →
+  top-5) → **context expansion** under a token budget: hit block ± neighbours;
+  two or more hits in one section, or a short section → the whole section;
+  several section hits in a short file → the whole file → **1-hop links**
+  (outgoing + backlinks of the top files), included only when the linked file
+  itself scores well for the query → a context bundle with citations (path +
+  line range).
+- **Enrichment runs under the Claude subscription, not the API:** a dedicated
+  headless agent (`claude -p`) pinned to Haiku, returning structured output.
+  Per-file (one call: summary, keywords, topic, a context line per section)
+  vs. per-chunk is measured in phase D — the hypothesis is per-file, since
+  each `claude -p` start has seconds of overhead and ~280 calls beat ~2000;
+  measured as wall time and subscription usage. Results are cached by content
+  hash, so an incremental commit costs 1–3 calls. Order is enrich → embed,
+  since the context line goes into the embedding. Without an LLM the engine
+  falls back to an extractive summary (title + heading path + first
+  paragraph). Privacy: in the MVP the enrichment agent may see `core/` and
+  `current/` — a deliberate, owner-approved use of the MVP exception.
+- **Portable engine from phase C on:** configuration from outside (corpus,
+  include/exclude, privacy map, model, enrichment provider) and swappable
+  components — chunker, enricher (`claude-cli` / API / local / none),
+  embedder, vector store (SQLite now, Qdrant in Stage 3), reranker,
+  retriever. The engine knows nothing about brain/; Bilbo and Samwise become
+  thin adapters (CLI + brain/ config). Moving it to its own repo later is a
+  directory move plus `pip install`. Directory layout proposed for approval
+  at phase C; no separate repo in this stage.
+
+*Phases — each change is accepted only if it improves the eval:*
+- [ ] **A — Eval v2.** Golden set grown to ~60 queries in
+      `brain/_meta/eval/samwise-golden.jsonl` (drafted by Claude from brain/
+      content, verified by the owner; never in this repo). Query types: point
+      lookup PL and EN, cross-lingual, multi-file, deep inside a long file,
+      via a link, table/number, name/entity. New fields: `type`,
+      `expected_sections`, `answer_snippet` (must appear in the returned
+      context — measures expansion). Metrics: hit@1, MRR, recall@5 at file
+      and section level; answer coverage at a token budget; context tokens;
+      query latency p50/p95 on the Pi; build time; RAM. Harness builds and
+      evaluates experimental indexes side by side with the production
+      `bilbo.db`.
+- [ ] **B — Model bake-off** on a simple structural chunker (no word limit):
+      MiniLM (baseline), multilingual-e5-small, granite-97m-r2,
+      arctic-m-v2.0, granite-311m-r2 — quality and Pi encode time. Ends with
+      the model decision (`--rebuild`, threshold recalibration — which also
+      closes the 0.5047 vs 0.5454 drift above).
+- [ ] **C — Hierarchical index:** nodes, metadata, links, FTS5 hybrid,
+      context expansion, Samwise v2 returning context bundles.
+- [ ] **D — Enrichment ablation:** heuristic headers vs. late chunking vs.
+      Haiku per-file vs. Haiku per-chunk.
+- [ ] **E — Reranker (in this stage, not Stage 3):** bge-reranker-v2-m3
+      (568M), gte-multilingual-reranker-base (306M), Qwen3-Reranker-0.6B —
+      quality and Pi latency. Gains are expected to be small at today's
+      scale; the component and its measurement are in place before brain/
+      grows.
+
+Sources: PL-MTEB (ACL 2026 Findings); IBM Granite Embedding Multilingual R2
+model card; Snowflake Arctic Embed 2.0; Qu et al., "Is Semantic Chunking
+Worth the Computational Cost?" (NAACL 2025 Findings); Anthropic, "Contextual
+Retrieval"; Günther et al., "Late Chunking" (arXiv 2409.04701).
+
 ---
 
 ## Long-term (condensed)
@@ -635,6 +745,6 @@ so they don't get lost.
 | **Profile self-update guardrails** | E5 | What the automated system is allowed to write or overwrite in `core/profile.md`; append-only vs field-specific rules; how proposed updates are surfaced for human review before committing. |
 | **Summary-sufficiency heuristic** | E8 | Bilbo/Samwise split is settled (matches README: Bilbo non-reactive indexer, Samwise reactive retriever). Step 3 established a precedent worth reusing here: a fixed similarity threshold (0.5047, F1-calibrated) works for point-lookup queries but measurably fails broad/enumerative ones (0/3 recall on two golden-set queries even ungated) — so E8's "summary vs. fetch full file" rule should not be a bare score cutoff either. Still open: the actual decision rule (threshold + query-intent classification, most likely) and whether it needs the same point-lookup/broad-query judgment split Samwise now does. Decided when E8 is implemented. |
 | ~~**Bilbo trigger mechanism**~~ | ~~Step 9~~ | **RESOLVED 2026-09-24.** `post-commit` + `post-merge` hooks in `.claude/hooks/brain/` (brain/'s existing `core.hooksPath`, so the hooks are version-controlled here — no systemd units, nothing in `pi-automate`). Each starts `index.py --if-new-commits` detached, guarded by `flock -n`; `meta.last_indexed_commit` records the indexed HEAD. The 2026-09-22 direction included a debounce; dropped for now as premature — added only if bursts of commits prove costly. → `.claude/scripts/bilbo/README.md` § Automatic reindex on commit. |
-| **Chunking v2** | Step 9 | Open — owner is still thinking it over. Measured trigger: 41% of chunks exceed the 128-token window (see Step 9 § Pi bootstrap). Candidate changes: token-based limits instead of word counts, full heading breadcrumbs, table-aware splitting with the header row repeated, merging tiny sections, overlap at window boundaries, frontmatter as metadata rather than embedded text, per-folder strategies, and possibly a longer-window model (`multilingual-e5-small`, 512 tokens, same 384 dims — a model swap means `--rebuild` plus recalibrating Samwise's threshold). Every candidate is accepted only if it improves the eval against the private golden set. |
-| **Vector store: Qdrant (+ reranker)** | Step 9 | **Direction set 2026-09-22: Qdrant, plus a reranking stage.** Stated motivation is explicitly testing and portfolio ("a RAG on an RPi"), not throughput — at ~1.8 k chunks a numpy brute-force scan is already ~1 ms, so performance is not an argument. Real technical gains: payload filtering (privacy level, `superseded_by`, folder), the `kb_*` collections from README, native hybrid (dense + sparse) search, and a service n8n can reach. Open: **ChromaDB** — named in README as the Phase-2 store — has not been weighed against Qdrant yet; `kb_<folder>` collections vs. a single collection with a `folder` payload; which reranker fits in the Pi's memory budget alongside the encoder. Must-check first: the `qdrant/qdrant` image on this Pi's **16 KB-page** kernel (`getconf PAGESIZE` = 16384) — jemalloc has failed on that page size before. |
+| ~~**Chunking v2**~~ | ~~Step 9~~ | **SUPERSEDED 2026-09-24 by Index v2** — the word-limit fixes it listed (token-based limits, heading breadcrumbs, table-aware splitting, merging tiny sections) are folded into a hierarchical index with a model swap, enrichment and a reranker. See Step 9 § Index v2. |
+| **Vector store: Qdrant** | Step 9 | **Direction set 2026-09-22: Qdrant.** (The reranker moved into Index v2, 2026-09-24.) Stated motivation is explicitly testing and portfolio ("a RAG on an RPi"), not throughput — at ~1.8 k chunks a numpy brute-force scan is already ~1 ms, so performance is not an argument. Real technical gains: payload filtering (privacy level, `superseded_by`, folder), the `kb_*` collections from README, native hybrid (dense + sparse) search, and a service n8n can reach. Open: **ChromaDB** — named in README as the Phase-2 store — has not been weighed against Qdrant yet; `kb_<folder>` collections vs. a single collection with a `folder` payload. Must-check first: the `qdrant/qdrant` image on this Pi's **16 KB-page** kernel (`getconf PAGESIZE` = 16384) — jemalloc has failed on that page size before. |
 | ~~**Private golden set for eval**~~ | ~~Step 9~~ | **RESOLVED 2026-09-22.** The golden set paired real questions with the real files that answer them — together a description of brain/'s contents, in a public repo. It had been rewritten once to strip personal content, which left 6 of its 20 entries pointing at targets that no longer resolved, silently dragging every metric down and making the 2026-09-22 run incomparable with 2026-07-03's. Fix: the set lives in **brain/`_meta/eval/samwise-golden.jsonl`** (private by folder), resolved by `run_eval.py` via `$BRAIN_PATH` or a `SAMWISE_GOLDEN` override, with a synthetic `golden.example.jsonl` kept here purely to document the format. Note: earlier revisions of the set remain in this repo's git history — rewriting that history is a separate decision. |
