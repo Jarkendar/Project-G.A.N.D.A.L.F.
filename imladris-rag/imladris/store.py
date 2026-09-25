@@ -92,6 +92,7 @@ class Store:
     blocks are (id, parent id, text, line_start, line_end) in file order."""
 
     location: str
+    server_search = False  # True: nearest() runs the vector search in the store itself
 
     # --- lifecycle and meta
     def close(self): raise NotImplementedError
@@ -147,6 +148,12 @@ class Store:
 
     def keyword_blocks(self, keywords: list[str], stem: int, top_k: int) -> list[tuple]:
         """(block id, score) of the best keyword matches, best first."""
+        raise NotImplementedError
+
+    def nearest(self, vector, top_k: int, min_score: float) -> list[tuple]:
+        """(block id, cosine score) of the blocks nearest to a normalized
+        `vector`, best first, none below `min_score`. Only stores with
+        `server_search`; the others are searched in memory by the caller."""
         raise NotImplementedError
 
     def export_documents(self):

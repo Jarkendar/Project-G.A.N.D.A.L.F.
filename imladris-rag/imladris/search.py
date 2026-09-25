@@ -2,7 +2,8 @@
 
 semantic — encode the query the way the index was built (model, revision,
            query prefix, config overrides from `meta`) and rank chunks by
-           cosine similarity (vectors are normalized, so a dot product).
+           cosine similarity (vectors are normalized, so a dot product) —
+           in the store itself when it can (Qdrant), else in memory.
 keyword  — baseline: rank whole files by keyword hit count.
 hybrid   — Reciprocal Rank Fusion of semantic and keyword (file level).
 fts      — BM25 over blocks (SQLite FTS5); query words are cut to a stem
@@ -115,6 +116,11 @@ def make_snippet(text: str) -> str:
 def semantic_search(idx: Index, query: str, top_k: int, min_score: float) -> list[dict]:
     if idx.vectors.shape[0] == 0:
         return []
+    if idx.store is not None and idx.store.server_search:
+        positions = {node_id: i for i, node_id in enumerate(idx.ids)}
+        return [_hit(idx, positions[node_id], score)
+                for node_id, score in idx.store.nearest(embed_query(idx, query), top_k, min_score)
+                if node_id in positions]
     scores = idx.vectors @ embed_query(idx, query)
     results = []
     for i in np.argsort(-scores):

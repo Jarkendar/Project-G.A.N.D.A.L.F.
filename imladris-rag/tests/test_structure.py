@@ -333,6 +333,14 @@ class QdrantCopyTest(QdrantBackend, unittest.TestCase):
                 self.assertEqual(dst.document(path)[:2], (title, privacy))
                 self.assertEqual(list(dst.document(path)[2].values()), list(sections_src.values()))
                 self.assertEqual(dst.neighbours(path), src.neighbours(path))
+            # the server's vector search ranks blocks as the in-memory dot product does
+            rows = src.blocks()
+            vectors = np.stack([np.frombuffer(r["vector"], dtype=np.float32) for r in rows])
+            query = np.frombuffer(unit([2, 1, 0, 1]), dtype=np.float32)
+            local = [rows[i]["text"] for i in np.argsort(-(vectors @ query), kind="stable")[:3]]
+            texts = {r["id"]: r["text"] for r in dst.blocks()}
+            self.assertEqual([texts[i] for i, _ in dst.nearest(query, 3, -1.0)], local)
+            self.assertEqual(dst.nearest(query, 3, 1.1), [])  # nothing clears the bar
             src.close()
             dst.close()
 

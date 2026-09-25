@@ -920,11 +920,15 @@ shown to match it, then it is removed. One commit per step on
       unreachable (its agent falls back to grep and says so) and Bilbo exits
       with a message; the next run catches up. `bilbo.db` stays untouched as
       the way back until Q6.
-- [ ] **Q5b — Retrieval filters and server-side search:** default retrieval
-      skips `superseded_by` files (README principle 5; no file has it yet),
-      an optional privacy filter (public-only, for Phase 2 external engines),
-      and semantic search through Qdrant's own query with those filters
-      instead of the local vector copy.
+- [x] **Q5b — Server-side search:** semantic search (and the semantic side
+      of the hybrids) runs as a Qdrant query (`Store.nearest`, blocks only,
+      `score_threshold` = `--min-score`) instead of a dot product over the
+      local vector copy; SQLite keeps the in-memory path. Verified: 83 queries
+      identical per query to SQLite; semantic p50 ~0.32 → ~0.28 s. `--context`
+      still scores every block in memory — it needs all scores (z-scores,
+      link thresholds). Retrieval filters (skip `superseded_by`, public-only)
+      moved to Step 10: no file carries `superseded_by` until
+      T.R.E.E.B.E.A.R.D. writes it, and nothing needs public-only before Phase 2.
 - [ ] **Q6 — Remove SQLite** once Q5 is confirmed in use.
 - [ ] **Q7 — Samwise as an MCP server:** `search` and `context` as MCP tools
       so Gandalf (and other clients, e.g. n8n) query the RAG directly instead

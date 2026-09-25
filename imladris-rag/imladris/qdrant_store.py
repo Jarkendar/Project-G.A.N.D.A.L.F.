@@ -79,6 +79,8 @@ class QdrantStore(Store):
     """`url` is the server, `collection` the index; e.g. http://127.0.0.1:6333
     and "bilbo"."""
 
+    server_search = True
+
     def __init__(self, url: str, collection: str, readonly: bool = False):
         self.client = QdrantClient(url=url)
         self.collection, self.readonly = collection, readonly
@@ -231,6 +233,12 @@ class QdrantStore(Store):
         linked_from = m.Filter(must=[_match("level", "doc"), _match("links[].dst", path)])
         out |= {p.payload["path"] for p in self._scroll(linked_from, payload=["path"])}
         return out - {path}
+
+    def nearest(self, vector, top_k: int, min_score: float) -> list[tuple]:
+        points = self.client.query_points(self.collection, query=list(map(float, vector)), using=DENSE,
+                                          query_filter=m.Filter(must=[_match("level", "block")]),
+                                          limit=top_k, score_threshold=min_score).points
+        return [(p.id, p.score) for p in points]
 
     def keyword_blocks(self, keywords: list[str], stem: int, top_k: int) -> list[tuple]:
         """BM25 over blocks. `stem` must equal the cut the collection was
