@@ -283,7 +283,8 @@ def _fmt(value, width=6):
 def main():
     parser = argparse.ArgumentParser(description="S.A.M.W.I.S.E. retrieval eval")
     parser.add_argument("--index", type=str, default=None,
-                        help="evaluate this index instead of brain/index/bilbo.db")
+                        help="evaluate this index instead of brain/index/bilbo.db "
+                             "(a SQLite path or <qdrant url>/<collection>)")
     parser.add_argument("--strategies", type=str, default="grep,semantic,hybrid",
                         help="comma-separated search.py strategies (" + ",".join(search.STRATEGIES)
                              + "), each optionally suffixed +div for one block per file")
@@ -318,7 +319,8 @@ def main():
         for line in stale:
             print(f"  {line}")
         print()
-    idx = search.load_index(brain_dir, Path(args.index).resolve() if args.index else None)
+    index = args.index and (args.index if search.engine.store.is_url(args.index) else Path(args.index).resolve())
+    idx = search.load_index(brain_dir, index or None)
 
     load_start = time.perf_counter()
     search.load_model(idx.spec)

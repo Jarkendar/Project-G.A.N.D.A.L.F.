@@ -129,8 +129,8 @@ def main():
                              "(default: BILBO_ENRICHMENT_USE; empty = none). When set, changed files "
                              "are enriched first, then embedded")
     parser.add_argument("--db", type=str, default=None,
-                        help="write to this index instead of brain/index/bilbo.db — "
-                             "for experimental variants compared by the Samwise eval")
+                        help="write to this index instead of brain/index/bilbo.db: a SQLite path or "
+                             "<qdrant url>/<collection> — for variants compared by the Samwise eval")
     args = parser.parse_args()
 
     brain_dir = resolve_brain_path(PROJECT_DIR)
@@ -170,7 +170,10 @@ def main():
         run_enrichment()
         return
 
-    db_path = Path(args.db).resolve() if args.db else brain_dir / "index" / "bilbo.db"
+    if args.db:  # a SQLite path, or "<qdrant url>/<collection>"
+        db_path = args.db if store.is_url(args.db) else Path(args.db).resolve()
+    else:
+        db_path = brain_dir / "index" / "bilbo.db"
     st = store.open_store(db_path)
 
     # Read HEAD before scanning: a commit landing mid-run then shows up as

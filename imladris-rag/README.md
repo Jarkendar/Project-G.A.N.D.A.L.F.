@@ -27,10 +27,18 @@ The package is meant to move to its own repository later without changes.
 
 ## Qdrant
 
-The Qdrant store is in progress (G.A.N.D.A.L.F. `IMPLEMENTATION.md`, Step 9,
-Stage 3). The server runs from this folder's `docker-compose.yml`: Qdrant
-1.19.1 pinned for arm64, telemetry off, REST on `127.0.0.1:6333` only, data
-in the `qdrant_storage` volume. The client is an optional extra:
+`imladris.qdrant_store` keeps the whole index in one Qdrant collection:
+every `doc`, `section` and `block` node is a point with its fields as payload,
+blocks carry a named dense vector, filterable fields are payload-indexed.
+Anywhere a SQLite path is accepted, `<url>/<collection>` selects Qdrant
+(`store.open_store("http://127.0.0.1:6333/bilbo")`), and `store.copy_store`
+moves an index between backends without re-embedding. Keyword search on
+Qdrant (sparse BM25) is still to come (G.A.N.D.A.L.F. `IMPLEMENTATION.md`,
+Step 9, Stage 3).
+
+The server runs from this folder's `docker-compose.yml`: Qdrant 1.19.1
+pinned for arm64, telemetry off, REST on `127.0.0.1:6333` only, data in the
+`qdrant_storage` volume. The client is an optional extra:
 
 ```bash
 docker compose -f imladris-rag/docker-compose.yml up -d
@@ -83,7 +91,9 @@ G.A.N.D.A.L.F.'s `IMPLEMENTATION.md`, Step 9.
 python -m unittest discover imladris-rag/tests
 ```
 
-The chunker and corpus tests need no model.
+The chunker and corpus tests need no model. The store and context tests
+also run against Qdrant when a server answers on `127.0.0.1:6333`, each in a
+throwaway collection; otherwise those variants are skipped.
 
 ## Roadmap
 

@@ -887,10 +887,17 @@ shown to match it, then it is removed. One commit per step on
       no change in behavior. Verified: eval on 83 queries × semantic, fts,
       hybrid-fts and context identical to `main` per query (only latencies
       differ); tests now exercise the interface, not SQL.
-- [ ] **Q3 — `QdrantStore`:** points for docs, sections and blocks; payload
+- [x] **Q3 — `QdrantStore`:** points for docs, sections and blocks; payload
       with text, headings, lines, links, privacy, `superseded_by`, folder;
-      payload indexes for filters; index meta in its own point. Check:
-      semantic and context identical to SQLite.
+      keyword payload indexes on `level`, `path`, `folder`, `privacy`,
+      `superseded_by`, `links[].dst`; index meta in point 0. Locations are
+      `<url>/<collection>` wherever a SQLite path was accepted (`index.py
+      --db`, `run_eval.py --index`). `store.copy_store` moves an index between
+      backends without re-embedding: the production index (275 files, 3,085
+      points) copies in ~10 s. Verified: semantic and context on 83 queries
+      identical to SQLite per query; Bilbo's incremental run works on Qdrant;
+      the store tests run against both backends. Qdrant's cosine space
+      normalizes vectors on write, so the store requires normalized ones.
 - [ ] **Q4 — Keyword search:** BM25 sparse vectors in place of FTS5
       (server-side or `fastembed`, to be checked); eval against FTS5,
       Polish prefix matching included.

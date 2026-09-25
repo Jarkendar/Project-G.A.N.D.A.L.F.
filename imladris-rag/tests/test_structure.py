@@ -115,14 +115,22 @@ class SearchHelpersTest(unittest.TestCase):
         self.assertEqual([h["path"] for h in search.diversify(hits, 2)], ["a", "b"])
 
 
-class ContextTest(unittest.TestCase):
+class StoreBackend:
+    """Where a test's index lives; subclasses switch the backend."""
+    keyword_search = True
+
+    def location(self, tmp):
+        return Path(tmp) / "i.db"
+
+
+class ContextTest(StoreBackend, unittest.TestCase):
     """build_context over a two-file store, with the query embedding faked."""
 
     def test_bundle_widens_hits_and_respects_budget(self):
         from unittest import mock
         from imladris import context
         with tempfile.TemporaryDirectory() as tmp:
-            db = Path(tmp) / "i.db"
+            db = self.location(tmp)
             st = store.open_store(db)
             for path, axis in (("a.md", 0), ("b.md", 1)):
                 doc = parse_markdown(Path(path), DOC, count)
@@ -164,7 +172,7 @@ class ContextTest(unittest.TestCase):
             return np.array([cos, np.sqrt(1 - cos * cos), 0, 0], dtype=np.float32).tobytes()
 
         with tempfile.TemporaryDirectory() as tmp:
-            db = Path(tmp) / "i.db"
+            db = self.location(tmp)
             st = store.open_store(db)
             # c.md's block barely matches, but its summary names the category
             for path, block_cos, doc_cos in (("a.md", 0.9, 0.1), ("b.md", 0.5, 0.1), ("c.md", 0.1, 0.9)):
@@ -191,11 +199,11 @@ class ContextTest(unittest.TestCase):
                     lead("max")
 
 
-class StoreTest(unittest.TestCase):
+class StoreTest(StoreBackend, unittest.TestCase):
     def test_document_tree_roundtrip(self):
         doc = parse_markdown(Path("d.md"), DOC, count)
         with tempfile.TemporaryDirectory() as tmp:
-            db = Path(tmp) / "i.db"
+            db = self.location(tmp)
             st = store.open_store(db)
             sections = [{"heading": " > ".join(s.path) or "Doc", "section_no": s.number,
                          "line_start": s.line_start, "line_end": s.line_end, "text": s.text}
@@ -222,9 +230,10 @@ class StoreTest(unittest.TestCase):
             idx = search.load_index(db)
             self.assertEqual(len(idx.texts), 4)
             self.assertEqual(idx.section_nos, ["", "1", "1.1", "2"])
-            # full text: backfilled blocks are searchable; "Dee" prefix-matches "Deep"
-            hits = search.fts_search(idx, "Deeper things", top_k=3, stem=3)
-            self.assertEqual([h["section_no"] for h in hits], ["1.1"])
+            if self.keyword_search:
+                # full text: backfilled blocks are searchable; "Dee" prefix-matches "Deep"
+                hits = search.fts_search(idx, "Deeper things", top_k=3, stem=3)
+                self.assertEqual([h["section_no"] for h in hits], ["1.1"])
             idx.store.close()
 
             st = store.open_store(db)
@@ -232,6 +241,8 @@ class StoreTest(unittest.TestCase):
             st.commit()
             self.assertEqual((st.stored_hashes(), st.blocks(), st.neighbours("e.md")), ({}, [], set()))
 
+
+class SqliteOnlyTest(unittest.TestCase):
     def test_schema1_index_is_left_alone_and_reported(self):
         with tempfile.TemporaryDirectory() as tmp:
             db = Path(tmp) / "old.db"
@@ -244,6 +255,81 @@ class StoreTest(unittest.TestCase):
             with self.assertRaises(store.IndexMismatch):
                 st.check_consistency("m", "main", "v2")
             self.assertEqual(st.stored_hashes(), {})
+
+
+QDRANT_URL = "http://127.0.0.1:6333"
+
+
+class QdrantBackend(StoreBackend):
+    """The same tests against a Qdrant server; skipped when none is running.
+    Each test gets a throwaway collection."""
+    keyword_search = False  # sparse BM25 arrives in Stage 3, Q4
+
+    def setUp(self):
+        try:
+            from qdrant_client import QdrantClient
+            self.client = QdrantClient(url=QDRANT_URL, timeout=2)
+            self.client.get_collections()
+        except Exception as err:  # no extra installed, or no server
+            self.skipTest(f"no Qdrant at {QDRANT_URL}: {err}")
+        self.collections = []
+
+    def tearDown(self):
+        for name in self.collections:
+            self.client.delete_collection(name)
+        self.client.close()
+
+    def location(self, tmp):
+        import uuid
+        self.collections.append(f"imladris_test_{uuid.uuid4().hex[:8]}")
+        return f"{QDRANT_URL}/{self.collections[-1]}"
+
+
+class QdrantContextTest(QdrantBackend, ContextTest):
+    pass
+
+
+class QdrantStoreTest(QdrantBackend, StoreTest):
+    pass
+
+
+
+class QdrantCopyTest(QdrantBackend, unittest.TestCase):
+    def test_copy_from_sqlite_keeps_the_index(self):
+        # normalized, as the store expects: Qdrant's cosine space normalizes on write
+        unit = lambda v: (np.array(v, dtype=np.float32) / np.linalg.norm(v)).astype(np.float32).tobytes()
+        doc = parse_markdown(Path("d.md"), DOC, count)
+        sections = [{"heading": " > ".join(s.path) or "Doc", "section_no": s.number,
+                     "line_start": s.line_start, "line_end": s.line_end, "text": s.text} for s in doc.sections]
+        with tempfile.TemporaryDirectory() as tmp:
+            src = store.open_store(Path(tmp) / "i.db")
+            for n, path in enumerate(("d.md", "e.md")):
+                blocks = [{"heading": c.heading, "text": c.text, "section": c.section, "line_start": c.line_start,
+                           "line_end": c.line_end, "token_count": count(c.text),
+                           "vector": unit([n + 1, i + 1, 0, 1])}
+                          for i, c in enumerate(doc.chunks)]
+                src.write_document(path, content_hash=f"h{n}", mtime=0.0, indexed_at="now", title=path,
+                                   frontmatter={"title": path}, privacy="public", sections=sections, blocks=blocks,
+                                   links=[{"dst": "e.md", "raw": "e.md", "kind": "path", "line": 1}],
+                                   doc_text=f"{path} summary" if n else None,
+                                   doc_vector=unit([1, 1, 1, 1]) if n else None)
+            src.set_meta(model_name="m", model_revision="r", embed_dim="4", schema_version=store.SCHEMA_VERSION)
+            src.commit()
+
+            dst = store.open_store(self.location(tmp))
+            self.assertEqual(store.copy_store(src, dst, log=lambda _: None), 2)
+            self.assertEqual(dst.stored_hashes(), src.stored_hashes())
+            self.assertEqual(dst.get_meta()["model_name"], "m")
+            self.assertEqual(dst.doc_vectors(), src.doc_vectors())
+            strip = lambda rows: [{k: v for k, v in r.items() if k != "id"} for r in rows]
+            self.assertEqual(strip(dst.blocks()), strip(src.blocks()))
+            for path in ("d.md", "e.md"):
+                title, privacy, sections_src, blocks_src = src.document(path)
+                self.assertEqual(dst.document(path)[:2], (title, privacy))
+                self.assertEqual(list(dst.document(path)[2].values()), list(sections_src.values()))
+                self.assertEqual(dst.neighbours(path), src.neighbours(path))
+            src.close()
+            dst.close()
 
 
 if __name__ == "__main__":

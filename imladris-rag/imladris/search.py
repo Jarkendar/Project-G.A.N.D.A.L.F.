@@ -58,6 +58,8 @@ def load_index(location) -> Index:
     """`location`: a SQLite index path, or an open Store."""
     if isinstance(location, Store):
         st = location
+    elif store.is_url(location):
+        st = store.open_store(location, readonly=True)
     else:
         if not Path(location).is_file():
             raise IndexUnavailable(f"no index at {location}")

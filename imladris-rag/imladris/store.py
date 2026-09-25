@@ -149,6 +149,11 @@ class Store:
         """(block id, score) of the best keyword matches, best first."""
         raise NotImplementedError
 
+    def export_documents(self):
+        """Every document as write_document keyword arguments (path
+        included), in node-id order — what copy_store replays."""
+        raise NotImplementedError
+
 
 class SqliteStore(Store):
     def __init__(self, db_path: Path, readonly: bool = False):
@@ -293,6 +298,31 @@ class SqliteStore(Store):
                                  "UNION SELECT src FROM links WHERE dst = ?", (path, path)).fetchall()
         return {r[0] for r in rows} - {path}
 
+    def export_documents(self):
+        docs = self.conn.execute(
+            "SELECT d.path, d.content_hash, d.mtime, d.indexed_at, d.title, d.frontmatter, d.privacy, "
+            "n.id, n.text, n.vector FROM documents d JOIN nodes n ON n.path = d.path AND n.level = 'doc' "
+            "ORDER BY n.id").fetchall()
+        for path, content_hash, mtime, indexed_at, title, frontmatter, privacy, doc_id, doc_text, doc_vector in docs:
+            section_rows = self.conn.execute(
+                "SELECT id, heading, section_no, line_start, line_end, text FROM nodes "
+                "WHERE path = ? AND level = 'section' ORDER BY ord", (path,)).fetchall()
+            section_index = {row[0]: i for i, row in enumerate(section_rows)}
+            blocks = [{"heading": heading, "section": section_index.get(parent), "line_start": start,
+                       "line_end": end, "text": text, "token_count": tokens, "vector": vector}
+                      for parent, heading, start, end, text, tokens, vector in self.conn.execute(
+                          "SELECT parent_id, heading, line_start, line_end, text, token_count, vector FROM nodes "
+                          "WHERE path = ? AND level = 'block' ORDER BY ord", (path,))]
+            links = [{"dst": dst, "raw": raw, "kind": kind, "line": line} for dst, raw, kind, line in
+                     self.conn.execute("SELECT dst, raw, kind, line FROM links WHERE src = ? ORDER BY rowid",
+                                       (path,))]
+            yield {"path": path, "content_hash": content_hash, "mtime": mtime, "indexed_at": indexed_at,
+                   "title": title, "frontmatter": json.loads(frontmatter), "privacy": privacy,
+                   "sections": [{"heading": h, "section_no": no, "line_start": a, "line_end": b, "text": t}
+                                for _, h, no, a, b, t in section_rows],
+                   "blocks": blocks, "links": links,
+                   "doc_text": doc_text if doc_vector is not None else None, "doc_vector": doc_vector}
+
     def keyword_blocks(self, keywords: list[str], stem: int, top_k: int) -> list[tuple]:
         match = fts_match(keywords, stem)
         if not match or not self._has_table("nodes"):
@@ -302,6 +332,30 @@ class SqliteStore(Store):
         return [(rowid, -rank) for rowid, rank in rows]
 
 
+def copy_store(src: Store, dst: Store, log=print) -> int:
+    """Copy an index between backends without re-embedding: documents in
+    their original order, then the meta. Returns the number of documents."""
+    n = 0
+    for doc in src.export_documents():
+        dst.write_document(**doc)
+        n += 1
+        if n % 50 == 0:
+            log(f"copied {n} documents ...")
+    meta = src.get_meta()
+    if meta:
+        dst.set_meta(**meta)
+    dst.commit()
+    return n
+
+
+def is_url(location) -> bool:
+    return str(location).startswith(("http://", "https://"))
+
+
 def open_store(location, readonly: bool = False) -> Store:
-    """The store at `location`: a path to a SQLite file."""
+    """The store at `location`: "<qdrant url>/<collection>" (needs the qdrant
+    extra), or a path to a SQLite file."""
+    if is_url(location):
+        from .qdrant_store import open_qdrant
+        return open_qdrant(str(location), readonly=readonly)
     return SqliteStore(Path(location), readonly=readonly)
