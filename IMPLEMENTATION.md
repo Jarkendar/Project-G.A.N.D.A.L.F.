@@ -856,7 +856,18 @@ move to its own repo and serve other projects.
       - Both modes rerank: ranked search reorders its top 20 blocks, `--context`
         reorders the 20-block pool and ranks lead files by their best reranked
         block (`file_rank` is then ignored). `run_eval.py --rerank KEY` measures
-        either; the context mode with a reranker is not measured yet.
+        either.
+      - Measured 2026-09-25 on the 83-query golden set, `--context`:
+
+        | | hit@1 | hit@5 | MRR | ans@5 | `multi` hit@5 / MRR | p50 |
+        |---|---|---|---|---|---|---|
+        | zmax (production) | **.80** | **.95** | **.87** | **.94** | **.79 / .71** | 0.4 s |
+        | blocks | .75 | .89 | .81 | .94 | .50 / .50 | 0.4 s |
+        | bge-m3 (blocks order) | .72 | .89 | .80 | .90 | .50 / .45 | 52 s |
+
+        Almost all of the drop comes from losing the document vectors (zmax);
+        against the same block order the reranker is flat to slightly worse.
+        Untried: feeding reranked block scores into zmax instead of skipping it.
 
 Sources: PL-MTEB (ACL 2026 Findings); IBM Granite Embedding Multilingual R2
 model card; Snowflake Arctic Embed 2.0; Qu et al., "Is Semantic Chunking
