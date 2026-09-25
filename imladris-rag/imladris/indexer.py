@@ -73,18 +73,40 @@ def relink(conn: sqlite3.Connection, resolver: Resolver) -> int:
     return conn.execute("SELECT COUNT(*) FROM links WHERE dst IS NOT NULL").fetchone()[0]
 
 
+ENRICHMENT_USES = ("doc", "context")
+
+
+def doc_embed_text(title: str, data: dict) -> str:
+    """What a document-level vector encodes: title, topics, keywords, summary."""
+    return "\n".join([title, "; ".join(data.get("topics", [])), ", ".join(data.get("keywords", [])),
+                      data.get("summary", "")])
+
+
 def sync(conn: sqlite3.Connection, corpus: Corpus, spec: ModelSpec, chunker: str = "v1",
          chunk_params: dict | None = None, scope: Path | None = None, rebuild: bool = False,
-         log=print) -> SyncResult:
+         log=print, enrichment: dict | None = None, use: tuple = ()) -> SyncResult:
     """Bring the store in line with the corpus. Raises store.IndexMismatch if
-    the store was built with another schema, model or chunker and `rebuild`
-    is off."""
+    the store was built with another schema, model, chunker or enrichment use
+    and `rebuild` is off.
+
+    `enrichment` maps paths to enrich.py results; `use` picks how they feed
+    the vectors: "doc" adds a document-level vector (title, topics, keywords,
+    summary), "context" prepends each block's section context sentence to
+    what gets embedded (the stored block text stays the note's own)."""
     if unknown := set(chunk_params or {}) - set(DEFAULT_CHUNK_PARAMS):
         raise ValueError(f"unknown chunk params: {sorted(unknown)}")
+    if unknown := set(use) - set(ENRICHMENT_USES):
+        raise ValueError(f"unknown enrichment uses: {sorted(unknown)}")
+    use_key = ",".join(sorted(use))
     if rebuild:
         store.reset(conn)
     else:
         store.check_consistency(conn, spec.name, spec.revision, chunker)
+        built_with = store.get_meta(conn).get("enrichment_use")
+        if built_with is not None and built_with != use_key:
+            raise store.IndexMismatch(f"index was built with enrichment use '{built_with}', this run "
+                                      f"requests '{use_key}'. Run with --rebuild.")
+    enrichment = enrichment or {}
 
     to_update, to_delete, unchanged = plan(conn, corpus, scope, rebuild)
     result = SyncResult(unchanged=unchanged)
@@ -101,11 +123,22 @@ def sync(conn: sqlite3.Connection, corpus: Corpus, spec: ModelSpec, chunker: str
         for rel in to_update:
             content = (corpus.root / rel).read_text(encoding="utf-8", errors="replace")
             parsed[rel] = (content, *_parse(chunker, rel, content, count, chunk_params))
-            texts.extend(c["text"] for c in parsed[rel][4])
+            title, _, sections, chunks = parsed[rel][1:]
+            data = enrichment.get(rel.as_posix())
+            context_by_no = {c["number"]: c["context"] for c in (data or {}).get("sections", [])}
+            for chunk in chunks:
+                chunk["embed_text"] = chunk["text"]
+                if "context" in use and chunk["section"] is not None:
+                    number = sections[chunk["section"]]["section_no"] or "0"
+                    if context_by_no.get(number):
+                        chunk["embed_text"] = f"{context_by_no[number]}\n{chunk['text']}"
+                texts.append(chunk["embed_text"])
+            if "doc" in use and data:
+                texts.append(doc_embed_text(title, data))
 
         vectors = []
         if texts:
-            log(f"embedding {len(texts)} chunks from {len(to_update)} file(s) ...")
+            log(f"embedding {len(texts)} texts from {len(to_update)} file(s) ...")
             vectors = model.encode([spec.passage_prefix + t for t in texts],
                                    batch_size=16 if chunker == "v2" else 32,
                                    normalize_embeddings=True, show_progress_bar=True)
@@ -119,13 +152,19 @@ def sync(conn: sqlite3.Connection, corpus: Corpus, spec: ModelSpec, chunker: str
                 chunk["token_count"] = count(chunk["text"]) if chunker == "v2" else len(chunk["text"].split())
             cursor += len(chunks)
             posix = rel.as_posix()
+            doc_vector, doc_text = None, None
+            if "doc" in use and enrichment.get(posix):
+                doc_text = doc_embed_text(title, enrichment[posix])
+                doc_vector = vectors[cursor].astype("float32").tobytes()
+                cursor += 1
             links = [{"dst": l.target, "raw": l.raw, "kind": l.kind, "line": l.line}
                      for l in extract_links(posix, content, resolver)]
             abs_path = corpus.root / rel
             store.write_document(conn, posix, content_hash=file_hash(abs_path),
                                  mtime=abs_path.stat().st_mtime, indexed_at=now, title=title,
                                  frontmatter=frontmatter, privacy=corpus.privacy_of(rel, frontmatter),
-                                 sections=sections, blocks=chunks, links=links)
+                                 sections=sections, blocks=chunks, links=links,
+                                 doc_text=doc_text, doc_vector=doc_vector)
             result.updated += 1
             result.chunks += len(chunks)
 
@@ -141,6 +180,7 @@ def sync(conn: sqlite3.Connection, corpus: Corpus, spec: ModelSpec, chunker: str
             config_kwargs=json.dumps(spec.config_kwargs or {}),
             chunk_params=json.dumps({**DEFAULT_CHUNK_PARAMS, **(chunk_params or {})}
                                     if chunker == "v2" else {}, sort_keys=True),
+            enrichment_use=use_key,
         )
 
     for path in to_delete:

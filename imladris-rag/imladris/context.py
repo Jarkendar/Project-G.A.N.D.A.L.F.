@@ -69,14 +69,25 @@ def _section_text(section) -> str:
     return f"{heading}\n\n{text}" if heading else text
 
 
+FILE_RANKS = ("blocks", "zmax")
+
+
 def build_context(idx: Index, query: str, count, budget: int = 1500, lead_files: int = 3,
                   pool: int = 20, section_max: int = 400, doc_max: int = 800,
-                  links: bool = True, link_delta: float = 0.03) -> list[ContextItem]:
+                  links: bool = True, link_delta: float = 0.03, file_rank: str = "blocks") -> list[ContextItem]:
     """A token-budgeted context bundle for `query`. `count` counts tokens
-    (the model's tokenizer). Needs a schema-2 index."""
+    (the model's tokenizer). Needs a schema-2 index.
+
+    `file_rank` orders the candidate files: "blocks" by their best block;
+    "zmax", with document-level vectors (an enriched index), by the better
+    of the two z-scored per query — a file's best block is a max over many
+    blocks and would otherwise outscore its single document vector."""
+    if file_rank not in FILE_RANKS:
+        raise ValueError(f"unknown file_rank: {file_rank!r}")
     if idx.ids[0] is None:
         raise ValueError("context building needs a schema-2 index (rebuild it)")
-    scores = idx.vectors @ embed_query(idx, query)
+    query_vec = embed_query(idx, query)
+    scores = idx.vectors @ query_vec
     order = [int(i) for i in np.argsort(-scores)]
     top_score = float(scores[order[0]])
 
@@ -84,6 +95,12 @@ def build_context(idx: Index, query: str, count, budget: int = 1500, lead_files:
     for i in order:
         best_block.setdefault(idx.paths[i], i)
     files_ranked = list(best_block)
+    if file_rank == "zmax" and idx.doc_vectors is not None:
+        block_best = np.array([float(scores[best_block[p]]) for p in files_ranked])
+        doc_scores = idx.doc_vectors @ query_vec
+        z_block = dict(zip(files_ranked, ((block_best - block_best.mean()) / block_best.std()).tolist()))
+        z_doc = dict(zip(idx.doc_paths, ((doc_scores - doc_scores.mean()) / doc_scores.std()).tolist()))
+        files_ranked.sort(key=lambda p: -max(z_block[p], z_doc.get(p, -np.inf)))
     leads = [(p, "hit") for p in files_ranked[:lead_files]]
 
     conn = store.open_readonly(idx.db_path)

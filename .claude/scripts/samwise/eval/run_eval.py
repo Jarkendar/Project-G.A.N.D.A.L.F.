@@ -271,6 +271,8 @@ def main():
                         help="context: token budget of the bundle")
     parser.add_argument("--files", type=int, default=3, help="context: lead files (best block of each goes first)")
     parser.add_argument("--no-links", action="store_true", help="context: do not follow links")
+    parser.add_argument("--file-rank", default="blocks", choices=["blocks", "zmax"],
+                        help="context: how candidate files are ordered (zmax needs document vectors)")
     parser.add_argument("--no-stopwords", action="store_true",
                         help="keyword strategies: ignore stopwords.txt (measure its effect)")
     parser.add_argument("--stem", type=int, default=5,
@@ -303,7 +305,7 @@ def main():
     for strategy in strategies:
         metrics, per_query = evaluate_strategy(strategy, golden, brain_dir, idx, args.stem, args.fts_weight,
                                                 {"budget": args.budget, "lead_files": args.files,
-                                                 "links": not args.no_links},
+                                                 "links": not args.no_links, "file_rank": args.file_rank},
                                                 frozenset() if args.no_stopwords else None)
         summary[strategy] = metrics
         details[strategy] = per_query

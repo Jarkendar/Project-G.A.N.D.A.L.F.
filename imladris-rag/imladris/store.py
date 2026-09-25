@@ -37,9 +37,9 @@ CREATE TABLE IF NOT EXISTS nodes (
     section_no TEXT,                    -- "2.3"; "" for a preamble
     line_start INTEGER,
     line_end INTEGER,
-    text TEXT NOT NULL,                 -- block: the embedded text; section: its body; doc: title
+    text TEXT NOT NULL,                 -- block: chunk text; section: its body; doc: title or its enrichment text
     token_count INTEGER,
-    vector BLOB                         -- float32, normalized; blocks only for now
+    vector BLOB                         -- float32, normalized; blocks, and docs when enriched
 );
 CREATE INDEX IF NOT EXISTS idx_nodes_path ON nodes(path);
 CREATE INDEX IF NOT EXISTS idx_nodes_level ON nodes(level);
@@ -163,7 +163,8 @@ def delete_document(conn: sqlite3.Connection, path: str):
 
 def write_document(conn: sqlite3.Connection, path: str, *, content_hash: str, mtime: float,
                    indexed_at: str, title: str, frontmatter: dict, privacy: str,
-                   sections: list[dict], blocks: list[dict], links: list[dict]):
+                   sections: list[dict], blocks: list[dict], links: list[dict],
+                   doc_text: str | None = None, doc_vector: bytes | None = None):
     """Replace one document's rows. `sections`: dicts with heading, section_no,
     line_start, line_end, text. `blocks`: dicts with heading, section (index
     into `sections`, or None), line_start, line_end, text, token_count,
@@ -176,8 +177,8 @@ def write_document(conn: sqlite3.Connection, path: str, *, content_hash: str, mt
          privacy, frontmatter.get("superseded_by") or None, len(blocks)),
     )
     doc_id = conn.execute(
-        "INSERT INTO nodes(path, level, parent_id, ord, heading, section_no, line_start, line_end, text) "
-        "VALUES (?, 'doc', NULL, 0, ?, '', NULL, NULL, ?)", (path, title, title)).lastrowid
+        "INSERT INTO nodes(path, level, parent_id, ord, heading, section_no, line_start, line_end, text, vector) "
+        "VALUES (?, 'doc', NULL, 0, ?, '', NULL, NULL, ?, ?)", (path, title, doc_text or title, doc_vector)).lastrowid
     section_ids = []
     for i, sec in enumerate(sections):
         section_ids.append(conn.execute(

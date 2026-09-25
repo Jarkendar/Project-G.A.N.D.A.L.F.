@@ -754,6 +754,49 @@ move to its own repo and serve other projects.
         questions is deferred to phase D.
 - [ ] **D — Enrichment ablation:** heuristic headers vs. late chunking vs.
       Haiku per-file vs. Haiku per-chunk.
+
+      **Haiku per-file (2026-09-25).** `imladris/enrich.py` asks
+      `claude -p` (Haiku, subscription) once per file for a summary,
+      bilingual topics, keywords and one context sentence per section;
+      results are cached in `brain/index/enrichment.db` by path + content
+      hash + prompt version, so a rebuild never re-asks. Full brain/: 275
+      files, 0 failures, ~10 s per call, 4 in parallel ≈ 25 min once;
+      a commit then costs one call per changed file. Two uses, measured
+      separately (`bilbo/index.py --enrichment-use doc,context`):
+      - **doc** — one extra vector per document (title + topics + keywords
+        + summary), used to order the context bundle's lead files;
+      - **context** — the section's context sentence prepended to each
+        block before embedding (Anthropic's "contextual retrieval").
+
+      Context bundles, 63 golden queries (hit@1 / hit@3 / hit@5 / MRR /
+      R@5 / answer@5; multi = hit@5 of the 9 multi-file queries):
+
+      | variant | hit@1 | hit@3 | hit@5 | MRR | R@5 | ans@5 | multi |
+      |---|---|---|---|---|---|---|---|
+      | production (blocks only) | .76 | .87 | .92 | .83 | .92 | .95 | .56 |
+      | + doc, raw max | .76 | .90 | .95 | .84 | .94 | .95 | .67 |
+      | + doc, RRF | .70 | .87 | .94 | .80 | .91 | .92 | .78 |
+      | + doc, interleaved | .76 | .94 | .97 | .85 | .94 | .95 | .78 |
+      | **+ doc, z-scored max** | **.78** | **.94** | **.97** | **.86** | .93 | .95 | .78 |
+      | + context (blocks) | .68 | .87 | .94 | .79 | .92 | .86 | .67 |
+      | + context + doc, raw max | .71 | .90 | .95 | .81 | .94 | .86 | .67 |
+
+      **Section context hurts** (plain semantic hit@1 .76 → .68; bundle answers
+      .95 → .86): with ~1500 blocks of often short personal notes, a
+      generated sentence per section makes blocks of one file resemble
+      each other and the query's specific words weigh less. Dropped as a
+      default; per-chunk enrichment, its finer version, is not worth a
+      test at ~6× the calls. **The document vector helps** — but only once
+      the two scores are made comparable: a file's best block is a max
+      over its blocks and beats its single document score almost always,
+      so a raw max barely reorders. Z-scoring both per query (`file_rank=
+      "zmax"`) fixes that; per query 7 improve, 5 slip by a rank or two.
+      It does not solve broad questions: the document vector ranks the
+      cycling events #1/#3/#7 (blocks: #19–#61), but three lead files of
+      mixed origin still bring in one of them, and "my side projects"
+      (photovault doc #130) is not found by either vector — its summary
+      does not say "side project". Heuristic headers and late chunking
+      are not measured yet.
 - [ ] **E — Reranker (in this stage, not Stage 3):** bge-reranker-v2-m3
       (568M), gte-multilingual-reranker-base (306M), Qwen3-Reranker-0.6B —
       quality and Pi latency. Gains are expected to be small at today's
