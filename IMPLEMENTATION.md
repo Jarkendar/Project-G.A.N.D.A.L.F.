@@ -869,6 +869,37 @@ move to its own repo and serve other projects.
         against the same block order the reranker is flat to slightly worse.
         Untried: feeding reranked block scores into zmax instead of skipping it.
 
+#### Stage 3 — Qdrant as the only store (started 2026-09-25)
+
+Owner's decisions (2026-09-25): Qdrant becomes the **only** store: vectors,
+text, the `doc → section → block` tree, links and keyword search in one
+collection with indexed payload. The client is the official `qdrant-client`,
+an optional extra (`imladris-rag[qdrant]`). The server has its own
+`docker-compose.yml` in `imladris-rag/`, so the engine stays self-contained for
+its future repository. SQLite stays as a second backend only until Qdrant is
+shown to match it, then it is removed. One commit per step on
+`feat/imladris-qdrant`.
+
+- [x] **Q1 — Infrastructure:** `imladris-rag/docker-compose.yml` (Qdrant
+      1.19.1 arm64, telemetry off, `127.0.0.1:6333`, named volume, restart
+      unless stopped), `qdrant-client==1.19.1` as an extra and in Bilbo's venv.
+- [ ] **Q2 — Store interface:** the SQLite code behind a `Store` interface,
+      no change in behavior (eval identical).
+- [ ] **Q3 — `QdrantStore`:** points for docs, sections and blocks; payload
+      with text, headings, lines, links, privacy, `superseded_by`, folder;
+      payload indexes for filters; index meta in its own point. Check:
+      semantic and context identical to SQLite.
+- [ ] **Q4 — Keyword search:** BM25 sparse vectors in place of FTS5
+      (server-side or `fastembed`, to be checked); eval against FTS5,
+      Polish prefix matching included.
+- [ ] **Q5 — Switch-over:** Bilbo (and the post-commit hook) and Samwise on
+      Qdrant via `gandalf.env`; privacy and `superseded_by` filters in queries;
+      full eval; docs.
+- [ ] **Q6 — Remove SQLite** once Q5 is confirmed in use.
+- [ ] **Q7 — Samwise as an MCP server:** `search` and `context` as MCP tools
+      so Gandalf (and other clients, e.g. n8n) query the RAG directly instead
+      of shelling out to `search.py`.
+
 Sources: PL-MTEB (ACL 2026 Findings); IBM Granite Embedding Multilingual R2
 model card; Snowflake Arctic Embed 2.0; Qu et al., "Is Semantic Chunking
 Worth the Computational Cost?" (NAACL 2025 Findings); Anthropic, "Contextual

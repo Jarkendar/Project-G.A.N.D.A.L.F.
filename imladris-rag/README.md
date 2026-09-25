@@ -22,7 +22,20 @@ The package is meant to move to its own repository later without changes.
 | `imladris.store` | SQLite index, schema 2: `documents` (hash, title, frontmatter, privacy, supersession), `nodes` — a `doc → section → block` tree with heading paths, section numbers and line ranges, blocks carrying the vectors — and `links`; a `meta` table records how the index was built and the store refuses to mix models, chunkers or schemas. |
 | `imladris.indexer` | Incremental sync by content hash: only changed files are re-chunked and re-embedded, and the model is not even loaded on a no-op run. |
 | `imladris.context` | Context bundles: ranked blocks widened along the document tree (section, whole document) and the link graph, within a token budget, each passage carrying path, section, line range, privacy and reason. |
+| `imladris.rerank` | Optional cross-encoder rerankers (`bge-m3`, `pl-base`), pinned to Hub commits, reordering a short list of blocks. |
 | `imladris.search` | Semantic (cosine over normalized vectors), full-text (SQLite FTS5 / BM25 over blocks, prefix-stemmed queries), keyword baseline, weighted Reciprocal Rank Fusion hybrids, and per-file diversification. Keyword paths take a caller-supplied stopword set (`load_stopwords` reads a one-word-per-line file); the engine ships none. |
+
+## Qdrant
+
+The Qdrant store is in progress (G.A.N.D.A.L.F. `IMPLEMENTATION.md`, Step 9,
+Stage 3). The server runs from this folder's `docker-compose.yml`: Qdrant
+1.19.1 pinned for arm64, telemetry off, REST on `127.0.0.1:6333` only, data
+in the `qdrant_storage` volume. The client is an optional extra:
+
+```bash
+docker compose -f imladris-rag/docker-compose.yml up -d
+pip install "imladris-rag[qdrant]"
+```
 
 ## Minimal use
 
@@ -74,5 +87,5 @@ The chunker and corpus tests need no model.
 
 ## Roadmap
 
-LLM enrichment (summaries, keywords, a context line per section) and a
-reranker — Index v2 phases D–E.
+Qdrant as the only store (vectors, text, tree, links and BM25 sparse vectors
+in one collection), replacing SQLite once it matches it on the golden set.
