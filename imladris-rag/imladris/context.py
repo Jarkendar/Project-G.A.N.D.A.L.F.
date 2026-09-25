@@ -74,14 +74,19 @@ FILE_RANKS = ("blocks", "zmax")
 
 def build_context(idx: Index, query: str, count, budget: int = 1500, lead_files: int = 3,
                   pool: int = 20, section_max: int = 400, doc_max: int = 800,
-                  links: bool = True, link_delta: float = 0.03, file_rank: str = "blocks") -> list[ContextItem]:
+                  links: bool = True, link_delta: float = 0.03, file_rank: str = "blocks",
+                  reranker=None) -> list[ContextItem]:
     """A token-budgeted context bundle for `query`. `count` counts tokens
     (the model's tokenizer). Needs a schema-2 index.
 
     `file_rank` orders the candidate files: "blocks" by their best block;
     "zmax", with document-level vectors (an enriched index), by the better
     of the two z-scored per query — a file's best block is a max over many
-    blocks and would otherwise outscore its single document vector."""
+    blocks and would otherwise outscore its single document vector.
+
+    `reranker` (an imladris.rerank.Reranker) reorders the top `pool` blocks
+    before anything else; files are then ranked by their best reranked
+    block and `file_rank` is ignored."""
     if file_rank not in FILE_RANKS:
         raise ValueError(f"unknown file_rank: {file_rank!r}")
     if idx.ids[0] is None:
@@ -90,12 +95,16 @@ def build_context(idx: Index, query: str, count, budget: int = 1500, lead_files:
     scores = idx.vectors @ query_vec
     order = [int(i) for i in np.argsort(-scores)]
     top_score = float(scores[order[0]])
+    if reranker is not None:
+        head = order[:pool]
+        rr = reranker.score(query, [idx.texts[i] for i in head])
+        order = [head[j] for j in np.argsort(-rr, kind="stable")] + order[pool:]
 
     best_block: dict[str, int] = {}
     for i in order:
         best_block.setdefault(idx.paths[i], i)
     files_ranked = list(best_block)
-    if file_rank == "zmax" and idx.doc_vectors is not None:
+    if file_rank == "zmax" and idx.doc_vectors is not None and reranker is None:
         block_best = np.array([float(scores[best_block[p]]) for p in files_ranked])
         doc_scores = idx.doc_vectors @ query_vec
         z_block = dict(zip(files_ranked, ((block_best - block_best.mean()) / block_best.std()).tolist()))

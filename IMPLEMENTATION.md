@@ -831,11 +831,43 @@ move to its own repo and serve other projects.
         too: 25 min vs 18 for a full build, 7K-token forward passes.
       - **Per-chunk Haiku** is not tested: per-section context sentences,
         its lighter form, already hurt (above).
-- [ ] **E — Reranker (in this stage, not Stage 3):** bge-reranker-v2-m3
-      (568M), gte-multilingual-reranker-base (306M), Qwen3-Reranker-0.6B —
-      quality and Pi latency. Gains are expected to be small at today's
-      scale; the component and its measurement are in place before brain/
-      grows.
+- [x] **E — Reranker (in this stage, not Stage 3):** the component is in
+      place, **off by default** on the Pi (`SAMWISE_RERANKER`, `search.py
+      --rerank`). Measured 2026-09-25 on the golden set, semantic top-20
+      reordered by a cross-encoder:
+
+      | | no reranker | pl-base (sdadas, 278M) | bge-reranker-v2-m3 (568M) |
+      |---|---|---|---|
+      | hit@1 | **.76** | .67 | **.76** |
+      | hit@3 / @5 | .84 / .89 | **.87 / .94** | **.87** / .92 |
+      | MRR | .82 | .78 | **.83** |
+      | R@5 / ans@5 | .84 / .84 | **.89 / .92** | .87 / **.92** |
+      | latency (median) | ~0.35 s | 12.6 s | 52 s |
+      | peak RSS | — | 2.8 GB | 4.0 GB |
+
+      - bge-m3 is the one to keep: it leaves the top hit alone and puts more
+        answers into the top 5. The polish model widens the top 5 too, but
+        demotes the best block (`deep` MRR .90 → .65).
+      - Neither is worth it on the Pi's CPU: 35–150× the latency for a few
+        points. Ideas to revisit: INT8 quantisation, the Hailo-10H NPU.
+      - Qwen3-Reranker-0.6B ran out of RAM on the 8 GB Pi (twice took the
+        system down; the Pi kernel ignores cgroup memory limits) — dropped.
+        gte-multilingual-reranker-base was not measured — dropped.
+      - Both modes rerank: ranked search reorders its top 20 blocks, `--context`
+        reorders the 20-block pool and ranks lead files by their best reranked
+        block (`file_rank` is then ignored). `run_eval.py --rerank KEY` measures
+        either.
+      - Measured 2026-09-25 on the 83-query golden set, `--context`:
+
+        | | hit@1 | hit@5 | MRR | ans@5 | `multi` hit@5 / MRR | p50 |
+        |---|---|---|---|---|---|---|
+        | zmax (production) | **.80** | **.95** | **.87** | **.94** | **.79 / .71** | 0.4 s |
+        | blocks | .75 | .89 | .81 | .94 | .50 / .50 | 0.4 s |
+        | bge-m3 (blocks order) | .72 | .89 | .80 | .90 | .50 / .45 | 52 s |
+
+        Almost all of the drop comes from losing the document vectors (zmax);
+        against the same block order the reranker is flat to slightly worse.
+        Untried: feeding reranked block scores into zmax instead of skipping it.
 
 Sources: PL-MTEB (ACL 2026 Findings); IBM Granite Embedding Multilingual R2
 model card; Snowflake Arctic Embed 2.0; Qu et al., "Is Semantic Chunking
@@ -1013,5 +1045,5 @@ so they don't get lost.
 | **Summary-sufficiency heuristic** | E8 | Bilbo/Samwise split is settled (matches README: Bilbo non-reactive indexer, Samwise reactive retriever). Step 3 established a precedent worth reusing here: a fixed similarity threshold (0.5047, F1-calibrated) works for point-lookup queries but measurably fails broad/enumerative ones (0/3 recall on two golden-set queries even ungated) — so E8's "summary vs. fetch full file" rule should not be a bare score cutoff either. Still open: the actual decision rule (threshold + query-intent classification, most likely) and whether it needs the same point-lookup/broad-query judgment split Samwise now does. Decided when E8 is implemented. |
 | ~~**Bilbo trigger mechanism**~~ | ~~Step 9~~ | **RESOLVED 2026-09-24.** `post-commit` + `post-merge` hooks in `.claude/hooks/brain/` (brain/'s existing `core.hooksPath`, so the hooks are version-controlled here — no systemd units, nothing in `pi-automate`). Each starts `index.py --if-new-commits` detached, guarded by `flock -n`; `meta.last_indexed_commit` records the indexed HEAD. The 2026-09-22 direction included a debounce; dropped for now as premature — added only if bursts of commits prove costly. → `.claude/scripts/bilbo/README.md` § Automatic reindex on commit. |
 | ~~**Chunking v2**~~ | ~~Step 9~~ | **SUPERSEDED 2026-09-24 by Index v2** — the word-limit fixes it listed (token-based limits, heading breadcrumbs, table-aware splitting, merging tiny sections) are folded into a hierarchical index with a model swap, enrichment and a reranker. See Step 9 § Index v2. |
-| **Vector store: Qdrant** | Step 9 | **Direction set 2026-09-22: Qdrant.** (The reranker moved into Index v2, 2026-09-24.) Stated motivation is explicitly testing and portfolio ("a RAG on an RPi"), not throughput — at ~1.8 k chunks a numpy brute-force scan is already ~1 ms, so performance is not an argument. Real technical gains: payload filtering (privacy level, `superseded_by`, folder), the `kb_*` collections from README, native hybrid (dense + sparse) search, and a service n8n can reach. Open: **ChromaDB** — named in README as the Phase-2 store — has not been weighed against Qdrant yet; `kb_<folder>` collections vs. a single collection with a `folder` payload. Must-check first: the `qdrant/qdrant` image on this Pi's **16 KB-page** kernel (`getconf PAGESIZE` = 16384) — jemalloc has failed on that page size before. |
+| **Vector store: Qdrant** | Step 9 | **Direction set 2026-09-22: Qdrant.** (The reranker moved into Index v2, 2026-09-24.) Stated motivation is explicitly testing and portfolio ("a RAG on an RPi"), not throughput — at ~1.8 k chunks a numpy brute-force scan is already ~1 ms, so performance is not an argument. Real technical gains: payload filtering (privacy level, `superseded_by`, folder), the `kb_*` collections from README, native hybrid (dense + sparse) search, and a service n8n can reach. Open: **ChromaDB** — named in README as the Phase-2 store — has not been weighed against Qdrant yet; `kb_<folder>` collections vs. a single collection with a `folder` payload. Checked 2026-09-25: `qdrant/qdrant` 1.19.1 (arm64, 300 MB image) **runs on this Pi's 16 KB-page kernel** — the production index's 1,540 blocks (768-d) upserted in 1.5 s, top-10 identical to the numpy scan on 50 queries, median 3.1 ms per search over HTTP, payload filter on `folder` works, ~134 MB RSS. |
 | ~~**Private golden set for eval**~~ | ~~Step 9~~ | **RESOLVED 2026-09-22.** The golden set paired real questions with the real files that answer them — together a description of brain/'s contents, in a public repo. It had been rewritten once to strip personal content, which left 6 of its 20 entries pointing at targets that no longer resolved, silently dragging every metric down and making the 2026-09-22 run incomparable with 2026-07-03's. Fix: the set lives in **brain/`_meta/eval/samwise-golden.jsonl`** (private by folder), resolved by `run_eval.py` via `$BRAIN_PATH` or a `SAMWISE_GOLDEN` override, with a synthetic `golden.example.jsonl` kept here purely to document the format. Note: earlier revisions of the set remain in this repo's git history — rewriting that history is a separate decision. |

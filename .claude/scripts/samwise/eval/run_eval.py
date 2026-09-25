@@ -77,6 +77,28 @@ def load_golden(golden_path: Path) -> list[dict]:
     return rows
 
 
+def check_golden(golden: list[dict], brain_dir: Path) -> list[str]:
+    """Entries that can no longer be scored fairly: an expected file is gone
+    or superseded, or the answer snippet no longer appears in any expected
+    file. The eval still runs; the entries are listed so they get fixed."""
+    problems = []
+    for n, item in enumerate(golden, 1):
+        texts = []
+        for rel in item["expected_paths"]:
+            path = brain_dir / rel
+            if not path.is_file():
+                problems.append(f"#{n} missing file {rel}")
+                continue
+            text = path.read_text(encoding="utf-8", errors="replace")
+            if re.search(r"^superseded_by:\s*\S", text.split("\n---", 1)[0], re.M):
+                problems.append(f"#{n} superseded file {rel}")
+            texts.append(text)
+        snippet = item.get("answer_snippet")
+        if snippet and texts and not any(_norm(snippet) in _norm(t) for t in texts):
+            problems.append(f"#{n} answer snippet {snippet!r} not in any expected file")
+    return problems
+
+
 def rank_of_first_relevant(results: list[dict], expected_paths: list[str]) -> int | None:
     """1-based rank of the first hit whose path is in expected_paths, else None."""
     for i, r in enumerate(results):
@@ -97,7 +119,7 @@ def _chunk_text(idx: "search.SamwiseIndex", result: dict) -> str:
 def evaluate_strategy(strategy: str, golden: list[dict], brain_dir: Path,
                        idx: "search.SamwiseIndex", stem: int = 5,
                        fts_weight: float = 1.0, context_args: dict | None = None,
-                       stopwords: frozenset | None = None) -> tuple[dict, list[dict]]:
+                       stopwords: frozenset | None = None, reranker: str | None = None) -> tuple[dict, list[dict]]:
     """`strategy` is a search.py strategy, optionally suffixed "+div" for
     one block per file (e.g. "hybrid-fts+div")."""
     stopwords = search.STOPWORDS if stopwords is None else stopwords
@@ -107,14 +129,14 @@ def evaluate_strategy(strategy: str, golden: list[dict], brain_dir: Path,
         start = time.perf_counter()
         if name == "context":
             # the bundle is the unit: every item counts, however many there are
-            items = search.build_context(idx, item["query"], **(context_args or {}))
+            items = search.build_context(idx, item["query"], reranker=reranker, **(context_args or {}))
             results = [{"path": it.path, "chunk": None, "text": it.text, "tokens": it.tokens,
                         "heading": "\u0000document" if it.kind == "document" else it.heading}
                        for it in items]
         else:
             results = search.search(brain_dir, item["query"], name, TOP_K, -1.0, idx=idx,
                                     diversify=flag == "div", stem=stem, fts_weight=fts_weight,
-                                    stopwords=stopwords)
+                                    stopwords=stopwords, reranker=reranker)
         latency_ms = (time.perf_counter() - start) * 1000
         expected = set(item["expected_paths"])
         rank = rank_of_first_relevant(results, item["expected_paths"])
@@ -281,6 +303,8 @@ def main():
                         help="write summary + per-query results here (keep it inside "
                              "brain/ — queries are private)")
     parser.add_argument("--quiet", action="store_true", help="skip the per-query listing")
+    parser.add_argument("--rerank", choices=list(search.rerank_engine.RERANKER_REGISTRY), default=None,
+                        help="rerank the top %d blocks of every strategy but grep" % search.RERANK_POOL)
     args = parser.parse_args()
     strategies = [s.strip() for s in args.strategies.split(",") if s.strip()]
 
@@ -288,11 +312,21 @@ def main():
     brain_dir = search.resolve_brain_path(project_dir)
     golden_path = resolve_golden_path(brain_dir)
     golden = load_golden(golden_path)
+    stale = check_golden(golden, brain_dir)
+    if stale:
+        print(f"WARNING: {len(stale)} golden entries need a look ({golden_path.name}):")
+        for line in stale:
+            print(f"  {line}")
+        print()
     idx = search.load_index(brain_dir, Path(args.index).resolve() if args.index else None)
 
     load_start = time.perf_counter()
     search.load_model(idx.spec)
     model_load_s = time.perf_counter() - load_start
+    if args.rerank:
+        load_start = time.perf_counter()
+        search.rerank_engine.load_reranker(args.rerank)
+        print(f"reranker {args.rerank} loaded in {time.perf_counter() - load_start:.1f}s")
 
     n_multi = sum(1 for item in golden if len(item["expected_paths"]) > 1)
     print(f"SAMWISE eval — {len(golden)} golden queries "
@@ -306,7 +340,7 @@ def main():
         metrics, per_query = evaluate_strategy(strategy, golden, brain_dir, idx, args.stem, args.fts_weight,
                                                 {"budget": args.budget, "lead_files": args.files,
                                                  "links": not args.no_links, "file_rank": args.file_rank},
-                                                frozenset() if args.no_stopwords else None)
+                                                frozenset() if args.no_stopwords else None, args.rerank)
         summary[strategy] = metrics
         details[strategy] = per_query
 
