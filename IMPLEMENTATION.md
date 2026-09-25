@@ -966,6 +966,8 @@ reshuffle it.**
   see the parking lot.
 - [ ] **Step 10 — T.R.E.E.B.E.A.R.D.** — nightly compression pass, supersession
   resolution, archive retrieval. Meaningful once 6–12 months of data accumulate.
+  Brings the retrieval filters deferred from Stage 3 (Q5b): default search skips
+  `superseded_by` files (payload already indexed in Qdrant), history on request.
 - [ ] **Step 11 — Optional voice layer** — Whisper.cpp (STT) + Piper TTS —
   only if real usage proves it's wanted.
 
