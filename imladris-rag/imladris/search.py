@@ -48,6 +48,8 @@ class Index:
     section_nos: list = field(default_factory=list)  # "2.3" per chunk; None on schema-1 indexes
     line_ranges: list = field(default_factory=list)  # (start, end) per chunk, or (None, None)
     vectors: np.ndarray = None  # (n_chunks, embed_dim), float32, normalized
+    doc_paths: list = field(default_factory=list)  # documents with an enrichment vector
+    doc_vectors: np.ndarray = None                 # (n_docs, embed_dim), or None
 
 
 def load_index(db_path: Path) -> Index:
@@ -62,7 +64,10 @@ def load_index(db_path: Path) -> Index:
             rows = conn.execute(
                 "SELECT path, ord, heading, text, vector, section_no, line_start, line_end, id "
                 "FROM nodes WHERE level = 'block' AND vector IS NOT NULL ORDER BY id").fetchall()
+            docs = conn.execute("SELECT path, vector FROM nodes WHERE level = 'doc' AND vector IS NOT NULL "
+                                "ORDER BY id").fetchall()
         else:  # schema 1: read-only compatibility until the index is rebuilt
+            docs = []
             rows = [r + (None, None, None, None) for r in conn.execute(
                 "SELECT path, ord, heading, text, vector FROM chunks ORDER BY id").fetchall()]
     finally:
@@ -89,6 +94,8 @@ def load_index(db_path: Path) -> Index:
         section_nos=[r[5] for r in rows],
         line_ranges=[(r[6], r[7]) for r in rows],
         vectors=np.stack([np.frombuffer(r[4], dtype=np.float32) for r in rows]),
+        doc_paths=[d[0] for d in docs],
+        doc_vectors=np.stack([np.frombuffer(d[1], dtype=np.float32) for d in docs]) if docs else None,
     )
 
 

@@ -26,7 +26,7 @@ from pathlib import Path
 PROJECT_DIR = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(PROJECT_DIR / "imladris-rag"))
 
-from imladris import indexer, store  # noqa: E402
+from imladris import enrich, indexer, store  # noqa: E402
 from imladris.chunking import CHUNKERS  # noqa: E402
 from imladris.corpus import Corpus  # noqa: E402
 from imladris.models import DEFAULT_MODEL, MODEL_REGISTRY, resolve_model  # noqa: E402
@@ -119,6 +119,15 @@ def main():
     parser.add_argument("--if-new-commits", action="store_true",
                         help="skip the run when brain/ HEAD equals the last indexed commit "
                              "(used by the post-commit/post-merge hooks in brain/)")
+    parser.add_argument("--enrich", action="store_true",
+                        help="ask an LLM (Claude Code CLI, Haiku) for each changed file's summary, "
+                             "topics, keywords and section context, cached in brain/index/enrichment.db; "
+                             "no embedding happens in this mode")
+    parser.add_argument("--enrich-workers", type=int, default=4, help="--enrich: parallel CLI calls")
+    parser.add_argument("--enrichment-use", type=str, default=None,
+                        help="comma-separated uses of the enrichment in the vectors: doc, context "
+                             "(default: BILBO_ENRICHMENT_USE; empty = none). When set, changed files "
+                             "are enriched first, then embedded")
     parser.add_argument("--db", type=str, default=None,
                         help="write to this index instead of brain/index/bilbo.db — "
                              "for experimental variants compared by the Samwise eval")
@@ -137,12 +146,29 @@ def main():
     chunk_params = json.loads(raw_params) if raw_params else None
     spec = resolve_model(args.model or setting("BILBO_EMBED_MODEL", DEFAULT_MODEL),
                          os.environ.get("BILBO_EMBED_REVISION"))
+    raw_use = args.enrichment_use if args.enrichment_use is not None else setting("BILBO_ENRICHMENT_USE", "")
+    use = tuple(u.strip() for u in raw_use.split(",") if u.strip())
 
     scope = None
     if args.path:
         scope = (brain_dir / args.path).resolve()
         if not scope.exists():
             sys.exit(f"BILBO: --path does not exist under BRAIN_PATH: {scope}")
+
+    def run_enrichment():
+        cache = enrich.open_cache(brain_dir / "index" / "enrichment.db")
+        started = time.time()
+        counts = enrich.enrich_corpus(cache, corpus, enrich.ClaudeCliEnricher(), workers=args.enrich_workers,
+                                      scope=scope, log=lambda msg: print(f"BILBO: {msg}", flush=True))
+        print(f"BILBO: enrichment — {counts['enriched']} enriched, {counts['cached']} cached, "
+              f"{counts['failed']} failed, in {time.time() - started:.0f}s.")
+        data = enrich.load(cache)
+        cache.close()
+        return data
+
+    if args.enrich:
+        run_enrichment()
+        return
 
     db_path = Path(args.db).resolve() if args.db else brain_dir / "index" / "bilbo.db"
     conn = store.open_store(db_path)
@@ -167,9 +193,11 @@ def main():
         conn.close()
         return
 
+    # Enrich before embedding, so the vectors see this commit's enrichment.
+    enrichment = run_enrichment() if use else None
     try:
         result = indexer.sync(conn, corpus, spec, chunker, chunk_params, scope, args.rebuild,
-                              log=lambda msg: print(f"BILBO: {msg}"))
+                              log=lambda msg: print(f"BILBO: {msg}"), enrichment=enrichment, use=use)
     except (store.IndexMismatch, ValueError) as err:
         sys.exit(f"BILBO: {err}")
     print(f"BILBO: {result.updated} file(s) updated ({result.chunks} chunks), "

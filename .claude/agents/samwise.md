@@ -70,7 +70,10 @@ yourself.
    `--budget` for broad questions expecting more files: measured, a bigger
    budget or more lead files barely helps them (full file recall 0.50 →
    0.58 even at 3000 tokens and 12 files) because the missing documents rank
-   30th–85th — no chunk says "side project" or "cycling race". For a broad
+   30th–85th — no chunk says "side project" or "cycling race". Lead files
+   are also ranked by a per-document LLM summary (`--file-rank zmax`,
+   default), which lifts hit@1 to 78% and multi-file hit@5 from 56% to 78%,
+   but a category the summary does not name is still missed. For a broad
    question, also run the widened ranked list (2b) and judge by eye.
    `--no-links` if links pull in noise. Use the ranked modes below when you
    need scores or a wide list.

@@ -156,6 +156,40 @@ class ContextTest(unittest.TestCase):
                 tight = context.build_context(idx, "q", count, budget=4, lead_files=2, doc_max=5)
                 self.assertLessEqual(sum(it.tokens for it in tight), 4)
 
+    def test_zmax_lets_a_document_vector_lead(self):
+        from unittest import mock
+        from imladris import context
+
+        def at(cos):  # a unit vector with this cosine to the query (x axis)
+            return np.array([cos, np.sqrt(1 - cos * cos), 0, 0], dtype=np.float32).tobytes()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            db = Path(tmp) / "i.db"
+            conn = store.open_store(db)
+            # c.md's block barely matches, but its summary names the category
+            for path, block_cos, doc_cos in (("a.md", 0.9, 0.1), ("b.md", 0.5, 0.1), ("c.md", 0.1, 0.9)):
+                store.write_document(conn, path, content_hash="h", mtime=0.0, indexed_at="now", title=path,
+                                     frontmatter={}, privacy="public",
+                                     sections=[{"heading": path, "section_no": "", "line_start": 1,
+                                                "line_end": 1, "text": "x"}],
+                                     blocks=[{"heading": path, "text": "x", "section": 0, "line_start": 1,
+                                              "line_end": 1, "token_count": 1, "vector": at(block_cos)}],
+                                     links=[], doc_text=f"{path} summary", doc_vector=at(doc_cos))
+            store.set_meta(conn, model_name="m", model_revision="r", embed_dim="4",
+                           schema_version=store.SCHEMA_VERSION)
+            conn.commit()
+            conn.close()
+
+            idx = search.load_index(db)
+            self.assertEqual(idx.doc_paths, ["a.md", "b.md", "c.md"])
+            with mock.patch.object(context, "embed_query", return_value=np.array([1, 0, 0, 0], dtype=np.float32)):
+                lead = lambda rank: context.build_context(idx, "q", count, lead_files=1, links=False,
+                                                          file_rank=rank)[0].path
+                self.assertEqual(lead("blocks"), "a.md")
+                self.assertEqual(lead("zmax"), "c.md")
+                with self.assertRaises(ValueError):
+                    lead("max")
+
 
 class StoreTest(unittest.TestCase):
     def test_document_tree_roundtrip(self):
