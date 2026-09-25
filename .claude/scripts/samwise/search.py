@@ -19,7 +19,7 @@
 #   - hybrid:     RRF of semantic and grep (file level) — the older baseline.
 # --diversify keeps only the best block of each file.
 # --rerank KEY reorders the top RERANK_POOL blocks with a cross-encoder
-# (imladris.rerank); off unless SAMWISE_RERANKER is set in gandalf.env.
+# (imladris.rerank), in both modes; off unless SAMWISE_RERANKER is set.
 #
 # Usable two ways:
 #   1. CLI:    ./search.py "query" --strategy semantic --top-k 8
@@ -68,8 +68,8 @@ DEFAULT_TOP_K = 8
 # .83 -> .86 (IMPLEMENTATION.md Step 9, Index v2 phase D).
 DEFAULT_FILE_RANK = "zmax"
 
-# Optional cross-encoder over the top RERANK_POOL blocks of a ranked search
-# (not --context yet). Off by default: on the Pi 5 bge-m3 costs ~52 s per
+# Optional cross-encoder over the top RERANK_POOL blocks, in ranked search
+# and in --context. Off by default: on the Pi 5 bge-m3 costs ~52 s per
 # query for a small gain — measured 2026-09-25 against semantic: hit@1 .76
 # -> .76, MRR .82 -> .83, ans@5 .84 -> .92 (IMPLEMENTATION.md Step 9, Index v2
 # phase E). Turn on with SAMWISE_RERANKER=bge-m3 on faster hardware.
@@ -136,10 +136,12 @@ def search(brain_dir: Path, query: str, strategy: str, top_k: int,
     return engine.diversify(results, top_k) if diversify else results[:top_k]
 
 
-def build_context(idx: SamwiseIndex, query: str, **options) -> list:
+def build_context(idx: SamwiseIndex, query: str, reranker: str | None = None, **options) -> list:
     """A token-budgeted bundle of passages (imladris.context.build_context),
     counted with the index's own tokenizer."""
     from imladris.models import token_counter
+    if reranker:
+        options.update(reranker=rerank_engine.load_reranker(reranker), pool=RERANK_POOL)
     return context_engine.build_context(idx, query, token_counter(load_model(idx.spec)), **options)
 
 
@@ -156,7 +158,7 @@ def main():
     parser.add_argument("--min-score", type=float, default=DEFAULT_MIN_SCORE,
                         help="semantic-only: drop hits below this cosine score")
     parser.add_argument("--rerank", choices=[*rerank_engine.RERANKER_REGISTRY, "off"], default=None,
-                        help="ranked modes: reorder the top %d blocks with a cross-encoder "
+                        help="reorder the top %d blocks with a cross-encoder "
                              "(default: SAMWISE_RERANKER; empty = off)" % RERANK_POOL)
     parser.add_argument("--format", choices=["json", "text"], default="json")
     parser.add_argument("--context", action="store_true",
@@ -170,8 +172,9 @@ def main():
     args = parser.parse_args()
 
     brain_dir = resolve_brain_path(PROJECT_DIR)
+    reranker = default_reranker() if args.rerank is None else (None if args.rerank == "off" else args.rerank)
     if args.context:
-        items = build_context(load_index(brain_dir), args.query, budget=args.budget,
+        items = build_context(load_index(brain_dir), args.query, reranker=reranker, budget=args.budget,
                               links=not args.no_links, file_rank=args.file_rank)
         if args.format == "json":
             print(json.dumps([vars(it) for it in items], ensure_ascii=False, indent=2))
@@ -187,7 +190,6 @@ def main():
                 print(it.text)
                 print()
         return
-    reranker = default_reranker() if args.rerank is None else (None if args.rerank == "off" else args.rerank)
     results = search(brain_dir, args.query, args.strategy, args.top_k, args.min_score,
                      diversify=args.diversify, stem=args.stem, reranker=reranker)
 

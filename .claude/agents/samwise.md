@@ -90,7 +90,7 @@ yourself.
    rarely below ~0.80), so read the ranking, not the absolute number.
    Semantic beats hybrid with this model (hit@1 0.76 vs. 0.62) — the grep
    side of hybrid adds more false positives than it recovers.
-   `--rerank bge-m3` reorders the top 20 blocks with a cross-encoder: a
+   `--rerank bge-m3` (ranked or `--context`) reorders the top 20 blocks with a cross-encoder: a
    little better top-5 (answer in top 5 .84 → .92), but ~1 min per query on
    the Pi. Off by default (`SAMWISE_RERANKER`); use it only when the user
    asks for it or the default ranking clearly missed.
