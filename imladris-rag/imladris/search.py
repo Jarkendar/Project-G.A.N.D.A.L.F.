@@ -19,6 +19,7 @@ from pathlib import Path
 import numpy as np
 
 from . import store
+from .store import Store
 from .corpus import Corpus
 from .models import ModelSpec, load_model
 
@@ -37,7 +38,7 @@ class IndexUnavailable(Exception):
 @dataclass
 class Index:
     """Loaded, read-only view of an index."""
-    db_path: Path
+    db_path: str                                     # where the index lives (Store.location)
     spec: ModelSpec
     embed_dim: int
     ids: list = field(default_factory=list)          # nodes.id per chunk (schema 2), else None
@@ -50,30 +51,24 @@ class Index:
     vectors: np.ndarray = None  # (n_chunks, embed_dim), float32, normalized
     doc_paths: list = field(default_factory=list)  # documents with an enrichment vector
     doc_vectors: np.ndarray = None                 # (n_docs, embed_dim), or None
+    store: Store = None                      # open, read-only
 
 
-def load_index(db_path: Path) -> Index:
-    if not db_path.is_file():
-        raise IndexUnavailable(f"no index at {db_path}")
-    conn = store.open_readonly(db_path)
-    try:
-        meta = store.get_meta(conn)
-        if not meta.get("model_name"):
-            raise IndexUnavailable(f"index at {db_path} has no meta")
-        if store._has_table(conn, "nodes"):
-            rows = conn.execute(
-                "SELECT path, ord, heading, text, vector, section_no, line_start, line_end, id "
-                "FROM nodes WHERE level = 'block' AND vector IS NOT NULL ORDER BY id").fetchall()
-            docs = conn.execute("SELECT path, vector FROM nodes WHERE level = 'doc' AND vector IS NOT NULL "
-                                "ORDER BY id").fetchall()
-        else:  # schema 1: read-only compatibility until the index is rebuilt
-            docs = []
-            rows = [r + (None, None, None, None) for r in conn.execute(
-                "SELECT path, ord, heading, text, vector FROM chunks ORDER BY id").fetchall()]
-    finally:
-        conn.close()
+def load_index(location) -> Index:
+    """`location`: a SQLite index path, or an open Store."""
+    if isinstance(location, Store):
+        st = location
+    else:
+        if not Path(location).is_file():
+            raise IndexUnavailable(f"no index at {location}")
+        st = store.open_store(location, readonly=True)
+    meta = st.get_meta()
+    if not meta.get("model_name"):
+        raise IndexUnavailable(f"index at {st.location} has no meta")
+    rows = st.blocks()
+    docs = st.doc_vectors()
     if not rows:
-        raise IndexUnavailable(f"index at {db_path} has no chunks")
+        raise IndexUnavailable(f"index at {st.location} has no chunks")
 
     spec = ModelSpec(
         name=meta["model_name"],
@@ -83,17 +78,18 @@ def load_index(db_path: Path) -> Index:
         config_kwargs=json.loads(meta.get("config_kwargs") or "{}"),
     )
     return Index(
-        db_path=db_path,
+        db_path=st.location,
+        store=st,
         spec=spec,
         embed_dim=int(meta.get("embed_dim", "0")),
-        ids=[r[8] for r in rows],
-        paths=[r[0] for r in rows],
-        ords=[r[1] for r in rows],
-        headings=[r[2] or "" for r in rows],
-        texts=[r[3] for r in rows],
-        section_nos=[r[5] for r in rows],
-        line_ranges=[(r[6], r[7]) for r in rows],
-        vectors=np.stack([np.frombuffer(r[4], dtype=np.float32) for r in rows]),
+        ids=[r["id"] for r in rows],
+        paths=[r["path"] for r in rows],
+        ords=[r["ord"] for r in rows],
+        headings=[r["heading"] or "" for r in rows],
+        texts=[r["text"] for r in rows],
+        section_nos=[r["section_no"] for r in rows],
+        line_ranges=[(r["line_start"], r["line_end"]) for r in rows],
+        vectors=np.stack([np.frombuffer(r["vector"], dtype=np.float32) for r in rows]),
         doc_paths=[d[0] for d in docs],
         doc_vectors=np.stack([np.frombuffer(d[1], dtype=np.float32) for d in docs]) if docs else None,
     )
@@ -224,29 +220,20 @@ def _hit(idx: Index, i: int, score: float) -> dict:
 
 
 def fts_query(query: str, stem: int, stopwords: frozenset = frozenset()) -> str:
-    """An FTS5 OR-query of the query's keywords, each cut to `stem` characters
-    and prefix-matched (0 = whole words)."""
-    terms = []
-    for kw in dict.fromkeys(keywords_from_query(query, stopwords)):
-        kw = kw.replace('"', "")
-        terms.append(f'"{kw[:stem]}"*' if stem and len(kw) > stem else f'"{kw}"')
-    return " OR ".join(terms)
+    """The FTS5 query the SQLite store runs for `query` (for inspection)."""
+    return store.fts_match(keywords_from_query(query, stopwords), stem)
 
 
 def fts_search(idx: Index, query: str, top_k: int, stem: int = 5,
                stopwords: frozenset = frozenset()) -> list[dict]:
-    """BM25-ranked blocks. Empty on a schema-1 index or without keywords."""
-    match = fts_query(query, stem, stopwords)
-    if not match or idx.ids[0] is None:
+    """Best keyword-matching blocks (BM25). Empty on a schema-1 index or
+    without keywords."""
+    keywords = keywords_from_query(query, stopwords)
+    if not keywords or idx.ids[0] is None:
         return []
     positions = {node_id: i for i, node_id in enumerate(idx.ids)}
-    conn = store.open_readonly(idx.db_path)
-    try:
-        rows = conn.execute("SELECT rowid, bm25(blocks_fts) FROM blocks_fts WHERE blocks_fts MATCH ? "
-                            "ORDER BY bm25(blocks_fts) LIMIT ?", (match, top_k)).fetchall()
-    finally:
-        conn.close()
-    return [_hit(idx, positions[rowid], -rank) for rowid, rank in rows if rowid in positions]
+    return [_hit(idx, positions[node_id], score)
+            for node_id, score in idx.store.keyword_blocks(keywords, stem, top_k) if node_id in positions]
 
 
 def hybrid_fts_search(idx: Index, query: str, top_k: int, stem: int = 5,

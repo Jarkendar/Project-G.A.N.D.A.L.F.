@@ -123,7 +123,7 @@ class ContextTest(unittest.TestCase):
         from imladris import context
         with tempfile.TemporaryDirectory() as tmp:
             db = Path(tmp) / "i.db"
-            conn = store.open_store(db)
+            st = store.open_store(db)
             for path, axis in (("a.md", 0), ("b.md", 1)):
                 doc = parse_markdown(Path(path), DOC, count)
                 sections = [{"heading": " > ".join(s.path) or "Doc", "section_no": s.number,
@@ -138,13 +138,13 @@ class ContextTest(unittest.TestCase):
                     blocks.append({"heading": c.heading, "text": c.text, "section": c.section,
                                    "line_start": c.line_start, "line_end": c.line_end,
                                    "token_count": count(c.text), "vector": vec.tobytes()})
-                store.write_document(conn, path, content_hash="h", mtime=0.0, indexed_at="now", title="Doc",
-                                     frontmatter={}, privacy="private", sections=sections, blocks=blocks,
-                                     links=[])
-            store.set_meta(conn, model_name="m", model_revision="r", embed_dim="4",
-                           schema_version=store.SCHEMA_VERSION)
-            conn.commit()
-            conn.close()
+                st.write_document(path, content_hash="h", mtime=0.0, indexed_at="now", title="Doc",
+                                  frontmatter={}, privacy="private", sections=sections, blocks=blocks,
+                                  links=[])
+            st.set_meta(model_name="m", model_revision="r", embed_dim="4",
+                        schema_version=store.SCHEMA_VERSION)
+            st.commit()
+            st.close()
 
             idx = search.load_index(db)
             query = np.array([0.9, 0.44, 0.0, 0.0], dtype=np.float32)
@@ -165,20 +165,20 @@ class ContextTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             db = Path(tmp) / "i.db"
-            conn = store.open_store(db)
+            st = store.open_store(db)
             # c.md's block barely matches, but its summary names the category
             for path, block_cos, doc_cos in (("a.md", 0.9, 0.1), ("b.md", 0.5, 0.1), ("c.md", 0.1, 0.9)):
-                store.write_document(conn, path, content_hash="h", mtime=0.0, indexed_at="now", title=path,
-                                     frontmatter={}, privacy="public",
-                                     sections=[{"heading": path, "section_no": "", "line_start": 1,
-                                                "line_end": 1, "text": "x"}],
-                                     blocks=[{"heading": path, "text": "x", "section": 0, "line_start": 1,
-                                              "line_end": 1, "token_count": 1, "vector": at(block_cos)}],
-                                     links=[], doc_text=f"{path} summary", doc_vector=at(doc_cos))
-            store.set_meta(conn, model_name="m", model_revision="r", embed_dim="4",
-                           schema_version=store.SCHEMA_VERSION)
-            conn.commit()
-            conn.close()
+                st.write_document(path, content_hash="h", mtime=0.0, indexed_at="now", title=path,
+                                  frontmatter={}, privacy="public",
+                                  sections=[{"heading": path, "section_no": "", "line_start": 1,
+                                             "line_end": 1, "text": "x"}],
+                                  blocks=[{"heading": path, "text": "x", "section": 0, "line_start": 1,
+                                           "line_end": 1, "token_count": 1, "vector": at(block_cos)}],
+                                  links=[], doc_text=f"{path} summary", doc_vector=at(doc_cos))
+            st.set_meta(model_name="m", model_revision="r", embed_dim="4",
+                        schema_version=store.SCHEMA_VERSION)
+            st.commit()
+            st.close()
 
             idx = search.load_index(db)
             self.assertEqual(idx.doc_paths, ["a.md", "b.md", "c.md"])
@@ -196,29 +196,28 @@ class StoreTest(unittest.TestCase):
         doc = parse_markdown(Path("d.md"), DOC, count)
         with tempfile.TemporaryDirectory() as tmp:
             db = Path(tmp) / "i.db"
-            conn = store.open_store(db)
+            st = store.open_store(db)
             sections = [{"heading": " > ".join(s.path) or "Doc", "section_no": s.number,
                          "line_start": s.line_start, "line_end": s.line_end, "text": s.text}
                         for s in doc.sections]
             blocks = [{"heading": c.heading, "text": c.text, "section": c.section,
                        "line_start": c.line_start, "line_end": c.line_end, "token_count": count(c.text),
                        "vector": np.ones(4, dtype=np.float32).tobytes()} for c in doc.chunks]
-            store.write_document(conn, "d.md", content_hash="h", mtime=0.0, indexed_at="now",
-                                 title="Doc", frontmatter={"title": "Doc"}, privacy="private",
-                                 sections=sections, blocks=blocks,
-                                 links=[{"dst": "e.md", "raw": "e.md", "kind": "path", "line": 1}])
-            store.set_meta(conn, model_name="m", model_revision="r", embed_dim="4",
-                           schema_version=store.SCHEMA_VERSION)
-            conn.commit()
+            st.write_document("d.md", content_hash="h", mtime=0.0, indexed_at="now",
+                              title="Doc", frontmatter={"title": "Doc"}, privacy="private",
+                              sections=sections, blocks=blocks,
+                              links=[{"dst": "e.md", "raw": "e.md", "kind": "path", "line": 1}])
+            st.set_meta(model_name="m", model_revision="r", embed_dim="4",
+                        schema_version=store.SCHEMA_VERSION)
+            st.commit()
 
-            levels = dict(conn.execute("SELECT level, COUNT(*) FROM nodes GROUP BY level").fetchall())
-            self.assertEqual(levels, {"doc": 1, "section": 4, "block": 4})
+            title, privacy, sections, blocks = st.document("d.md")
+            self.assertEqual((title, privacy, len(sections), len(blocks)), ("Doc", "private", 4, 4))
             # every block hangs under the section its chunk came from
-            parents = conn.execute(
-                "SELECT s.section_no FROM nodes b JOIN nodes s ON b.parent_id = s.id "
-                "WHERE b.level = 'block' ORDER BY b.ord").fetchall()
-            self.assertEqual([p[0] for p in parents], ["", "1", "1.1", "2"])
-            conn.close()
+            self.assertEqual([sections[b[1]][0] for b in blocks], ["", "1", "1.1", "2"])
+            self.assertEqual(st.neighbours("d.md"), {"e.md"})
+            self.assertEqual(st.neighbours("e.md"), {"d.md"})
+            st.close()
 
             idx = search.load_index(db)
             self.assertEqual(len(idx.texts), 4)
@@ -226,12 +225,12 @@ class StoreTest(unittest.TestCase):
             # full text: backfilled blocks are searchable; "Dee" prefix-matches "Deep"
             hits = search.fts_search(idx, "Deeper things", top_k=3, stem=3)
             self.assertEqual([h["section_no"] for h in hits], ["1.1"])
+            idx.store.close()
 
-            conn = store.open_store(db)
-            store.delete_document(conn, "d.md")
-            conn.commit()
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0], 0)
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM links").fetchone()[0], 0)
+            st = store.open_store(db)
+            st.delete_document("d.md")
+            st.commit()
+            self.assertEqual((st.stored_hashes(), st.blocks(), st.neighbours("e.md")), ({}, [], set()))
 
     def test_schema1_index_is_left_alone_and_reported(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -241,10 +240,10 @@ class StoreTest(unittest.TestCase):
                               "INSERT INTO meta VALUES ('model_name', 'm'), ('schema_version', '1');")
             old.commit()
             old.close()
-            conn = store.open_store(db)
+            st = store.open_store(db)
             with self.assertRaises(store.IndexMismatch):
-                store.check_consistency(conn, "m", "main", "v2")
-            self.assertEqual(store.stored_hashes(conn), {})
+                st.check_consistency("m", "main", "v2")
+            self.assertEqual(st.stored_hashes(), {})
 
 
 if __name__ == "__main__":

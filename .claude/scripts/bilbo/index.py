@@ -171,32 +171,32 @@ def main():
         return
 
     db_path = Path(args.db).resolve() if args.db else brain_dir / "index" / "bilbo.db"
-    conn = store.open_store(db_path)
+    st = store.open_store(db_path)
 
     # Read HEAD before scanning: a commit landing mid-run then shows up as
     # "new" on the next check instead of being marked indexed unseen.
     head = brain_head(brain_dir)
-    if args.if_new_commits and head and head == store.get_meta(conn).get("last_indexed_commit"):
+    if args.if_new_commits and head and head == st.get_meta().get("last_indexed_commit"):
         print(f"BILBO: brain/ HEAD {head[:7]} already indexed — nothing to do.")
-        conn.close()
+        st.close()
         return
 
     start = time.time()
     if args.dry_run:
-        to_update, to_delete, unchanged = indexer.plan(conn, corpus, scope, args.rebuild)
+        to_update, to_delete, unchanged = indexer.plan(st, corpus, scope, args.rebuild)
         print(f"BILBO (dry-run): {len(to_update)} to add/update, "
               f"{len(to_delete)} to delete, {unchanged} unchanged.")
         for rel in to_update:
             print(f"  update: {rel.as_posix()}")
         for path in to_delete:
             print(f"  delete: {path}")
-        conn.close()
+        st.close()
         return
 
     # Enrich before embedding, so the vectors see this commit's enrichment.
     enrichment = run_enrichment() if use else None
     try:
-        result = indexer.sync(conn, corpus, spec, chunker, chunk_params, scope, args.rebuild,
+        result = indexer.sync(st, corpus, spec, chunker, chunk_params, scope, args.rebuild,
                               log=lambda msg: print(f"BILBO: {msg}"), enrichment=enrichment, use=use)
     except (store.IndexMismatch, ValueError) as err:
         sys.exit(f"BILBO: {err}")
@@ -206,8 +206,8 @@ def main():
     # Only a full-scope run covers everything HEAD contains; a --path run
     # leaves the rest unchecked, so it must not claim the commit.
     if head and scope is None:
-        store.set_meta(conn, last_indexed_commit=head)
-    conn.close()
+        st.set_meta(last_indexed_commit=head)
+    st.close()
     print(f"BILBO: done in {time.time() - start:.1f}s. Index: {db_path}")
 
 

@@ -3,7 +3,6 @@ parse, chunk and embed only what changed, drop what disappeared, and keep
 the link graph resolved against the current set of files."""
 
 import json
-import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -24,11 +23,11 @@ class SyncResult:
     links: int = 0
 
 
-def plan(conn: sqlite3.Connection, corpus: Corpus, scope: Path | None, rebuild: bool):
+def plan(st: store.Store, corpus: Corpus, scope: Path | None, rebuild: bool):
     """(files to (re)index, stored paths to delete, unchanged count)."""
     disk_files = corpus.discover(scope)
     disk_set = {p.as_posix() for p in disk_files}
-    existing = {} if rebuild else store.stored_hashes(conn)
+    existing = {} if rebuild else st.stored_hashes()
 
     to_update, unchanged = [], 0
     for rel in disk_files:
@@ -62,15 +61,13 @@ def _parse(chunker: str, rel: Path, content: str, count, chunk_params: dict | No
     return title, frontmatter, [], chunks
 
 
-def relink(conn: sqlite3.Connection, resolver: Resolver) -> int:
+def relink(st: store.Store, resolver: Resolver) -> int:
     """Re-resolve every stored link against the current file set; returns how
     many links resolve to a document in the corpus."""
-    rows = conn.execute("SELECT rowid, src, raw, kind FROM links").fetchall()
-    for rowid, src, raw, kind in rows:
-        target = {"markdown": resolver.markdown, "wikilink": resolver.wikilink}.get(
+    def resolve(src, raw, kind):
+        return {"markdown": resolver.markdown, "wikilink": resolver.wikilink}.get(
             kind, lambda _src, r: resolver.path(r))(src, raw)
-        conn.execute("UPDATE links SET dst = ? WHERE rowid = ?", (target, rowid))
-    return conn.execute("SELECT COUNT(*) FROM links WHERE dst IS NOT NULL").fetchone()[0]
+    return st.relink(resolve)
 
 
 ENRICHMENT_USES = ("doc", "context")
@@ -82,7 +79,7 @@ def doc_embed_text(title: str, data: dict) -> str:
                       data.get("summary", "")])
 
 
-def sync(conn: sqlite3.Connection, corpus: Corpus, spec: ModelSpec, chunker: str = "v1",
+def sync(st: store.Store, corpus: Corpus, spec: ModelSpec, chunker: str = "v1",
          chunk_params: dict | None = None, scope: Path | None = None, rebuild: bool = False,
          log=print, enrichment: dict | None = None, use: tuple = ()) -> SyncResult:
     """Bring the store in line with the corpus. Raises store.IndexMismatch if
@@ -99,16 +96,16 @@ def sync(conn: sqlite3.Connection, corpus: Corpus, spec: ModelSpec, chunker: str
         raise ValueError(f"unknown enrichment uses: {sorted(unknown)}")
     use_key = ",".join(sorted(use))
     if rebuild:
-        store.reset(conn)
+        st.reset()
     else:
-        store.check_consistency(conn, spec.name, spec.revision, chunker)
-        built_with = store.get_meta(conn).get("enrichment_use")
+        st.check_consistency(spec.name, spec.revision, chunker)
+        built_with = st.get_meta().get("enrichment_use")
         if built_with is not None and built_with != use_key:
             raise store.IndexMismatch(f"index was built with enrichment use '{built_with}', this run "
                                       f"requests '{use_key}'. Run with --rebuild.")
     enrichment = enrichment or {}
 
-    to_update, to_delete, unchanged = plan(conn, corpus, scope, rebuild)
+    to_update, to_delete, unchanged = plan(st, corpus, scope, rebuild)
     result = SyncResult(unchanged=unchanged)
     resolver = Resolver({p.as_posix() for p in corpus.discover()})
 
@@ -160,7 +157,7 @@ def sync(conn: sqlite3.Connection, corpus: Corpus, spec: ModelSpec, chunker: str
             links = [{"dst": l.target, "raw": l.raw, "kind": l.kind, "line": l.line}
                      for l in extract_links(posix, content, resolver)]
             abs_path = corpus.root / rel
-            store.write_document(conn, posix, content_hash=file_hash(abs_path),
+            st.write_document(posix, content_hash=file_hash(abs_path),
                                  mtime=abs_path.stat().st_mtime, indexed_at=now, title=title,
                                  frontmatter=frontmatter, privacy=corpus.privacy_of(rel, frontmatter),
                                  sections=sections, blocks=chunks, links=links,
@@ -168,8 +165,7 @@ def sync(conn: sqlite3.Connection, corpus: Corpus, spec: ModelSpec, chunker: str
             result.updated += 1
             result.chunks += len(chunks)
 
-        store.set_meta(
-            conn,
+        st.set_meta(
             model_name=spec.name,
             model_revision=spec.revision,
             embed_dim=str(model.get_sentence_embedding_dimension()),
@@ -184,9 +180,9 @@ def sync(conn: sqlite3.Connection, corpus: Corpus, spec: ModelSpec, chunker: str
         )
 
     for path in to_delete:
-        store.delete_document(conn, path)
+        st.delete_document(path)
         result.deleted += 1
     if to_update or to_delete:
-        result.links = relink(conn, resolver)
-    conn.commit()
+        result.links = relink(st, resolver)
+    st.commit()
     return result

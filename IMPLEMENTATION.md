@@ -883,8 +883,10 @@ shown to match it, then it is removed. One commit per step on
 - [x] **Q1 — Infrastructure:** `imladris-rag/docker-compose.yml` (Qdrant
       1.19.1 arm64, telemetry off, `127.0.0.1:6333`, named volume, restart
       unless stopped), `qdrant-client==1.19.1` as an extra and in Bilbo's venv.
-- [ ] **Q2 — Store interface:** the SQLite code behind a `Store` interface,
-      no change in behavior (eval identical).
+- [x] **Q2 — Store interface:** the SQLite code behind a `Store` interface,
+      no change in behavior. Verified: eval on 83 queries × semantic, fts,
+      hybrid-fts and context identical to `main` per query (only latencies
+      differ); tests now exercise the interface, not SQL.
 - [ ] **Q3 — `QdrantStore`:** points for docs, sections and blocks; payload
       with text, headings, lines, links, privacy, `superseded_by`, folder;
       payload indexes for filters; index meta in its own point. Check:
