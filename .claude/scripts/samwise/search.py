@@ -18,6 +18,8 @@
 #   - grep:       keyword baseline — ranks whole files by keyword hit count.
 #   - hybrid:     RRF of semantic and grep (file level) — the older baseline.
 # --diversify keeps only the best block of each file.
+# --rerank KEY reorders the top RERANK_POOL blocks with a cross-encoder
+# (imladris.rerank); off unless SAMWISE_RERANKER is set in gandalf.env.
 #
 # Usable two ways:
 #   1. CLI:    ./search.py "query" --strategy semantic --top-k 8
@@ -34,9 +36,10 @@ sys.path.insert(0, str(PROJECT_DIR / "imladris-rag"))
 sys.path.insert(0, str(PROJECT_DIR / ".claude" / "scripts" / "bilbo"))
 
 from imladris import context as context_engine  # noqa: E402
+from imladris import rerank as rerank_engine  # noqa: E402
 from imladris import search as engine  # noqa: E402
 from imladris.models import load_model  # noqa: E402,F401  (re-exported for the eval)
-from index import brain_corpus, resolve_brain_path  # noqa: E402,F401  (Bilbo's brain/ rules)
+from index import brain_corpus, read_gandalf_env, resolve_brain_path  # noqa: E402,F401  (Bilbo's brain/ rules)
 
 SamwiseIndex = engine.Index
 
@@ -64,6 +67,19 @@ DEFAULT_TOP_K = 8
 # on an index without them. Measured 2026-09-25: hit@1 .76 -> .78, MRR
 # .83 -> .86 (IMPLEMENTATION.md Step 9, Index v2 phase D).
 DEFAULT_FILE_RANK = "zmax"
+
+# Optional cross-encoder over the top RERANK_POOL blocks of a ranked search
+# (not --context yet). Off by default: on the Pi 5 bge-m3 costs ~52 s per
+# query for a small gain — measured 2026-09-25 against semantic: hit@1 .76
+# -> .76, MRR .82 -> .83, ans@5 .84 -> .92 (IMPLEMENTATION.md Step 9, Index v2
+# phase E). Turn on with SAMWISE_RERANKER=bge-m3 on faster hardware.
+RERANK_POOL = 20
+
+
+def default_reranker() -> str | None:
+    """SAMWISE_RERANKER from the environment or gandalf.env; empty = off."""
+    import os
+    return os.environ.get("SAMWISE_RERANKER") or read_gandalf_env(PROJECT_DIR).get("SAMWISE_RERANKER") or None
 
 
 def default_project_dir() -> Path:
@@ -95,12 +111,15 @@ DEFAULT_STEM = 5  # FTS query words are cut to this many characters (0 = whole w
 def search(brain_dir: Path, query: str, strategy: str, top_k: int,
            min_score: float, idx: SamwiseIndex | None = None,
            diversify: bool = False, stem: int = DEFAULT_STEM,
-           fts_weight: float = 1.0, stopwords: frozenset = STOPWORDS) -> list[dict]:
+           fts_weight: float = 1.0, stopwords: frozenset = STOPWORDS,
+           reranker: str | None = None) -> list[dict]:
     if strategy == "grep":
         return grep_search(brain_dir, query, top_k, stopwords)
     if idx is None:
         idx = load_index(brain_dir)
     pool = top_k * 4 if diversify else top_k  # room to drop same-file blocks
+    if reranker:
+        pool = max(pool, RERANK_POOL)
     if strategy == "semantic":
         results = engine.semantic_search(idx, query, pool, min_score)
     elif strategy == "fts":
@@ -111,6 +130,9 @@ def search(brain_dir: Path, query: str, strategy: str, top_k: int,
         results = engine.hybrid_search(idx, brain_corpus(brain_dir), query, pool, stopwords)
     else:
         raise ValueError(f"unknown strategy: {strategy}")
+    if reranker:
+        results = rerank_engine.rerank(rerank_engine.load_reranker(reranker), query, results,
+                                       [idx.texts[r["chunk"]] for r in results])
     return engine.diversify(results, top_k) if diversify else results[:top_k]
 
 
@@ -133,6 +155,9 @@ def main():
     parser.add_argument("--top-k", type=int, default=DEFAULT_TOP_K)
     parser.add_argument("--min-score", type=float, default=DEFAULT_MIN_SCORE,
                         help="semantic-only: drop hits below this cosine score")
+    parser.add_argument("--rerank", choices=[*rerank_engine.RERANKER_REGISTRY, "off"], default=None,
+                        help="ranked modes: reorder the top %d blocks with a cross-encoder "
+                             "(default: SAMWISE_RERANKER; empty = off)" % RERANK_POOL)
     parser.add_argument("--format", choices=["json", "text"], default="json")
     parser.add_argument("--context", action="store_true",
                         help="return a context bundle (widened passages with citations) "
@@ -162,8 +187,9 @@ def main():
                 print(it.text)
                 print()
         return
+    reranker = default_reranker() if args.rerank is None else (None if args.rerank == "off" else args.rerank)
     results = search(brain_dir, args.query, args.strategy, args.top_k, args.min_score,
-                     diversify=args.diversify, stem=args.stem)
+                     diversify=args.diversify, stem=args.stem, reranker=reranker)
 
     if args.format == "json":
         print(json.dumps([{k: v for k, v in r.items() if k != "chunk"} for r in results],

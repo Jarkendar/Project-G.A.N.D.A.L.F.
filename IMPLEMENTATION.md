@@ -831,11 +831,29 @@ move to its own repo and serve other projects.
         too: 25 min vs 18 for a full build, 7K-token forward passes.
       - **Per-chunk Haiku** is not tested: per-section context sentences,
         its lighter form, already hurt (above).
-- [ ] **E — Reranker (in this stage, not Stage 3):** bge-reranker-v2-m3
-      (568M), gte-multilingual-reranker-base (306M), Qwen3-Reranker-0.6B —
-      quality and Pi latency. Gains are expected to be small at today's
-      scale; the component and its measurement are in place before brain/
-      grows.
+- [x] **E — Reranker (in this stage, not Stage 3):** the component is in
+      place, **off by default** on the Pi (`SAMWISE_RERANKER`, `search.py
+      --rerank`). Measured 2026-09-25 on the golden set, semantic top-20
+      reordered by a cross-encoder:
+
+      | | no reranker | pl-base (sdadas, 278M) | bge-reranker-v2-m3 (568M) |
+      |---|---|---|---|
+      | hit@1 | **.76** | .67 | **.76** |
+      | hit@3 / @5 | .84 / .89 | **.87 / .94** | **.87** / .92 |
+      | MRR | .82 | .78 | **.83** |
+      | R@5 / ans@5 | .84 / .84 | **.89 / .92** | .87 / **.92** |
+      | latency (median) | ~0.35 s | 12.6 s | 52 s |
+      | peak RSS | — | 2.8 GB | 4.0 GB |
+
+      - bge-m3 is the one to keep: it leaves the top hit alone and puts more
+        answers into the top 5. The polish model widens the top 5 too, but
+        demotes the best block (`deep` MRR .90 → .65).
+      - Neither is worth it on the Pi's CPU: 35–150× the latency for a few
+        points. Ideas to revisit: INT8 quantisation, the Hailo-10H NPU.
+      - Qwen3-Reranker-0.6B ran out of RAM on the 8 GB Pi (twice took the
+        system down; the Pi kernel ignores cgroup memory limits) — dropped.
+        gte-multilingual-reranker-base was not measured — dropped.
+      - Only ranked search (`--strategy`) reranks; `--context` does not yet.
 
 Sources: PL-MTEB (ACL 2026 Findings); IBM Granite Embedding Multilingual R2
 model card; Snowflake Arctic Embed 2.0; Qu et al., "Is Semantic Chunking
