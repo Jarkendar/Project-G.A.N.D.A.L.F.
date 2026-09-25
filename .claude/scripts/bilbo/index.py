@@ -84,6 +84,16 @@ def resolve_brain_path(project_dir: Path) -> Path:
     return path
 
 
+def resolve_index_location(project_dir: Path, brain_dir: Path):
+    """Where the production index lives: BILBO_INDEX (environment, then
+    gandalf.env) — "<qdrant url>/<collection>", or a SQLite path relative to
+    brain/ — else brain/index/bilbo.db."""
+    raw = os.environ.get("BILBO_INDEX") or read_gandalf_env(project_dir).get("BILBO_INDEX")
+    if not raw:
+        return brain_dir / "index" / "bilbo.db"
+    return raw if store.is_url(raw) else (brain_dir / raw).resolve()
+
+
 def brain_corpus(brain_dir: Path) -> Corpus:
     return Corpus(root=brain_dir, **BRAIN_CORPUS_RULES)
 
@@ -129,8 +139,8 @@ def main():
                              "(default: BILBO_ENRICHMENT_USE; empty = none). When set, changed files "
                              "are enriched first, then embedded")
     parser.add_argument("--db", type=str, default=None,
-                        help="write to this index instead of brain/index/bilbo.db: a SQLite path or "
-                             "<qdrant url>/<collection> — for variants compared by the Samwise eval")
+                        help="write to this index instead of the production one (BILBO_INDEX): a SQLite "
+                             "path or <qdrant url>/<collection> — for variants compared by the Samwise eval")
     args = parser.parse_args()
 
     brain_dir = resolve_brain_path(PROJECT_DIR)
@@ -173,8 +183,13 @@ def main():
     if args.db:  # a SQLite path, or "<qdrant url>/<collection>"
         db_path = args.db if store.is_url(args.db) else Path(args.db).resolve()
     else:
-        db_path = brain_dir / "index" / "bilbo.db"
+        db_path = resolve_index_location(PROJECT_DIR, brain_dir)
     st = store.open_store(db_path)
+    try:
+        st.get_meta()
+    except Exception as err:  # a Qdrant index whose server is down; the next run catches up
+        sys.exit(f"BILBO: index at {db_path} unreachable ({type(err).__name__}: {err}) — start Qdrant: "
+                 f"docker compose -f imladris-rag/docker-compose.yml up -d")
 
     # Read HEAD before scanning: a commit landing mid-run then shows up as
     # "new" on the next check instead of being marked indexed unseen.

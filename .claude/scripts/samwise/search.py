@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # S.A.M.W.I.S.E. — SQL And Markdown Wading Into Semantic Embeddings.
 #
-# The reader. B.I.L.B.O. (.claude/scripts/bilbo/index.py) WRITES the index at
-# brain/index/bilbo.db; Samwise only READS it — never a writer connection,
-# never a rebuild.
+# The reader. B.I.L.B.O. (.claude/scripts/bilbo/index.py) WRITES the index —
+# wherever BILBO_INDEX points (Qdrant, or brain/index/bilbo.db by default);
+# Samwise only READS it — never a writer connection, never a rebuild.
 #
 # Retrieval itself lives in the imladris-rag engine (imladris.search); this
 # adapter supplies brain/: where it is, what counts as knowledge (the same
@@ -39,7 +39,8 @@ from imladris import context as context_engine  # noqa: E402
 from imladris import rerank as rerank_engine  # noqa: E402
 from imladris import search as engine  # noqa: E402
 from imladris.models import load_model  # noqa: E402,F401  (re-exported for the eval)
-from index import brain_corpus, read_gandalf_env, resolve_brain_path  # noqa: E402,F401  (Bilbo's brain/ rules)
+from index import (brain_corpus, read_gandalf_env, resolve_brain_path,  # noqa: E402,F401  (Bilbo's brain/ rules)
+                   resolve_index_location)
 
 SamwiseIndex = engine.Index
 
@@ -86,14 +87,16 @@ def default_project_dir() -> Path:
     return PROJECT_DIR
 
 
-def load_index(brain_dir: Path, db_path: Path | None = None) -> SamwiseIndex:
-    """db_path defaults to Bilbo's production index; the eval harness passes an
-    experimental one (built with `index.py --db`) to compare variants."""
-    db_path = db_path or brain_dir / "index" / "bilbo.db"
+def load_index(brain_dir: Path, db_path=None) -> SamwiseIndex:
+    """db_path defaults to Bilbo's production index (BILBO_INDEX); the eval
+    harness passes an experimental one (built with `index.py --db`) to
+    compare variants."""
+    db_path = db_path or resolve_index_location(PROJECT_DIR, brain_dir)
     try:
         return engine.load_index(db_path)
     except engine.IndexUnavailable as err:
-        sys.exit(f"SAMWISE: {err} — run B.I.L.B.O. (.claude/scripts/bilbo/index.py) first.")
+        sys.exit(f"SAMWISE: {err} — run B.I.L.B.O. (.claude/scripts/bilbo/index.py) first, or, for a "
+                 f"Qdrant index, start the server: docker compose -f imladris-rag/docker-compose.yml up -d")
 
 
 semantic_search = engine.semantic_search

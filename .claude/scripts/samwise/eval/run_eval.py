@@ -283,7 +283,7 @@ def _fmt(value, width=6):
 def main():
     parser = argparse.ArgumentParser(description="S.A.M.W.I.S.E. retrieval eval")
     parser.add_argument("--index", type=str, default=None,
-                        help="evaluate this index instead of brain/index/bilbo.db "
+                        help="evaluate this index instead of the production one (BILBO_INDEX) "
                              "(a SQLite path or <qdrant url>/<collection>)")
     parser.add_argument("--strategies", type=str, default="grep,semantic,hybrid",
                         help="comma-separated search.py strategies (" + ",".join(search.STRATEGIES)

@@ -64,7 +64,10 @@ def load_index(location) -> Index:
         if not Path(location).is_file():
             raise IndexUnavailable(f"no index at {location}")
         st = store.open_store(location, readonly=True)
-    meta = st.get_meta()
+    try:
+        meta = st.get_meta()
+    except Exception as err:  # a server store that does not answer
+        raise IndexUnavailable(f"index at {st.location} unreachable ({type(err).__name__}: {err})") from err
     if not meta.get("model_name"):
         raise IndexUnavailable(f"index at {st.location} has no meta")
     rows = st.blocks()

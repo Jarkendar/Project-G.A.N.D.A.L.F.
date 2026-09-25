@@ -913,9 +913,18 @@ shown to match it, then it is removed. One commit per step on
       | fts — Qdrant BM25 | .59 | .73 | .65 | .67 |
       | hybrid-fts — SQLite | .70 | .81 | .75 | .78 |
       | hybrid-fts — Qdrant | .70 | .81 | .75 | .78 |
-- [ ] **Q5 — Switch-over:** Bilbo (and the post-commit hook) and Samwise on
-      Qdrant via `gandalf.env`; privacy and `superseded_by` filters in queries;
-      full eval; docs.
+- [x] **Q5a — Switch-over (2026-09-25):** `BILBO_INDEX` in `gandalf.env`
+      picks the index for Bilbo, the post-commit hook and Samwise;
+      production is `http://127.0.0.1:6333/bilbo`, copied from `bilbo.db`
+      with `copy_store`. With the container down Samwise reports the index
+      unreachable (its agent falls back to grep and says so) and Bilbo exits
+      with a message; the next run catches up. `bilbo.db` stays untouched as
+      the way back until Q6.
+- [ ] **Q5b — Retrieval filters and server-side search:** default retrieval
+      skips `superseded_by` files (README principle 5; no file has it yet),
+      an optional privacy filter (public-only, for Phase 2 external engines),
+      and semantic search through Qdrant's own query with those filters
+      instead of the local vector copy.
 - [ ] **Q6 — Remove SQLite** once Q5 is confirmed in use.
 - [ ] **Q7 — Samwise as an MCP server:** `search` and `context` as MCP tools
       so Gandalf (and other clients, e.g. n8n) query the RAG directly instead

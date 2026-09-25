@@ -80,7 +80,7 @@ Invoke the `samwise` sub-agent with the original query plus the resolved
 
 Samwise will:
 1. Encode the query and cosine-rank it against B.I.L.B.O.'s embedding index
-   (`brain/index/bilbo.db`).
+   (Qdrant, per `BILBO_INDEX` in `gandalf.env`).
 2. Read the top-ranked files for real excerpts.
 3. Return ranked results (path, score, excerpt) — or explicitly report a
    fallback to grep if the index is unavailable.
