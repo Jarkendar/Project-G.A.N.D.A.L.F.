@@ -59,6 +59,12 @@ STOPWORDS = engine.load_stopwords(Path(__file__).with_name("stopwords.txt"))
 DEFAULT_MIN_SCORE = 0.8684
 DEFAULT_TOP_K = 8
 
+# How --context orders its lead files. "zmax" uses the document-level vectors
+# of an enriched index (BILBO_ENRICHMENT_USE=doc) and falls back to "blocks"
+# on an index without them. Measured 2026-09-25: hit@1 .76 -> .78, MRR
+# .83 -> .86 (IMPLEMENTATION.md Step 9, Index v2 phase D).
+DEFAULT_FILE_RANK = "zmax"
+
 
 def default_project_dir() -> Path:
     return PROJECT_DIR
@@ -134,12 +140,14 @@ def main():
     parser.add_argument("--budget", type=int, default=DEFAULT_BUDGET,
                         help="--context: token budget of the bundle")
     parser.add_argument("--no-links", action="store_true", help="--context: do not follow links")
+    parser.add_argument("--file-rank", choices=context_engine.FILE_RANKS, default=DEFAULT_FILE_RANK,
+                        help="--context: order lead files by best block, or also by document vectors")
     args = parser.parse_args()
 
     brain_dir = resolve_brain_path(PROJECT_DIR)
     if args.context:
         items = build_context(load_index(brain_dir), args.query, budget=args.budget,
-                              links=not args.no_links)
+                              links=not args.no_links, file_rank=args.file_rank)
         if args.format == "json":
             print(json.dumps([vars(it) for it in items], ensure_ascii=False, indent=2))
         else:

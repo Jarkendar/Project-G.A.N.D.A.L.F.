@@ -795,8 +795,10 @@ move to its own repo and serve other projects.
       cycling events #1/#3/#7 (blocks: #19–#61), but three lead files of
       mixed origin still bring in one of them, and "my side projects"
       (photovault doc #130) is not found by either vector — its summary
-      does not say "side project". Heuristic headers and late chunking
-      are not measured yet.
+      does not say "side project". **Decision: in production since
+      2026-09-25** — `BILBO_ENRICHMENT_USE=doc`, Samwise `--context`
+      defaults to `zmax`. Heuristic headers and late chunking are not
+      measured yet.
 - [ ] **E — Reranker (in this stage, not Stage 3):** bge-reranker-v2-m3
       (568M), gte-multilingual-reranker-base (306M), Qwen3-Reranker-0.6B —
       quality and Pi latency. Gains are expected to be small at today's

@@ -141,6 +141,25 @@ chunkers otherwise.
 Full rebuild on the Pi: ~18 min for granite-311m (~2.4 GB peak RSS);
 incremental runs from the hook touch only changed files.
 
+## Enrichment
+
+`BILBO_ENRICHMENT_USE=doc` (production since 2026-09-25) gives every file a
+document-level vector built from an LLM summary, topics and keywords;
+Samwise's `--context` uses it to rank lead files (`file_rank="zmax"`).
+Before embedding, each run sends every changed file to `claude -p` (Haiku,
+the subscription the CLI is logged in with, ~10 s per file, 4 in parallel)
+and caches the answer in `brain/index/enrichment.db` by path + content hash
++ prompt version. A rebuild, or a model or chunker change, never re-asks.
+`--enrich` fills the cache alone, without embedding (~25 min for all of
+brain/ from empty). `context` is the other use, measured and not
+recommended (IMPLEMENTATION.md Step 9, phase D).
+
+- The hook needs `claude` on the `PATH` git runs with. A failed call is
+  logged (`N failed`) and the file is indexed without its document vector.
+  It gets one on its next change or on `--rebuild`.
+- Changing `BILBO_ENRICHMENT_USE` needs one `--rebuild`, because the use is
+  recorded in `meta`. An empty value makes no LLM calls at all.
+
 ## Model pinning
 
 Every model is pinned to a fixed **HF Hub commit revision**, not the moving
@@ -164,8 +183,8 @@ conflict with sentence-transformers' own version bounds.
 
 ## Not yet done (see IMPLEMENTATION.md / the plan this was built from)
 
-- Hierarchical nodes, enrichment and a reranker — Index v2 phases C–E
-  (IMPLEMENTATION.md Step 9). The truncation problem of chunker v1 (41% of
+- The rest of enrichment (heuristic headers, late chunking) and a reranker —
+  Index v2 phases D–E (IMPLEMENTATION.md Step 9). The truncation problem of chunker v1 (41% of
   chunks over MiniLM's 128-token window) is gone with v2 + granite's 32K
   window.
 - No privacy gate — the index includes `core/`/`current/` content today, same

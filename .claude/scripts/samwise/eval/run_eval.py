@@ -98,9 +98,9 @@ def evaluate_strategy(strategy: str, golden: list[dict], brain_dir: Path,
                        idx: "search.SamwiseIndex", stem: int = 5,
                        fts_weight: float = 1.0, context_args: dict | None = None,
                        stopwords: frozenset | None = None) -> tuple[dict, list[dict]]:
-    stopwords = search.STOPWORDS if stopwords is None else stopwords
     """`strategy` is a search.py strategy, optionally suffixed "+div" for
     one block per file (e.g. "hybrid-fts+div")."""
+    stopwords = search.STOPWORDS if stopwords is None else stopwords
     name, _, flag = strategy.partition("+")
     per_query = []
     for item in golden:
@@ -271,7 +271,7 @@ def main():
                         help="context: token budget of the bundle")
     parser.add_argument("--files", type=int, default=3, help="context: lead files (best block of each goes first)")
     parser.add_argument("--no-links", action="store_true", help="context: do not follow links")
-    parser.add_argument("--file-rank", default="blocks", choices=["blocks", "zmax"],
+    parser.add_argument("--file-rank", default=search.DEFAULT_FILE_RANK, choices=search.context_engine.FILE_RANKS,
                         help="context: how candidate files are ordered (zmax needs document vectors)")
     parser.add_argument("--no-stopwords", action="store_true",
                         help="keyword strategies: ignore stopwords.txt (measure its effect)")
