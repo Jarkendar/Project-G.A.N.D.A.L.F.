@@ -898,9 +898,21 @@ shown to match it, then it is removed. One commit per step on
       identical to SQLite per query; Bilbo's incremental run works on Qdrant;
       the store tests run against both backends. Qdrant's cosine space
       normalizes vectors on write, so the store requires normalized ones.
-- [ ] **Q4 — Keyword search:** BM25 sparse vectors in place of FTS5
-      (server-side or `fastembed`, to be checked); eval against FTS5,
-      Polish prefix matching included.
+- [x] **Q4 — Keyword search:** BM25 sparse vectors in place of FTS5,
+      computed by the server (`qdrant/bm25`, IDF modifier) — no `fastembed`.
+      Qdrant has no Polish stemmer, so words are prepared client-side the way
+      FTS5 saw them: lower-cased, diacritics dropped, cut to 5 characters on
+      both sides ("polisie" and "polisa" meet as "polis"); the server's
+      stemmer and stopwords are off. The cut is fixed per collection (FTS5
+      took it per query). With BM25's default `avg_len` 256 fts hit@1 fell to
+      .55; set to the blocks' real ~60 words it matches FTS5 (83 queries):
+
+      | | hit@1 | hit@5 | MRR | ans@5 |
+      |---|---|---|---|---|
+      | fts — SQLite FTS5 | .59 | .75 | .65 | .69 |
+      | fts — Qdrant BM25 | .59 | .73 | .65 | .67 |
+      | hybrid-fts — SQLite | .70 | .81 | .75 | .78 |
+      | hybrid-fts — Qdrant | .70 | .81 | .75 | .78 |
 - [ ] **Q5 — Switch-over:** Bilbo (and the post-commit hook) and Samwise on
       Qdrant via `gandalf.env`; privacy and `superseded_by` filters in queries;
       full eval; docs.

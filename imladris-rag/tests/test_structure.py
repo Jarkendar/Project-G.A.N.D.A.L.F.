@@ -104,6 +104,14 @@ class SearchHelpersTest(unittest.TestCase):
             f.write_text("# comment\nThe\n\nand  # trailing\n")
             self.assertEqual(search.load_stopwords(f), frozenset({"the", "and"}))
 
+    def test_keyword_terms_meet_across_inflection(self):
+        try:
+            from imladris.qdrant_store import keyword_terms
+        except ImportError:
+            self.skipTest("qdrant extra not installed")
+        self.assertEqual(keyword_terms(["Polisie", "polisa", "Łódź", "kot"], 5), "polis polis lodz kot")
+        self.assertEqual(keyword_terms(["Naleśniki"], 0), "nalesniki")
+
     def test_fts_query_stems_and_drops_stopwords(self):
         stop = frozenset({"jest"})
         self.assertEqual(search.fts_query("kto jest uposażonym w polisie", 5, stop), '"kto" OR "uposa"* OR "polis"*')
@@ -117,7 +125,6 @@ class SearchHelpersTest(unittest.TestCase):
 
 class StoreBackend:
     """Where a test's index lives; subclasses switch the backend."""
-    keyword_search = True
 
     def location(self, tmp):
         return Path(tmp) / "i.db"
@@ -230,10 +237,9 @@ class StoreTest(StoreBackend, unittest.TestCase):
             idx = search.load_index(db)
             self.assertEqual(len(idx.texts), 4)
             self.assertEqual(idx.section_nos, ["", "1", "1.1", "2"])
-            if self.keyword_search:
-                # full text: backfilled blocks are searchable; "Dee" prefix-matches "Deep"
-                hits = search.fts_search(idx, "Deeper things", top_k=3, stem=3)
-                self.assertEqual([h["section_no"] for h in hits], ["1.1"])
+            # keyword search: only the block that has the word
+            hits = search.fts_search(idx, "Deep things", top_k=3, stem=5)
+            self.assertEqual([h["section_no"] for h in hits], ["1.1"])
             idx.store.close()
 
             st = store.open_store(db)
@@ -263,7 +269,6 @@ QDRANT_URL = "http://127.0.0.1:6333"
 class QdrantBackend(StoreBackend):
     """The same tests against a Qdrant server; skipped when none is running.
     Each test gets a throwaway collection."""
-    keyword_search = False  # sparse BM25 arrives in Stage 3, Q4
 
     def setUp(self):
         try:

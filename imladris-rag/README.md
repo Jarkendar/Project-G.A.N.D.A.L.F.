@@ -32,9 +32,11 @@ every `doc`, `section` and `block` node is a point with its fields as payload,
 blocks carry a named dense vector, filterable fields are payload-indexed.
 Anywhere a SQLite path is accepted, `<url>/<collection>` selects Qdrant
 (`store.open_store("http://127.0.0.1:6333/bilbo")`), and `store.copy_store`
-moves an index between backends without re-embedding. Keyword search on
-Qdrant (sparse BM25) is still to come (G.A.N.D.A.L.F. `IMPLEMENTATION.md`,
-Step 9, Stage 3).
+moves an index between backends without re-embedding. Keyword search uses
+sparse BM25 vectors computed by the server; since Qdrant has no Polish
+stemmer, words are lower-cased, stripped of diacritics and cut to 5
+characters before they reach it — the same treatment FTS5 gives them in the
+SQLite store, with the same scores on the golden set.
 
 The server runs from this folder's `docker-compose.yml`: Qdrant 1.19.1
 pinned for arm64, telemetry off, REST on `127.0.0.1:6333` only, data in the

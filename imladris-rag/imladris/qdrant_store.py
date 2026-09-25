@@ -9,11 +9,21 @@ way SQLite's AUTOINCREMENT does, so both stores number an index alike.
 Vectors must come normalized (as the indexer writes them): the collection's
 cosine space normalizes whatever it is given.
 
+Keyword search: blocks also carry a sparse vector "bm25", computed by the
+server (model "qdrant/bm25", IDF on the server side). Qdrant has no Polish
+stemmer, so words are prepared here the way the SQLite store's FTS5 treats
+them: lower-cased, diacritics dropped, cut to KEYWORD_STEM characters — on
+both sides, so "polisie" and "polisa" meet as "polis". The server then only
+splits on spaces: its stemmer and stopwords are off. The cut is fixed when a
+collection is built and recorded in the meta.
+
 Needs the `qdrant` extra (qdrant-client) and a running server — see
 docker-compose.yml.
 """
 
 import json
+import re
+import unicodedata
 from urllib.parse import urlsplit
 
 from qdrant_client import QdrantClient, models as m
@@ -21,6 +31,14 @@ from qdrant_client import QdrantClient, models as m
 from .store import SCHEMA_VERSION, Store
 
 DENSE = "dense"
+SPARSE = "bm25"
+KEYWORD_STEM = 5
+# avg_len is BM25's average document length in tokens. The server's default
+# (256) assumes long documents; chunker v2 blocks average ~60 words (measured
+# 2026-09-25 on the production index), and with 256 keyword hit@1 fell from
+# .59 to .55. Lowercasing and folding are done by keyword_terms.
+BM25_OPTIONS = {"stemmer": {"type": "none"}, "stopwords": {"languages": []}, "avg_len": 60,
+                "lowercase": False, "ascii_folding": False}
 META_ID = 0
 SCROLL_PAGE = 512
 # Filterable payload fields, indexed for fast filters.
@@ -29,6 +47,21 @@ KEYWORD_FIELDS = ("level", "path", "folder", "privacy", "superseded_by", "links[
 
 def _match(key: str, value) -> m.FieldCondition:
     return m.FieldCondition(key=key, match=m.MatchValue(value=value))
+
+
+def keyword_terms(words, stem: int) -> str:
+    """Words as BM25 tokens: lower-cased, diacritics dropped, cut to `stem`
+    characters (0 = whole words), space-separated."""
+    out = []
+    for word in words:
+        word = word.lower().replace("ł", "l")
+        word = "".join(ch for ch in unicodedata.normalize("NFKD", word) if not unicodedata.combining(ch))
+        out.append(word[:stem] if stem else word)
+    return " ".join(out)
+
+
+def _bm25(words, stem: int) -> m.Document:
+    return m.Document(text=keyword_terms(words, stem), model="qdrant/bm25", options=BM25_OPTIONS)
 
 
 def _vector(blob: bytes | None) -> dict:
@@ -59,11 +92,13 @@ class QdrantStore(Store):
 
     def _create(self, dim: int):
         self.client.create_collection(
-            self.collection, vectors_config={DENSE: m.VectorParams(size=dim, distance=m.Distance.COSINE)})
+            self.collection, vectors_config={DENSE: m.VectorParams(size=dim, distance=m.Distance.COSINE)},
+            sparse_vectors_config={SPARSE: m.SparseVectorParams(modifier=m.Modifier.IDF)})
         for field in KEYWORD_FIELDS:
             self.client.create_payload_index(self.collection, field, m.PayloadSchemaType.KEYWORD)
         self.client.upsert(self.collection, wait=True,
-                           points=[m.PointStruct(id=META_ID, vector={}, payload={"level": "meta", "meta": {}})])
+                           points=[m.PointStruct(id=META_ID, vector={}, payload={
+                               "level": "meta", "meta": {"keyword_stem": str(KEYWORD_STEM)}})])
 
     def _scroll(self, flt: m.Filter, payload=True, vectors=False) -> list:
         if not self._exists():
@@ -147,7 +182,9 @@ class QdrantStore(Store):
         first_block = doc_id + 1 + len(sections)
         for i, b in enumerate(blocks):
             sec = b["section"]
-            points.append(m.PointStruct(id=first_block + i, vector=_vector(b["vector"]), payload={
+            words = re.findall(r"\w+", f"{b['heading'] or ''} {b['text']}")
+            vector = {**_vector(b["vector"]), SPARSE: _bm25(words, KEYWORD_STEM)}
+            points.append(m.PointStruct(id=first_block + i, vector=vector, payload={
                 **common, "level": "block", "parent_id": section_ids[sec] if sec is not None else doc_id,
                 "ord": i, "heading": b["heading"], "section_no": sections[sec]["section_no"] if sec is not None else None,
                 "line_start": b["line_start"], "line_end": b["line_end"], "text": b["text"],
@@ -196,7 +233,17 @@ class QdrantStore(Store):
         return out - {path}
 
     def keyword_blocks(self, keywords: list[str], stem: int, top_k: int) -> list[tuple]:
-        raise NotImplementedError("keyword search on Qdrant arrives with sparse BM25 vectors (Stage 3, Q4)")
+        """BM25 over blocks. `stem` must equal the cut the collection was
+        built with — unlike FTS5, it cannot change per query."""
+        built = int(self.get_meta().get("keyword_stem", KEYWORD_STEM))
+        if stem != built:
+            raise ValueError(f"this Qdrant index cuts keywords to {built} characters; --stem {stem} "
+                             f"would never match (rebuild the collection to change it)")
+        if not keywords or not self._exists():
+            return []
+        points = self.client.query_points(self.collection, query=_bm25(dict.fromkeys(keywords), built),
+                                          using=SPARSE, limit=top_k).points
+        return [(p.id, p.score) for p in points]
 
 
 def open_qdrant(location: str, readonly: bool = False) -> QdrantStore:
