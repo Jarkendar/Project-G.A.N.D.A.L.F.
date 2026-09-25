@@ -43,7 +43,7 @@ than installing `sentence-transformers`/`torch` twice:
 ```bash
 --strategy {semantic,grep,hybrid}   # default: semantic
 --top-k N                           # default: 8
---min-score F                       # default: 0.8684 (calibrated per model, see below)
+--min-score F                       # default: 0.845 (set per model, see below)
 --format {json,text}                # default: json
 ```
 
@@ -107,7 +107,9 @@ F1-optimal threshold **0.5047** (precision 0.665, recall 0.791) was wired into
 granite-311m with chunker v2 — semantic hit@1 0.76, MRR 0.82 on the 63-query
 set (MiniLM: 0.60 / 0.69). The threshold is recalibrated to **0.8684**
 (precision 0.552, recall 0.775): cosine scores are model-specific, so the old
-value means nothing for the new model. Semantic still beats hybrid. Samwise
+value means nothing for the new model. On 2026-09-26 it was lowered to
+**0.845** in favour of recall — on the 83-query set, no empty results and
+77/83 queries with a relevant hit, versus 3 empty and 69/83 at 0.8684. Semantic still beats hybrid. Samwise
 applies the index's recorded query prefix, `trust_remote_code` and config
 overrides from its `meta` table, and loads the model in float32. Full
 numbers: `IMPLEMENTATION.md` Step 9.

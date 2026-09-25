@@ -48,19 +48,22 @@ SamwiseIndex = engine.Index
 # strategies. Config, not code: edit stopwords.txt.
 STOPWORDS = engine.load_stopwords(Path(__file__).with_name("stopwords.txt"))
 
-# Calibrated by eval/run_eval.py for the production index — granite-311m +
-# chunker v2 since 2026-09-24 — against the 63-query golden set (F1-optimal:
-# F1=0.645, precision=0.552, recall=0.775; IMPLEMENTATION.md Step 9, Index v2
-# phase B). The value is model-specific: cosine scores of different models
-# live on different scales (MiniLM's was 0.5047). Re-run the eval and update
-# this constant whenever BILBO_EMBED_MODEL or the chunker changes.
+# Recall-leaning, set 2026-09-26 for the production index (granite-311m +
+# chunker v2) on the 83-query golden set: no query comes back empty, 77/83
+# keep a relevant hit (precision 0.37, recall 0.93) — against the F1-optimal
+# 0.8684 (precision 0.50, recall 0.77), which left 3 queries with nothing
+# and 14 without a relevant hit. The reader judges the hits anyway, and
+# --top-k caps the noise. The value is model-specific: cosine scores of
+# different models live on different scales (MiniLM's F1 optimum was
+# 0.5047). Re-run the eval and revisit it whenever BILBO_EMBED_MODEL or the
+# chunker changes.
 #
 # Known limitation (measured, not theoretical): broad "list everything about
 # X" queries can legitimately score below any fixed cutoff on every relevant
 # chunk. A score threshold cannot fully solve this — see samwise.md's
 # workflow for the mitigation (widen --top-k / relax --min-score for
 # enumerative-sounding questions).
-DEFAULT_MIN_SCORE = 0.8684
+DEFAULT_MIN_SCORE = 0.845
 DEFAULT_TOP_K = 8
 
 # How --context orders its lead files. "zmax" uses the document-level vectors

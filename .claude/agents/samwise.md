@@ -82,10 +82,10 @@ yourself.
    .claude/scripts/bilbo/.venv/bin/python .claude/scripts/samwise/search.py \
      "<the user's question>" --strategy semantic --top-k 8
    ```
-   `search.py`'s default `--min-score` (0.8684) is F1-optimal for the
-   production index (granite-311m, calibrated against a 63-query golden set
-   with `eval/run_eval.py`; precision 0.552, recall 0.775 at that cutoff — see
-   `IMPLEMENTATION.md` Step 9, Index v2 phase B). Scores from this model sit
+   `search.py`'s default `--min-score` (0.845) leans to recall: on the
+   83-query golden set no query comes back empty and 77/83 keep a relevant
+   hit (precision 0.37, recall 0.93), so expect some noise among the hits and
+   judge them — see `IMPLEMENTATION.md` Step 9. Scores from this model sit
    high and close together (a relevant chunk ~0.87–0.91, an unrelated one
    rarely below ~0.80), so read the ranking, not the absolute number.
    Semantic beats hybrid with this model (hit@1 0.76 vs. 0.62) — the grep
@@ -174,7 +174,7 @@ knowledge) — you will never see it as a hit.
 
 ```
 **Query:** <as received>
-**Strategy:** semantic (min-score 0.8684) — or "semantic, widened net (broad query)" — or "grep fallback" if the index was unavailable
+**Strategy:** semantic (min-score 0.845) — or "semantic, widened net (broad query)" — or "grep fallback" if the index was unavailable
 
 | score | path | excerpt |
 |-------|------|---------|

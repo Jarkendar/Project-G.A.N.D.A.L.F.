@@ -929,6 +929,18 @@ shown to match it, then it is removed. One commit per step on
       link thresholds). Retrieval filters (skip `superseded_by`, public-only)
       moved to Step 10: no file carries `superseded_by` until
       T.R.E.E.B.E.A.R.D. writes it, and nothing needs public-only before Phase 2.
+- [x] **Samwise threshold lowered (2026-09-26):** `--min-score` 0.8684 →
+      **0.845**, for recall. Sweep on 83 queries (semantic top-20):
+
+      | threshold | precision | recall | queries with a relevant hit | empty |
+      |---|---|---|---|---|
+      | 0.8684 (F1-optimal) | .50 | .77 | 69 | 3 |
+      | 0.855 | .41 | .89 | 75 | 1 |
+      | **0.845** | .37 | .93 | 77 | 0 |
+      | 0.83 | .33 | .98 | 79 | 0 |
+
+      0.85 would do nearly as well but cuts `core/health/body.md` for "ile mam
+      wzrostu" (0.8495). `--context`, Samwise's default, has no threshold.
 - [ ] **Q6 — Remove SQLite** once Q5 is confirmed in use.
 - [ ] **Q7 — Samwise as an MCP server:** `search` and `context` as MCP tools
       so Gandalf (and other clients, e.g. n8n) query the RAG directly instead
