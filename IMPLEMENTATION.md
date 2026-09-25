@@ -752,8 +752,10 @@ move to its own repo and serve other projects.
         (point 1000–1500 / broad 2500–3000) never beat a flat 1500 at equal
         or lower cost. **Decision: 1500 stays, flat;** breadth for broad
         questions is deferred to phase D.
-- [ ] **D — Enrichment ablation:** heuristic headers vs. late chunking vs.
-      Haiku per-file vs. Haiku per-chunk.
+- [x] **D — Enrichment ablation:** heuristic headers vs. late chunking vs.
+      Haiku per-file vs. Haiku per-chunk. **Done 2026-09-25: Haiku
+      per-file document vectors in production; the rest measured and
+      rejected** (numbers below).
 
       **Haiku per-file (2026-09-25).** `imladris/enrich.py` asks
       `claude -p` (Haiku, subscription) once per file for a summary,
@@ -797,8 +799,38 @@ move to its own repo and serve other projects.
       (photovault doc #130) is not found by either vector — its summary
       does not say "side project". **Decision: in production since
       2026-09-25** — `BILBO_ENRICHMENT_USE=doc`, Samwise `--context`
-      defaults to `zmax`. Heuristic headers and late chunking are not
-      measured yet.
+      defaults to `zmax`.
+
+      **Heuristic headers and late chunking (2026-09-25).** Both measured
+      on copies of the production index, with the rest unchanged
+      (semantic = top-5 chunks, context = bundle with `zmax`):
+
+      | variant | sem hit@1 | sem MRR | ctx hit@1 | ctx MRR | ctx R@5 | ctx ans@5 |
+      |---|---|---|---|---|---|---|
+      | production (CLS blocks, Haiku doc vectors) | .76 | .82 | **.78** | **.86** | .93 | **.95** |
+      | heuristic doc vectors instead of Haiku | .76 | .82 | .73 | .83 | .95 | .92 |
+      | control: mean-pooled blocks, CLS query | .22 | .26 | .78 | .83 | .83 | .46 |
+      | control: mean-pooled blocks and query | .71 | .76 | .71 | .82 | .93 | .81 |
+      | late chunking (mean-pooled, whole doc) | .44 | .49 | .71 | .80 | .85 | .57 |
+
+      - **Heuristic document vectors** (title, folders, frontmatter tags /
+        domain / type, heading path, first 80 words; no LLM) are no worse
+        than no document vectors (MRR .83 = production before phase D)
+        and clearly worse than Haiku's. The extractive fallback the plan
+        foresaw is not worth building: a file whose enrichment failed
+        simply ranks by its blocks.
+      - **Late chunking fails with granite.** The model is CLS-pooled, so
+        late chunking needs mean-pooled token spans, and the switch alone
+        costs 5 points (control). Context then hurts further. The
+        implementation is sound (single-block files: cosine 0.98 to the
+        control), but the more blocks a file has, the more its blocks
+        converge. Mean cosine between blocks of one file is .91 with
+        late chunking against .73 without, so sections stop being told
+        apart. Late chunking was designed for models trained on it
+        (jina-v3); it would need a model swap, not a config change. Cost
+        too: 25 min vs 18 for a full build, 7K-token forward passes.
+      - **Per-chunk Haiku** is not tested: per-section context sentences,
+        its lighter form, already hurt (above).
 - [ ] **E — Reranker (in this stage, not Stage 3):** bge-reranker-v2-m3
       (568M), gte-multilingual-reranker-base (306M), Qwen3-Reranker-0.6B —
       quality and Pi latency. Gains are expected to be small at today's
