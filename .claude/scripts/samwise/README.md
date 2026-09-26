@@ -23,10 +23,12 @@ as `samwise` in the repo's `.mcp.json`:
 
 | tool | = CLI | returns |
 |---|---|---|
-| `context(query, budget, follow_links, rerank)` | `--context --format text` | a cited, token-budgeted bundle of passages |
+| `context(query, budget, follow_links, folders, rerank)` | `--context --format text` | a cited, token-budgeted bundle of passages |
 | `search(query, strategy, top_k, min_score, diversify, wide, rerank)` | ranked mode, `--format text` | score, path, section, snippet per hit |
 
-`wide=True` is the broad-question preset (top 20, no threshold, one block per
+`folders` narrows `context` to path prefixes — meant as a second call for a
+category question, after a first bundle showed where its members live
+(Gandalf's Step 2d, 3a). `wide=True` is the broad-question preset (top 20, no threshold, one block per
 file). The tool descriptions carry the usage guidance and measured numbers —
 they are what the calling model reads.
 

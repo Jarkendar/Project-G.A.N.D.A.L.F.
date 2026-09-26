@@ -98,6 +98,14 @@ Each tool's description carries the measured numbers behind its parameters.
    top 20 files, no threshold. Relevant files can score below any cutoff:
    scan the list, group by path, and Read whatever is plausibly on-topic even
    at a middling score. Tell the user you widened the net and judged by eye.
+3a. **Category question, thin result — narrow in a second call.** When the
+   question asks about a category (all my side-projects, trips, races, games
+   played, family) and the first bundle plus the wide list show where its
+   members live (several hits under one folder, e.g. `knowledge/events/`) but
+   cover only a few of them, call `mcp__samwise__context(query,
+   folders=["<that folder>/"])` and use both bundles. Pick the folder from the
+   hits you saw, not from folder names alone — a guessed folder hides the
+   answer (measured). Skip it when the first bundle already answers.
 4. **Exact names, numbers, identifiers:** a second look with
    `mcp__samwise__search(query, strategy="fts")`.
 5. **Read** the files the answer rests on (1–3 for a point lookup, more for a

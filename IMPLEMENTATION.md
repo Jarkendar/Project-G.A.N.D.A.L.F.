@@ -1019,6 +1019,14 @@ similar to the question. Two caller-side aids, both in `build_context` and
     or next to the summary vector: flat to worse (`multi` files 22 → 23 /
     22; hit@1 .80 → .77 / .75). The categories are already in the document
     vector; separating them does not help.
+  - **Shipped (2026-09-26):** `folders` on the `context` MCP tool, and the
+    two-step rule in Gandalf's Step 2d (3a) — narrow only after a first
+    bundle, to a folder its hits point at.
+  - **A file-name vector** (the path as words: "knowledge / projects /
+    androidlab", dates normalized) instead of or next to the summary vector:
+    worse / flat (hit@1 .80 → .70 / .76; `multi` files 22 → 22). A name like
+    `black-myth-wukong` no more says "game" than the note does. Dates in file
+    names go to the metadata filters instead.
   - Not tried: lemmatization. The misses are not inflection — "rodzina" and
     "mama" share no lemma, and the dense model already reads inflected
     Polish; stemming affects only the BM25 side (prefix stem 5), which

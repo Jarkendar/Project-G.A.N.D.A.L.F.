@@ -109,13 +109,17 @@ def _unavailable(err: Exception) -> str:
             "Fall back to grep over brain/ and say so.")
 
 
-def _run_context(query: str, budget: int, follow_links: bool, reranker: str | None) -> str:
+def _run_context(query: str, budget: int, follow_links: bool, reranker: str | None,
+                 folders: list[str]) -> str:
     try:
         idx = _index()
     except engine.IndexUnavailable as err:
         return _unavailable(err)
     items = samwise.build_context(idx, query, reranker=reranker, budget=budget,
-                                  links=follow_links, file_rank=samwise.DEFAULT_FILE_RANK)
+                                  links=follow_links, file_rank=samwise.DEFAULT_FILE_RANK,
+                                  folders=folders)
+    if not items and folders:
+        return f"SAMWISE: no hits under {', '.join(folders)} — check the folder names (paths relative to brain/)."
     return samwise.format_context(items)
 
 
@@ -184,7 +188,7 @@ def _reranker(rerank: str | None) -> str | None:
 
 @server.tool(annotations=READ_ONLY)
 def context(query: str, budget: int = samwise.DEFAULT_BUDGET, follow_links: bool = True,
-            rerank: Reranker | None = None) -> str:
+            folders: list[str] | None = None, rerank: Reranker | None = None) -> str:
     """Default retrieval: a token-budgeted bundle of passages that answer the question.
 
     The best block of each of the top 3 files first, then further hits by score, each
@@ -198,8 +202,16 @@ def context(query: str, budget: int = samwise.DEFAULT_BUDGET, follow_links: bool
     `follow_links=False` if links pull in noise. `rerank="bge-m3"` reorders the top 20
     blocks with a cross-encoder but costs ~1 min per query on the Pi and did not help
     this mode when measured — only on explicit request.
+
+    `folders` (path prefixes relative to brain/, e.g. ["knowledge/projects/"]) keeps
+    only files under them — a SECOND call, never the first: after reading a first
+    bundle for a question about a category (all my projects, trips, races, games),
+    when its hits point at the folder where the members live but the bundle covers
+    few of them. Measured as a second step: expected files read 103 -> 107 of 127,
+    multi-file questions 22 -> 26 of 42. As a first call, with the folder guessed
+    from its name, it hid answers and lost (multi hit@5 .79 -> .64).
     """
-    return _call(_run_context, query, budget, follow_links, _reranker(rerank))
+    return _call(_run_context, query, budget, follow_links, _reranker(rerank), list(folders or ()))
 
 
 @server.tool(annotations=READ_ONLY)
