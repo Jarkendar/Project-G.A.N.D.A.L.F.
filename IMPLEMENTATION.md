@@ -959,7 +959,16 @@ shown to match it, then it is removed. One commit per step on
       restart, reload on change, a killed worker, "index unavailable" with
       Qdrant unreachable. Open: n8n runs in Docker and cannot reach
       127.0.0.1 — binding for it waits until it needs Samwise.
-- [ ] **Q7 — Remove SQLite** once Q5 is confirmed in use.
+- [x] **Q7 — Remove SQLite (2026-09-26):** after the post-commit hook
+      reindexed production Qdrant. `SqliteStore`, its schema and FTS5 are
+      gone, and with them `copy_store` / `export_documents` (only the
+      SQLite → Qdrant move used them; promoting an experimental collection
+      is pointing `BILBO_INDEX` at it). `qdrant-client` is a core dependency;
+      `BILBO_INDEX` defaults to `http://127.0.0.1:6333/bilbo`; `index.py --db`
+      and `run_eval.py --index` take collections. The store and context tests
+      now need a Qdrant server (skipped without one; 32 pass). Verified: the
+      97-query eval unchanged (context hit@1 .76, MRR .84; semantic, fts
+      identical). `brain/index/bilbo.db` is no longer read or written.
 
 #### Multi-file questions — experiments (2026-09-26)
 

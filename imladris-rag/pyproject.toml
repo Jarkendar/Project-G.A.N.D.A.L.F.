@@ -11,10 +11,10 @@ requires-python = ">=3.11"
 dependencies = [
     "numpy==2.5.0",
     "sentence-transformers==5.6.0",
+    "qdrant-client==1.19.1",  # the index store; the server itself: docker-compose.yml
 ]
 
 [project.optional-dependencies]
-qdrant = ["qdrant-client==1.19.1"]  # the Qdrant store; the server itself: docker-compose.yml
 mcp = ["mcp==2.2.0"]  # serving retrieval as MCP tools (Samwise's mcp_server.py)
 
 [tool.setuptools.packages.find]

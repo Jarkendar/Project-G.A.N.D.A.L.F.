@@ -13,7 +13,7 @@ Samwise reads it. Neither role crosses into the other.
 
 ## Where the code lives
 
-Since 2026-09-24 the engine — chunking, models, SQLite store, incremental
+Since 2026-09-24 the engine — chunking, models, the index store, incremental
 sync — is the `imladris-rag/` package at the repo root (see its README),
 written to know nothing about brain/. `index.py` is the brain/ adapter: it
 resolves `BRAIN_PATH`, defines what is not knowledge (`index/`,
@@ -42,12 +42,11 @@ files — see `imladris-rag/imladris/store.py`.
    v1 (heading + ~90-word windows) remains for reference.
 4. Embeds all changed chunks in one batched `model.encode(...)` call
    (normalized vectors, so cosine similarity = dot product at query time).
-5. Upserts everything into the index `BILBO_INDEX` names in `gandalf.env`:
-   the Qdrant collection `http://127.0.0.1:6333/bilbo` in production (server:
-   `imladris-rag/docker-compose.yml`), or `brain/index/bilbo.db` (SQLite —
-   outside `brain/db/`, which is G.I.M.L.I.'s access monopoly per
-   `brain/db/CLAUDE.md`) when unset. If Qdrant is down the run exits with a
-   message; the next run catches up, since indexing is incremental.
+5. Upserts everything into the Qdrant collection `BILBO_INDEX` names in
+   `gandalf.env` (default `http://127.0.0.1:6333/bilbo`; server:
+   `imladris-rag/docker-compose.yml`). If Qdrant is down the run exits with a
+   message; the next run catches up, since indexing is incremental. (Until
+   2026-09-26 a SQLite file, `brain/index/bilbo.db`, could hold the index.)
 
 ## Running it
 

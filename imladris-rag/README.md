@@ -19,32 +19,33 @@ The package is meant to move to its own repository later without changes.
 | `imladris.links` | Links between documents — markdown links, wikilinks, bare path mentions — resolved against the corpus' own file list. |
 | `imladris.chunking` | Markdown chunkers. `v2` (production): structural blocks — paragraph, list, table — packed within one section up to a token budget, tables split by rows with the header repeated, each chunk prefixed with the document title and heading path. `v1`: heading + ~90-word windows, kept for comparison. |
 | `imladris.corpus` | What to index: a root, a glob, exclusion rules, and a privacy rule (callable) so a caller can impose folder-level privacy. |
-| `imladris.store` | `Store`, the contract every index backend meets (writing documents, meta and consistency checks, reading blocks, document trees, links and keyword matches), and `SqliteStore`, schema 2: `documents` (hash, title, frontmatter, privacy, supersession), `nodes` — a `doc → section → block` tree with heading paths, section numbers and line ranges, blocks carrying the vectors — and `links`; a `meta` table records how the index was built and the store refuses to mix models, chunkers or schemas. |
+| `imladris.store` | `Store`, the contract an index backend meets (writing documents, meta and consistency checks, reading blocks, document trees, links, keyword and vector matches), over schema 2: documents (hash, title, frontmatter, privacy, supersession), a `doc → section → block` tree with heading paths, section numbers and line ranges, blocks carrying the vectors, and links; the meta records how the index was built and the store refuses to mix models, chunkers or schemas. |
+| `imladris.qdrant_store` | The backend: the whole index in one Qdrant collection (below). |
 | `imladris.indexer` | Incremental sync by content hash: only changed files are re-chunked and re-embedded, and the model is not even loaded on a no-op run. |
 | `imladris.context` | Context bundles: ranked blocks widened along the document tree (section, whole document) and the link graph, within a token budget, each passage carrying path, section, line range, privacy and reason. |
 | `imladris.rerank` | Optional cross-encoder rerankers (`bge-m3`, `pl-base`), pinned to Hub commits, reordering a short list of blocks. |
-| `imladris.search` | Semantic (cosine over normalized vectors), full-text (SQLite FTS5 / BM25 over blocks, prefix-stemmed queries), keyword baseline, weighted Reciprocal Rank Fusion hybrids, and per-file diversification. Keyword paths take a caller-supplied stopword set (`load_stopwords` reads a one-word-per-line file); the engine ships none. |
+| `imladris.search` | Semantic (cosine over normalized vectors), full-text (BM25 over blocks, prefix-stemmed queries), keyword baseline, weighted Reciprocal Rank Fusion hybrids, and per-file diversification. Keyword paths take a caller-supplied stopword set (`load_stopwords` reads a one-word-per-line file); the engine ships none. |
 
 ## Qdrant
 
 `imladris.qdrant_store` keeps the whole index in one Qdrant collection:
 every `doc`, `section` and `block` node is a point with its fields as payload,
 blocks carry a named dense vector, filterable fields are payload-indexed.
-Anywhere a SQLite path is accepted, `<url>/<collection>` selects Qdrant
-(`store.open_store("http://127.0.0.1:6333/bilbo")`), and `store.copy_store`
-moves an index between backends without re-embedding. Keyword search uses
-sparse BM25 vectors computed by the server; since Qdrant has no Polish
-stemmer, words are lower-cased, stripped of diacritics and cut to 5
-characters before they reach it — the same treatment FTS5 gives them in the
-SQLite store, with the same scores on the golden set.
+An index is addressed as `<url>/<collection>`
+(`store.open_store("http://127.0.0.1:6333/bilbo")`); semantic search runs as
+a server-side vector query. Keyword search uses sparse BM25 vectors computed
+by the server; since Qdrant has no Polish stemmer, words are lower-cased,
+stripped of diacritics and cut to 5 characters before they reach it. A
+SQLite store (FTS5 for keywords) came first; Qdrant replaced it after
+matching it query for query on the golden set, and it was removed.
 
 The server runs from this folder's `docker-compose.yml`: Qdrant 1.19.1
 pinned for arm64, telemetry off, REST on `127.0.0.1:6333` only, data in the
-`qdrant_storage` volume. The client is an optional extra:
+`qdrant_storage` volume:
 
 ```bash
 docker compose -f imladris-rag/docker-compose.yml up -d
-pip install "imladris-rag[qdrant]"
+pip install imladris-rag            # the client, qdrant-client, is a core dependency
 ```
 
 ## Minimal use
@@ -56,10 +57,10 @@ from imladris.corpus import Corpus
 from imladris.models import resolve_model
 
 corpus = Corpus(root=Path("notes"), exclude_names=frozenset({"README.md"}))
-conn = store.open_store(Path("notes.db"))
+conn = store.open_store("http://127.0.0.1:6333/notes")
 indexer.sync(conn, corpus, resolve_model("granite-311m"), chunker="v2")
 
-idx = search.load_index(Path("notes.db"))
+idx = search.load_index("http://127.0.0.1:6333/notes")
 for hit in search.semantic_search(idx, "what did I plan for Q3?", top_k=5, min_score=-1):
     print(hit["score"], hit["path"], hit["heading"])
 ```
@@ -94,10 +95,10 @@ python -m unittest discover imladris-rag/tests
 ```
 
 The chunker and corpus tests need no model. The store and context tests
-also run against Qdrant when a server answers on `127.0.0.1:6333`, each in a
-throwaway collection; otherwise those variants are skipped.
+need a Qdrant server on `127.0.0.1:6333` (each uses a throwaway collection)
+and are skipped without one — in CI, run Qdrant as a service container.
 
 ## Roadmap
 
-Qdrant as the only store (vectors, text, tree, links and BM25 sparse vectors
-in one collection), replacing SQLite once it matches it on the golden set.
+Its own repository, once the Qdrant store and the MCP serving layer have
+settled in production.

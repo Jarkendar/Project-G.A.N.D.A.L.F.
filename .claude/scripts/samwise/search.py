@@ -2,7 +2,8 @@
 # S.A.M.W.I.S.E. — SQL And Markdown Wading Into Semantic Embeddings.
 #
 # The reader. B.I.L.B.O. (.claude/scripts/bilbo/index.py) WRITES the index —
-# wherever BILBO_INDEX points (Qdrant, or brain/index/bilbo.db by default);
+# wherever BILBO_INDEX points (a Qdrant collection, http://127.0.0.1:6333/bilbo
+# by default);
 # Samwise only READS it — never a writer connection, never a rebuild.
 #
 # Retrieval itself lives in the imladris-rag engine (imladris.search); this
@@ -13,7 +14,7 @@
 #   - semantic:   encode the query exactly as the index was built (model,
 #     revision, query prefix, config overrides recorded in its meta) and rank
 #     chunks by cosine similarity.
-#   - fts:        BM25 over blocks (SQLite FTS5), query words cut to a stem.
+#   - fts:        BM25 over blocks (computed by Qdrant), query words cut to a stem.
 #   - hybrid-fts: Reciprocal Rank Fusion (k=60) of semantic and fts, per block.
 #   - grep:       keyword baseline — ranks whole files by keyword hit count.
 #   - hybrid:     RRF of semantic and grep (file level) — the older baseline.
@@ -98,8 +99,8 @@ def load_index(brain_dir: Path, db_path=None) -> SamwiseIndex:
     try:
         return engine.load_index(db_path)
     except engine.IndexUnavailable as err:
-        sys.exit(f"SAMWISE: {err} — run B.I.L.B.O. (.claude/scripts/bilbo/index.py) first, or, for a "
-                 f"Qdrant index, start the server: docker compose -f imladris-rag/docker-compose.yml up -d")
+        sys.exit(f"SAMWISE: {err} — start Qdrant (docker compose -f imladris-rag/docker-compose.yml up -d), "
+                 f"or run B.I.L.B.O. (.claude/scripts/bilbo/index.py) if the index is empty")
 
 
 semantic_search = engine.semantic_search
