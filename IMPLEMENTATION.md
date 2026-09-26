@@ -1022,6 +1022,14 @@ similar to the question. Two caller-side aids, both in `build_context` and
   - **Shipped (2026-09-26):** `folders` on the `context` MCP tool, and the
     two-step rule in Gandalf's Step 2d (3a) — narrow only after a first
     bundle, to a folder its hits point at.
+  - **Golden set 83 → 97 (2026-09-26):** +14 closed category questions
+    (`multi` 14 → 28). New baseline, `--context`: hit@1 .76, hit@5 .93, MRR
+    .84, fullR@5 .84; `multi` hit@5 .79, MRR .70. Two-step on the 14 new
+    questions, unseen when the rule was designed: expected files read
+    25 → 33 of 38 (offers analysed on a day 3 → 6 of 6, sport events in a
+    month 0 → 3 of 3, mock interviews 0 → 2 of 2); Haiku narrowed 4 of 14.
+  - **B.I.L.B.O.'s post-commit hook reindexed production Qdrant** for the
+    first time (brain `51a2658`, 27.6 s) — the Q7 "confirmed in use" check.
   - **A file-name vector** (the path as words: "knowledge / projects /
     androidlab", dates normalized) instead of or next to the summary vector:
     worse / flat (hit@1 .80 → .70 / .76; `multi` files 22 → 22). A name like
