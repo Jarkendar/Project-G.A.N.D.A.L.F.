@@ -1,0 +1,5 @@
+# The Anki MCP server's own venv (.claude/scripts/arwen/.venv) — kept apart from
+# Bilbo's, which carries torch. `anki` is the official library behind Anki
+# desktop: collection access and AnkiWeb sync, no GUI.
+anki==26.9.3
+mcp==2.2.0
