@@ -1030,6 +1030,30 @@ similar to the question. Two caller-side aids, both in `build_context` and
     month 0 → 3 of 3, mock interviews 0 → 2 of 2); Haiku narrowed 4 of 14.
   - **B.I.L.B.O.'s post-commit hook reindexed production Qdrant** for the
     first time (brain `51a2658`, 27.6 s) — the Q7 "confirmed in use" check.
+  - **Note kind + dates as filters (2026-09-26), measured before building.**
+    Haiku labelled all 275 files from their text with a fixed kind (person,
+    place, event, project, game, recipe, job-offer, interview, company, …)
+    and the days each records (a 9–13 Sept trip lists five days; a contact,
+    the day they met), plus the frontmatter date. On the 97 queries, counting
+    expected files anywhere in what the caller read (of 165):
+
+    | variant | files | `multi` (80) | none | tokens / query |
+    |---|---|---|---|---|
+    | production | 128 | 47 | 7 | 1456 |
+    | kind/date filter as the first call (Haiku, question only) | 116 | 45 | 13 | 1327 |
+    | kind/date filter added blind as a second bundle (65 of 97 filtered) | 141 | 60 | 4 | 2307 |
+    | two-step, folders only (shipped) | 140 | 59 | 4 | 1589 |
+    | two-step, folders + kinds + dates, picked after the first bundle | 140 | 58 | 4 | 1603 |
+
+    The blind union shows the metadata can win where folders cannot —
+    family across `core/contacts/` (1 → 3 of 3), an event and a place on one
+    day (Kórnik), walks over two months — but a caller that has read the
+    first bundle does not reach for it there, and labelling slips cost it
+    elsewhere (two offers labelled `interview`). With the same result as the
+    folders alone, **not built** into the index: it would need an
+    enrichment-prompt change, a re-enrichment of every file, and new payload
+    fields for as yet no measured gain. Labels and scripts:
+    `~/.local/share/gandalf/metadata-exp/` (private, outside both repos).
   - **A file-name vector** (the path as words: "knowledge / projects /
     androidlab", dates normalized) instead of or next to the summary vector:
     worse / flat (hit@1 .80 → .70 / .76; `multi` files 22 → 22). A name like
