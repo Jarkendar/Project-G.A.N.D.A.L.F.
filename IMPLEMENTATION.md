@@ -996,10 +996,33 @@ similar to the question. Two caller-side aids, both in `build_context` and
   picks, from folder names alone, missed on 8 of 19 questions it narrowed:
   `events` vs. `trips` vs. `travel`, `notes` vs. `daily` — a wrong folder
   hides the answer, so the hard filter loses overall.
-- Next, if pursued: pick folders from the per-folder `CLAUDE.md`
-  descriptions rather than names, a soft boost instead of a hard filter, or
-  narrowing as a second step after reading the first bundle. Neither aid is
-  exposed through the MCP tools until one of these measures up.
+- Follow-ups (same day). Counted as expected files anywhere in what the
+  caller read (bundle, or both bundles for the two-step variant):
+
+  | variant | expected files read (all 127) | `multi` (42) | no expected file | tokens / query |
+  |---|---|---|---|---|
+  | production | 103 | 22 | 4 | 1456 |
+  | folders from `CLAUDE.md` descriptions (replace) | 101 | 20 | 4 | 1444 |
+  | **two-step: narrow after reading the first bundle (union)** | **107** | **26** | **3** | 1551 |
+
+  - **Descriptions** help the picking (covering picks 12 → 14 of 19;
+    `multi` hit@5 .64 → .71) but a hard filter still loses to production
+    (.79): 20 of 40 folders have no description (`knowledge/notes/`,
+    `current/trips/`, all of `backlog/`).
+  - **Two-step wins, and cannot lose:** Haiku saw the first bundle's
+    passage headers and the top 15 files, and narrowed only 6 of 83 questions
+    — side-projects 0 → 2 of 3 files (`knowledge/projects/`), cycling 1 → 3
+    of 3 (`knowledge/events/`). The second bundle only adds to the first; ~95
+    tokens more per query on average.
+  - **A category vector per document** (title + the enrichment's bilingual
+    `topics` only, e.g. "gaming / gry wideo", "family / rodzina") instead of
+    or next to the summary vector: flat to worse (`multi` files 22 → 23 /
+    22; hit@1 .80 → .77 / .75). The categories are already in the document
+    vector; separating them does not help.
+  - Not tried: lemmatization. The misses are not inflection — "rodzina" and
+    "mama" share no lemma, and the dense model already reads inflected
+    Polish; stemming affects only the BM25 side (prefix stem 5), which
+    `--context` does not use.
 
 Sources: PL-MTEB (ACL 2026 Findings); IBM Granite Embedding Multilingual R2
 model card; Snowflake Arctic Embed 2.0; Qu et al., "Is Semantic Chunking
