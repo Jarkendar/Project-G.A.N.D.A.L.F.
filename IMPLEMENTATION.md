@@ -919,7 +919,7 @@ shown to match it, then it is removed. One commit per step on
       with `copy_store`. With the container down Samwise reports the index
       unreachable (its agent falls back to grep and says so) and Bilbo exits
       with a message; the next run catches up. `bilbo.db` stays untouched as
-      the way back until Q6.
+      the way back until Q7.
 - [x] **Q5b — Server-side search:** semantic search (and the semantic side
       of the hybrids) runs as a Qdrant query (`Store.nearest`, blocks only,
       `score_threshold` = `--min-score`) instead of a dot product over the
@@ -941,10 +941,10 @@ shown to match it, then it is removed. One commit per step on
 
       0.85 would do nearly as well but cuts `core/health/body.md` for "ile mam
       wzrostu" (0.8495). `--context`, Samwise's default, has no threshold.
-- [ ] **Q6 — Remove SQLite** once Q5 is confirmed in use.
-- [ ] **Q7 — Samwise as an MCP server:** `search` and `context` as MCP tools
+- [ ] **Q6 — Samwise as an MCP server:** `search` and `context` as MCP tools
       so Gandalf (and other clients, e.g. n8n) query the RAG directly instead
       of shelling out to `search.py`.
+- [ ] **Q7 — Remove SQLite** once Q5 is confirmed in use.
 
 Sources: PL-MTEB (ACL 2026 Findings); IBM Granite Embedding Multilingual R2
 model card; Snowflake Arctic Embed 2.0; Qu et al., "Is Semantic Chunking
