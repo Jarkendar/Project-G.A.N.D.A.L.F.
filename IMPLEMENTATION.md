@@ -969,6 +969,13 @@ shown to match it, then it is removed. One commit per step on
       now need a Qdrant server (skipped without one; 32 pass). Verified: the
       97-query eval unchanged (context hit@1 .76, MRR .84; semantic, fts
       identical). `brain/index/bilbo.db` is no longer read or written.
+- [x] **Monitoring (2026-09-26):** S.M.E.A.G.O.L. logs `tools_called` per
+      turn — Samwise as an MCP server had dropped out of `agents_called`,
+      and inside `/gandalf` the route stays `skill:gandalf`. The Samwise
+      server keeps its own call log (`samwise-calls.jsonl`: tool, folders,
+      cold start, latency, results, status; no query text). Both before
+      splitting imladris into its own repo: let the two-step search settle
+      and see how often it runs.
 
 #### Multi-file questions — experiments (2026-09-26)
 

@@ -65,6 +65,14 @@ reports it and the next one starts a new worker.
 per-file content hashes (~10 ms on Qdrant) and reloads when B.I.L.B.O. has
 changed anything since.
 
+**Monitoring.** Every tool call appends a line to
+`~/.local/share/gandalf/samwise-calls.jsonl` (`SAMWISE_CALL_LOG`): tool,
+strategy, number of folders, `cold_start` (the worker was started — the
+~14 s model load), latency, result count and status (`ok`, `no-hits`,
+`unavailable`, `worker-died`) — never the query. S.M.E.A.G.O.L. separately
+records per turn which MCP tools ran (`tools_called`, e.g.
+`samwise.context+folders`), so usage can be tied to Gandalf's routing.
+
 **Index down** (Qdrant not running): the tools return `SAMWISE: index
 unavailable — …` with the fix; **service down**: the `samwise` tools are
 missing from the session. Either way Gandalf falls back to grep.
