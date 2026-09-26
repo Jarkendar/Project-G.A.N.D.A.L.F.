@@ -57,10 +57,38 @@ def _section_text(section) -> str:
 FILE_RANKS = ("blocks", "zmax")
 
 
+def _in_folders(path: str, folders: tuple) -> bool:
+    return not folders or path.startswith(folders)
+
+
+def _zscores(values: np.ndarray) -> np.ndarray:
+    std = values.std()
+    return (values - values.mean()) / std if std > 0 else np.zeros_like(values)
+
+
+def _files_by_score(idx: Index, scores: np.ndarray, doc_scores, file_rank: str,
+                    folders: tuple = ()) -> list[str]:
+    """Files (under `folders`, if given) ordered by their best block, or with
+    `zmax` by the better of the best block and the document vector, each
+    z-scored over this query."""
+    best: dict[str, float] = {}
+    for i in np.argsort(-scores):
+        if _in_folders(idx.paths[int(i)], folders):
+            best.setdefault(idx.paths[int(i)], float(scores[i]))
+    files = list(best)
+    if file_rank == "zmax" and doc_scores is not None and files:
+        docs = [(p, s) for p, s in zip(idx.doc_paths, doc_scores) if _in_folders(p, folders)]
+        block_best = np.array([best[p] for p in files])
+        z_block = dict(zip(files, _zscores(block_best).tolist()))
+        z_doc = dict(zip([p for p, _ in docs], _zscores(np.array([s for _, s in docs])).tolist()))
+        files.sort(key=lambda p: -max(z_block[p], z_doc.get(p, -np.inf)))
+    return files
+
+
 def build_context(idx: Index, query: str, count, budget: int = 1500, lead_files: int = 3,
                   pool: int = 20, section_max: int = 400, doc_max: int = 800,
                   links: bool = True, link_delta: float = 0.03, file_rank: str = "blocks",
-                  reranker=None) -> list[ContextItem]:
+                  reranker=None, extra_queries=(), folders=()) -> list[ContextItem]:
     """A token-budgeted context bundle for `query`. `count` counts tokens
     (the model's tokenizer). Needs a schema-2 index.
 
@@ -71,14 +99,30 @@ def build_context(idx: Index, query: str, count, budget: int = 1500, lead_files:
 
     `reranker` (an imladris.rerank.Reranker) reorders the top `pool` blocks
     before anything else; files are then ranked by their best reranked
-    block and `file_rank` is ignored."""
+    block and `file_rank` is ignored.
+
+    `extra_queries` are sub-queries of a question about several things (a
+    category, a group, "all X"), split by the caller. Every block is scored by
+    its best match over the question and the sub-queries, and the top file of
+    each sub-query joins the lead files, so every part of the question gets a
+    place in the bundle.
+
+    `folders` (path prefixes, e.g. "knowledge/projects/") keeps only files
+    under them — for a question whose answer is a category the caller can
+    place in the corpus tree. No file there: an empty bundle."""
     if file_rank not in FILE_RANKS:
         raise ValueError(f"unknown file_rank: {file_rank!r}")
     if idx.ids[0] is None:
         raise ValueError("context building needs a schema-2 index (rebuild it)")
-    query_vec = embed_query(idx, query)
-    scores = idx.vectors @ query_vec
-    order = [int(i) for i in np.argsort(-scores)]
+    query_vecs = [embed_query(idx, q) for q in (query, *extra_queries)]
+    per_query = [idx.vectors @ v for v in query_vecs]
+    scores = np.max(per_query, axis=0)
+    has_docs = file_rank == "zmax" and idx.doc_vectors is not None
+    per_query_docs = [idx.doc_vectors @ v for v in query_vecs] if has_docs else [None] * len(query_vecs)
+    folders = tuple(folders)
+    order = [int(i) for i in np.argsort(-scores) if _in_folders(idx.paths[int(i)], folders)]
+    if not order:
+        return []
     top_score = float(scores[order[0]])
     if reranker is not None:
         head = order[:pool]
@@ -88,14 +132,16 @@ def build_context(idx: Index, query: str, count, budget: int = 1500, lead_files:
     best_block: dict[str, int] = {}
     for i in order:
         best_block.setdefault(idx.paths[i], i)
-    files_ranked = list(best_block)
-    if file_rank == "zmax" and idx.doc_vectors is not None and reranker is None:
-        block_best = np.array([float(scores[best_block[p]]) for p in files_ranked])
-        doc_scores = idx.doc_vectors @ query_vec
-        z_block = dict(zip(files_ranked, ((block_best - block_best.mean()) / block_best.std()).tolist()))
-        z_doc = dict(zip(idx.doc_paths, ((doc_scores - doc_scores.mean()) / doc_scores.std()).tolist()))
-        files_ranked.sort(key=lambda p: -max(z_block[p], z_doc.get(p, -np.inf)))
+    if reranker is not None:
+        files_ranked = list(best_block)
+    else:
+        fused_docs = np.max(per_query_docs, axis=0) if has_docs else None
+        files_ranked = _files_by_score(idx, scores, fused_docs, file_rank, folders)
     leads = [(p, "hit") for p in files_ranked[:lead_files]]
+    for sub_scores, sub_docs in zip(per_query[1:], per_query_docs[1:]):
+        top = _files_by_score(idx, sub_scores, sub_docs, file_rank, folders)[0]
+        if all(top != p for p, _ in leads):
+            leads.append((top, "hit"))
 
     docs: dict[str, _Doc] = {}
 

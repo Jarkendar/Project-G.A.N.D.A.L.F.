@@ -961,6 +961,46 @@ shown to match it, then it is removed. One commit per step on
       127.0.0.1 — binding for it waits until it needs Samwise.
 - [ ] **Q7 — Remove SQLite** once Q5 is confirmed in use.
 
+#### Multi-file questions — experiments (2026-09-26)
+
+`multi` is the weakest type under `--context` (hit@5 .79, MRR .71). The misses
+are category-shaped: the question names a kind of thing ("side-projects",
+"najbliższa rodzina", "gry latem 2026", "wyścigi rowerowe"), the notes name
+the members (AndroidLab, mama, Wukong, Gran Fondo) — no block is literally
+similar to the question. Two caller-side aids, both in `build_context` and
+`run_eval.py`, off by default (without them the 83 results are identical):
+
+- **`extra_queries` (`--subqueries`)** — the caller splits the question;
+  each block scores its best match over all queries, and each sub-query's
+  top file joins the lead files. Sub-queries written by Haiku, **one
+  question per call** (a batch of all 83 leaked names between questions —
+  "AndroidLab", "Kórnik" — and was discarded).
+- **`folders` (`--folders`)** — keep only files under the given path
+  prefixes. Folders picked by Haiku from the bare `brain/` folder tree.
+
+| `--context`, 83 queries | hit@1 | hit@5 | MRR | fullR@5 | `multi` hit@5 / MRR |
+|---|---|---|---|---|---|
+| production | **.80** | **.95** | **.87** | .88 | .79 / .71 |
+| + sub-queries | .78 | .95 | .86 | **.89** | .79 / **.75** |
+| + folders (Haiku) | .76 | .92 | .83 | .84 | .64 / .53 |
+| + both | — | — | — | — | .57 / .56 |
+
+- **Sub-queries: flat.** They work when a sub-query uses the notes' own words
+  ("mama" → family 1/3 → 3/3 files; cycling 1/3 → 2/3) and fail when a
+  one-word query embeds as its spelling ("tata" → *Tatra* restaurants,
+  "brat" → *Bartek*) or stays generic ("projekt uboczny" finds no project).
+  Splitting a point question ("cele na ten rok") pushed its answer 1 → 3.
+- **Folders: the right folder is a big win, picking it is the problem.**
+  With the expected folder given (an oracle), plain semantic top-5 over the
+  multi questions finds 26/42 expected files instead of 16/42. Haiku's
+  picks, from folder names alone, missed on 8 of 19 questions it narrowed:
+  `events` vs. `trips` vs. `travel`, `notes` vs. `daily` — a wrong folder
+  hides the answer, so the hard filter loses overall.
+- Next, if pursued: pick folders from the per-folder `CLAUDE.md`
+  descriptions rather than names, a soft boost instead of a hard filter, or
+  narrowing as a second step after reading the first bundle. Neither aid is
+  exposed through the MCP tools until one of these measures up.
+
 Sources: PL-MTEB (ACL 2026 Findings); IBM Granite Embedding Multilingual R2
 model card; Snowflake Arctic Embed 2.0; Qu et al., "Is Semantic Chunking
 Worth the Computational Cost?" (NAACL 2025 Findings); Anthropic, "Contextual
