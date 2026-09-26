@@ -30,11 +30,17 @@
 #
 # Read-only, like search.py: the store is opened read-only, nothing here
 # writes to the index.
+#
+# Call log: one JSON line per tool call (tool, strategy, folders, cold start,
+# latency, result count, status — never the query) in
+# ~/.local/share/gandalf/samwise-calls.jsonl (SAMWISE_CALL_LOG overrides).
 
 import argparse
 import hashlib
+import json
 import multiprocessing
 import os
+import re
 import sys
 import threading
 import time
@@ -143,30 +149,65 @@ _pool: dict = {"executor": None, "busy": 0, "last_used": time.monotonic()}
 
 @contextmanager
 def _executor():
-    """The worker, started if needed; marked busy so the idle watcher leaves it."""
+    """The worker, started if needed (then `cold`: the model loads on this
+    call); marked busy so the idle watcher leaves it."""
     with _lock:
-        if _pool["executor"] is None:
+        cold = _pool["executor"] is None
+        if cold:
             _pool["executor"] = ProcessPoolExecutor(
                 max_workers=1, mp_context=multiprocessing.get_context("spawn"))
         _pool["busy"] += 1
         executor = _pool["executor"]
     try:
-        yield executor
+        yield executor, cold
     finally:
         with _lock:
             _pool["busy"] -= 1
             _pool["last_used"] = time.monotonic()
 
 
-def _call(fn, *args) -> str:
-    with _executor() as executor:
+def _call_log_path() -> Path:
+    raw = os.environ.get("SAMWISE_CALL_LOG") or samwise.read_gandalf_env(samwise.PROJECT_DIR).get("SAMWISE_CALL_LOG")
+    return Path(raw).expanduser() if raw else Path.home() / ".local/share/gandalf/samwise-calls.jsonl"
+
+
+def _log_call(record: dict):
+    """One JSON line per tool call: what ran, how long, how many results —
+    never the query text. Logging must never break a search."""
+    try:
+        path = _call_log_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with _lock, path.open("a") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
+
+
+def _count_results(tool: str, text: str) -> int:
+    if text.startswith("SAMWISE:"):
+        return 0
+    if tool == "context":
+        return sum(1 for line in text.splitlines() if line.startswith("=== "))
+    return sum(1 for line in text.splitlines() if re.match(r"\s*-?\d+\.\d+  \S", line))  # "  0.8513  path"
+
+
+def _call(tool: str, params: dict, fn, *args) -> str:
+    started = time.perf_counter()
+    with _executor() as (executor, cold):
         try:
-            return executor.submit(fn, *args).result()
+            text = executor.submit(fn, *args).result()
         except BrokenProcessPool:  # the worker died (e.g. killed for RAM): start over next call
             with _lock:
                 if _pool["executor"] is executor:
                     _pool["executor"] = None
-            return "SAMWISE: the search worker died (killed for RAM?) — retry once, then fall back to grep."
+            text = "SAMWISE: the search worker died (killed for RAM?) — retry once, then fall back to grep."
+    status = ("ok" if not text.startswith("SAMWISE:") else
+              "unavailable" if "index unavailable" in text else
+              "worker-died" if "worker died" in text else "no-hits")
+    _log_call({"ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "tool": tool, **params, "cold_start": cold,
+               "latency_ms": round((time.perf_counter() - started) * 1000), "results": _count_results(tool, text),
+               "status": status})
+    return text
 
 
 def _watch_idle(seconds: int):
@@ -211,7 +252,9 @@ def context(query: str, budget: int = samwise.DEFAULT_BUDGET, follow_links: bool
     multi-file questions 22 -> 26 of 42. As a first call, with the folder guessed
     from its name, it hid answers and lost (multi hit@5 .79 -> .64).
     """
-    return _call(_run_context, query, budget, follow_links, _reranker(rerank), list(folders or ()))
+    reranker = _reranker(rerank)
+    return _call("context", {"folders": len(folders or ()), "budget": budget, "rerank": reranker},
+                 _run_context, query, budget, follow_links, reranker, list(folders or ()))
 
 
 @server.tool(annotations=READ_ONLY)
@@ -235,7 +278,9 @@ def search(query: str, strategy: Strategy = "semantic", top_k: int = samwise.DEF
     """
     if wide:
         top_k, min_score, diversify = max(top_k, 20), 0.0, True
-    return _call(_run_search, query, strategy, top_k, min_score, diversify, _reranker(rerank))
+    reranker = _reranker(rerank)
+    return _call("search", {"strategy": strategy, "wide": wide, "top_k": top_k, "rerank": reranker},
+                 _run_search, query, strategy, top_k, min_score, diversify, reranker)
 
 
 def default_idle_unload() -> int:

@@ -6,8 +6,8 @@ semantic — encode the query the way the index was built (model, revision,
            in the store itself when it can (Qdrant), else in memory.
 keyword  — baseline: rank whole files by keyword hit count.
 hybrid   — Reciprocal Rank Fusion of semantic and keyword (file level).
-fts      — BM25 over blocks (SQLite FTS5); query words are cut to a stem
-           prefix, a cheap stand-in for stemming inflected languages.
+fts      — BM25 over blocks (computed by the store); query words are cut to
+           a stem prefix, a cheap stand-in for stemming inflected languages.
 hybrid_fts — Reciprocal Rank Fusion of semantic and fts, both block level.
 diversify — keep only the best block of each file.
 """
@@ -56,15 +56,11 @@ class Index:
 
 
 def load_index(location) -> Index:
-    """`location`: a SQLite index path, or an open Store."""
-    if isinstance(location, Store):
-        st = location
-    elif store.is_url(location):
-        st = store.open_store(location, readonly=True)
-    else:
-        if not Path(location).is_file():
-            raise IndexUnavailable(f"no index at {location}")
-        st = store.open_store(location, readonly=True)
+    """`location`: "<qdrant url>/<collection>", or an open Store."""
+    try:
+        st = location if isinstance(location, Store) else store.open_store(location, readonly=True)
+    except ValueError as err:  # not a store location at all
+        raise IndexUnavailable(str(err)) from err
     try:
         meta = st.get_meta()
     except Exception as err:  # a server store that does not answer
@@ -220,7 +216,7 @@ def hybrid_search(idx: Index, corpus: Corpus, query: str, top_k: int,
     return fused[:top_k]
 
 
-# --- full text (FTS5) ----------------------------------------------------------
+# --- full text (BM25) ----------------------------------------------------------
 
 def _hit(idx: Index, i: int, score: float) -> dict:
     return {"score": round(score, 4), "path": idx.paths[i], "heading": idx.headings[i],
@@ -228,11 +224,6 @@ def _hit(idx: Index, i: int, score: float) -> dict:
             "section_no": idx.section_nos[i],
             "lines": list(idx.line_ranges[i]) if idx.line_ranges[i][0] is not None else None,
             "chunk": int(i)}
-
-
-def fts_query(query: str, stem: int, stopwords: frozenset = frozenset()) -> str:
-    """The FTS5 query the SQLite store runs for `query` (for inspection)."""
-    return store.fts_match(keywords_from_query(query, stopwords), stem)
 
 
 def fts_search(idx: Index, query: str, top_k: int, stem: int = 5,

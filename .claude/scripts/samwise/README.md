@@ -1,12 +1,12 @@
 # S.A.M.W.I.S.E. — SQL And Markdown Wading Into Semantic Embeddings
 
 The reader. B.I.L.B.O. (`.claude/scripts/bilbo/index.py`) **writes** the
-embedding index at `brain/index/bilbo.db`; Samwise only **reads** it — encodes
-a query with the exact `(model, revision)` pair recorded in the index's `meta`
-table, cosine-ranks chunks against it, and returns ranked paths + scores +
-snippets. Bilbo builds the index; Samwise reads it. Neither role crosses into
-the other — `search.py` opens the database via a `mode=ro` URI connection and
-never writes to `brain/index/`.
+embedding index — the Qdrant collection `BILBO_INDEX` names
+(`http://127.0.0.1:6333/bilbo`); Samwise only **reads** it — encodes a query
+with the exact `(model, revision)` pair recorded in the index's meta, ranks
+chunks against it, and returns ranked paths + scores + snippets. Bilbo
+builds the index; Samwise reads it. Neither role crosses into the other —
+`search.py` opens the store read-only and never writes to it.
 Retrieval itself is `imladris.search` from the `imladris-rag/` package at
 the repo root; `search.py` is the brain/ adapter (paths, corpus rules,
 threshold, CLI).
@@ -64,6 +64,14 @@ reports it and the next one starts a new worker.
 **Never stale.** Before each call the worker fingerprints the index's
 per-file content hashes (~10 ms on Qdrant) and reloads when B.I.L.B.O. has
 changed anything since.
+
+**Monitoring.** Every tool call appends a line to
+`~/.local/share/gandalf/samwise-calls.jsonl` (`SAMWISE_CALL_LOG`): tool,
+strategy, number of folders, `cold_start` (the worker was started — the
+~14 s model load), latency, result count and status (`ok`, `no-hits`,
+`unavailable`, `worker-died`) — never the query. S.M.E.A.G.O.L. separately
+records per turn which MCP tools ran (`tools_called`, e.g.
+`samwise.context+folders`), so usage can be tied to Gandalf's routing.
 
 **Index down** (Qdrant not running): the tools return `SAMWISE: index
 unavailable — …` with the fix; **service down**: the `samwise` tools are
@@ -141,8 +149,8 @@ snippet appears in the top-5 chunk text), ctx_chars@5, hit@5 / MRR per query
 type, query latency p50/p95 and peak RSS. Options:
 
 ```bash
-# evaluate an experimental index built with: ../../bilbo/index.py --db <path>
-run_eval.py --index ../../../../../brain/index/exp/<variant>.db
+# evaluate an experimental index built with: ../../bilbo/index.py --db http://127.0.0.1:6333/<variant>
+run_eval.py --index http://127.0.0.1:6333/<variant>
 # subset of strategies, no per-query listing, results kept for comparison
 run_eval.py --strategies semantic,hybrid --quiet \
     --json-out ../../../../../brain/index/eval-runs/<date>_<variant>.json
@@ -190,9 +198,9 @@ list instead of trusting a clean cutoff.
 
 ## Access boundary
 
-Samwise (paired with Bilbo as writer) is the sole reader of
-`brain/index/bilbo.db`. G.I.M.L.I. is the sole reader of `brain/db/*.db` — a
-separate world; Gimli never touches `brain/index/`, and Samwise never runs
-`sqlite3` against `brain/db/`. The system grows in depth (new, narrow,
+Samwise (paired with Bilbo as writer) is the sole reader of the embedding
+index (the `bilbo` Qdrant collection). G.I.M.L.I. is the sole reader of
+`brain/db/*.db` — a separate world; Gimli never touches the index, and
+Samwise never runs `sqlite3` against `brain/db/`. The system grows in depth (new, narrow,
 per-domain monopolies), not breadth (one monopoly expanding to cover more
 ground).

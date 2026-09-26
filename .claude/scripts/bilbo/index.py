@@ -11,9 +11,11 @@
 # per-folder CLAUDE.md), which model and chunker production uses
 # (.claude/gandalf.env), and which brain/ commit an index reflects.
 #
-# Storage: brain/index/bilbo.db (SQLite, gitignored, regenerable). Outside
-# brain/db/ on purpose — that folder holds owned operational databases
-# (brain/db/CLAUDE.md).
+# Storage: a Qdrant collection (BILBO_INDEX, default
+# http://127.0.0.1:6333/bilbo; the server: imladris-rag/docker-compose.yml) —
+# regenerable from brain/. Only the enrichment cache lives in brain/index/
+# (gitignored), outside brain/db/ on purpose — that folder holds owned
+# operational databases (brain/db/CLAUDE.md).
 
 import argparse
 import json
@@ -84,14 +86,14 @@ def resolve_brain_path(project_dir: Path) -> Path:
     return path
 
 
-def resolve_index_location(project_dir: Path, brain_dir: Path):
+DEFAULT_INDEX = "http://127.0.0.1:6333/bilbo"
+
+
+def resolve_index_location(project_dir: Path, brain_dir: Path) -> str:
     """Where the production index lives: BILBO_INDEX (environment, then
-    gandalf.env) — "<qdrant url>/<collection>", or a SQLite path relative to
-    brain/ — else brain/index/bilbo.db."""
-    raw = os.environ.get("BILBO_INDEX") or read_gandalf_env(project_dir).get("BILBO_INDEX")
-    if not raw:
-        return brain_dir / "index" / "bilbo.db"
-    return raw if store.is_url(raw) else (brain_dir / raw).resolve()
+    gandalf.env) as "<qdrant url>/<collection>", else DEFAULT_INDEX.
+    `brain_dir` is unused since the SQLite index went; kept for callers."""
+    return os.environ.get("BILBO_INDEX") or read_gandalf_env(project_dir).get("BILBO_INDEX") or DEFAULT_INDEX
 
 
 def brain_corpus(brain_dir: Path) -> Corpus:
@@ -139,8 +141,8 @@ def main():
                              "(default: BILBO_ENRICHMENT_USE; empty = none). When set, changed files "
                              "are enriched first, then embedded")
     parser.add_argument("--db", type=str, default=None,
-                        help="write to this index instead of the production one (BILBO_INDEX): a SQLite "
-                             "path or <qdrant url>/<collection> — for variants compared by the Samwise eval")
+                        help="write to this index instead of the production one (BILBO_INDEX): "
+                             "<qdrant url>/<collection> — for variants compared by the Samwise eval")
     args = parser.parse_args()
 
     brain_dir = resolve_brain_path(PROJECT_DIR)
@@ -180,11 +182,11 @@ def main():
         run_enrichment()
         return
 
-    if args.db:  # a SQLite path, or "<qdrant url>/<collection>"
-        db_path = args.db if store.is_url(args.db) else Path(args.db).resolve()
-    else:
-        db_path = resolve_index_location(PROJECT_DIR, brain_dir)
-    st = store.open_store(db_path)
+    db_path = args.db or resolve_index_location(PROJECT_DIR, brain_dir)
+    try:
+        st = store.open_store(db_path)
+    except ValueError as err:
+        sys.exit(f"BILBO: {err}")
     try:
         st.get_meta()
     except Exception as err:  # a Qdrant index whose server is down; the next run catches up

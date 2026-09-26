@@ -288,7 +288,7 @@ def main():
     parser = argparse.ArgumentParser(description="S.A.M.W.I.S.E. retrieval eval")
     parser.add_argument("--index", type=str, default=None,
                         help="evaluate this index instead of the production one (BILBO_INDEX) "
-                             "(a SQLite path or <qdrant url>/<collection>)")
+                             "(<qdrant url>/<collection>)")
     parser.add_argument("--strategies", type=str, default="grep,semantic,hybrid",
                         help="comma-separated search.py strategies (" + ",".join(search.STRATEGIES)
                              + "), each optionally suffixed +div for one block per file")
@@ -329,8 +329,7 @@ def main():
         for line in stale:
             print(f"  {line}")
         print()
-    index = args.index and (args.index if search.engine.store.is_url(args.index) else Path(args.index).resolve())
-    idx = search.load_index(brain_dir, index or None)
+    idx = search.load_index(brain_dir, args.index)
 
     load_start = time.perf_counter()
     search.load_model(idx.spec)

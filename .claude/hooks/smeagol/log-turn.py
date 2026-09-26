@@ -103,6 +103,25 @@ def classify_turn(lines):
     return "chat:general", agents_called
 
 
+def mcp_tools_called(lines):
+    """Every MCP tool call of the turn, in order, as "server.tool" — repeats
+    kept, so calls can be counted. A Samwise context call narrowed to folders
+    (the two-step search) is marked "+folders". Names and flags only: no
+    arguments, so no query text reaches the log."""
+    called = []
+    for entry in lines:
+        if entry.get("type") != "assistant":
+            continue
+        for block in content_blocks(entry):
+            name = block.get("name") or ""
+            if block.get("type") != "tool_use" or not name.startswith("mcp__"):
+                continue
+            _, server, tool = (name.split("__", 2) + ["", ""])[:3]
+            flag = "+folders" if (block.get("input") or {}).get("folders") else ""
+            called.append(f"{server}.{tool}{flag}")
+    return called
+
+
 def latency_ms_since(start_ts):
     if not start_ts:
         return None
@@ -140,6 +159,7 @@ def run():
         "session_id": session_id,
         "route": route,
         "agents_called": agents_called,
+        "tools_called": mcp_tools_called(turn_lines),
         "latency_ms": latency_ms,
         "outcome": "completed",
     }

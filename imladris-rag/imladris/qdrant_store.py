@@ -4,21 +4,20 @@ Every node of the document tree is a point — `doc`, `section`, `block` —
 with its fields as payload; blocks (and enriched docs) carry a named dense
 vector "dense". A doc point also holds the document's record (hash, title,
 frontmatter, privacy, supersession) and its outgoing links. Point 0 holds
-the index meta. Node ids are integers handed out in write order, the same
-way SQLite's AUTOINCREMENT does, so both stores number an index alike.
+the index meta. Node ids are integers handed out in write order (the next
+one is kept in the meta), so a copied index keeps its numbering.
 Vectors must come normalized (as the indexer writes them): the collection's
 cosine space normalizes whatever it is given.
 
 Keyword search: blocks also carry a sparse vector "bm25", computed by the
 server (model "qdrant/bm25", IDF on the server side). Qdrant has no Polish
-stemmer, so words are prepared here the way the SQLite store's FTS5 treats
-them: lower-cased, diacritics dropped, cut to KEYWORD_STEM characters — on
-both sides, so "polisie" and "polisa" meet as "polis". The server then only
-splits on spaces: its stemmer and stopwords are off. The cut is fixed when a
-collection is built and recorded in the meta.
+stemmer, so words are prepared here: lower-cased, diacritics dropped, cut
+to KEYWORD_STEM characters — on both sides, so "polisie" and "polisa" meet
+as "polis". The server then only splits on spaces: its stemmer and
+stopwords are off. The cut is fixed when a collection is built and recorded
+in the meta.
 
-Needs the `qdrant` extra (qdrant-client) and a running server — see
-docker-compose.yml.
+Needs a running server — see docker-compose.yml.
 """
 
 import json
@@ -242,7 +241,7 @@ class QdrantStore(Store):
 
     def keyword_blocks(self, keywords: list[str], stem: int, top_k: int) -> list[tuple]:
         """BM25 over blocks. `stem` must equal the cut the collection was
-        built with — unlike FTS5, it cannot change per query."""
+        built with — it cannot change per query."""
         built = int(self.get_meta().get("keyword_stem", KEYWORD_STEM))
         if stem != built:
             raise ValueError(f"this Qdrant index cuts keywords to {built} characters; --stem {stem} "

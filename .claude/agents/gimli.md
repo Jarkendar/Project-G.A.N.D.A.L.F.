@@ -87,10 +87,10 @@ G.I.M.L.I. Agents and skills that are not owners never run `sqlite3` against
 `brain/db/` at all.
 
 **Scope note:** this analytical monopoly is over G.I.M.L.I.'s own world — `brain/db/` —
-not over SQLite as a technology. `brain/index/bilbo.db` (the embedding index)
-is a **separate domain**, written by B.I.L.B.O. and read by S.A.M.W.I.S.E.;
-Gimli never touches it, and Samwise's `sqlite3` reads there are not an
-exception to this rule — they're a different rule for a different world. The
+not over SQLite as a technology. The embedding index (the `bilbo` Qdrant
+collection) is a **separate domain**, written by B.I.L.B.O. and read by
+S.A.M.W.I.S.E.; Gimli never touches it — a different rule for a different
+world. The
 system grows in **depth, not breadth**: each store gets its own sole reader,
 rather than one monopoly expanding to cover more ground.
 
