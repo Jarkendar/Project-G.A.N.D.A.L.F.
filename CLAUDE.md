@@ -58,7 +58,7 @@ expansions: README.md § agents, and each agent's file in `.claude/agents/`.
 |---|---|---|
 | G.A.N.D.A.L.F. | orchestrator / router | `.claude/skills/gandalf/` |
 | G.I.M.L.I. | SQL — analytical queries over `brain/db/` | `.claude/agents/gimli.md` |
-| S.A.M.W.I.S.E. | semantic search over Bilbo's index | `.claude/agents/samwise.md` |
+| S.A.M.W.I.S.E. | semantic search over Bilbo's index (MCP server) | `.claude/scripts/samwise/` |
 | R.A.D.A.G.A.S.T. | reporting & visualization | `.claude/agents/radagast.md` |
 | B.I.L.B.O. | embedding indexer (script, not reactive) | `.claude/scripts/bilbo/` |
 | S.M.E.A.G.O.L. | query logger (Stop hook) | `.claude/hooks/smeagol/` |
@@ -145,7 +145,7 @@ outbound network calls; anything irreversible.
   missing, note it once and continue without brain access.
 - Treat `brain/` as a knowledge source in **any** conversation, not only in
   skills — search it proactively when the question touches personal data.
-- **How to search:** open-ended questions → S.A.M.W.I.S.E. (semantic index);
+- **How to search:** open-ended questions → S.A.M.W.I.S.E. (`mcp__samwise__context`);
   quantitative ones → G.I.M.L.I.; exact names/keywords → `grep` + `Read`.
 - Each `brain/` folder has its own `CLAUDE.md` with its rules — read it before
   writing there.

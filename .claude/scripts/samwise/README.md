@@ -11,9 +11,36 @@ Retrieval itself is `imladris.search` from the `imladris-rag/` package at
 the repo root; `search.py` is the brain/ adapter (paths, corpus rules,
 threshold, CLI).
 
-The conversational sub-agent lives at `.claude/agents/samwise.md`; this
-directory holds the underlying query engine (`search.py`) and its eval
-harness (`eval/`).
+This directory holds the query engine (`search.py`), the MCP server Gandalf
+queries it through (`mcp_server.py`) and the eval harness (`eval/`). There is
+no sub-agent: Gandalf calls the tools directly and does the judging and
+reading itself (`.claude/skills/gandalf/SKILL.md`, Step 2d).
+
+## MCP server
+
+`mcp_server.py` serves the same retrieval over stdio as two read-only tools,
+registered as `samwise` in the repo's `.mcp.json`:
+
+| tool | = CLI | returns |
+|---|---|---|
+| `context(query, budget, follow_links, rerank)` | `--context --format text` | a cited, token-budgeted bundle of passages |
+| `search(query, strategy, top_k, min_score, diversify, wide, rerank)` | ranked mode, `--format text` | score, path, section, snippet per hit |
+
+`wide=True` is the broad-question preset (top 20, no threshold, one block per
+file). The tool descriptions carry the usage guidance and measured numbers —
+they are what the calling model reads.
+
+- **Model loaded once, lazily.** The CLI pays ~15–25 s of model loading per
+  call; the server loads on the first query and answers later ones in
+  ~0.3–0.5 s. A session that never searches never loads it — each Claude
+  Code session starts its own server process, so two searching sessions hold
+  two copies of the model.
+- **Never stale.** Before each call the server fingerprints the index's
+  per-file content hashes (~10 ms on Qdrant) and reloads when B.I.L.B.O. has
+  changed anything since.
+- **Index down** (Qdrant not running): the tools return `SAMWISE: index
+  unavailable — …` with the fix, and Gandalf falls back to grep.
+- `mcp==2.2.0` lives in Bilbo's venv (`.claude/scripts/bilbo/requirements.txt`).
 
 ## What it does
 

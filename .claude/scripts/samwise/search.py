@@ -151,6 +151,32 @@ def build_context(idx: SamwiseIndex, query: str, reranker: str | None = None, **
     return context_engine.build_context(idx, query, token_counter(load_model(idx.spec)), **options)
 
 
+def format_context(items: list) -> str:
+    """A context bundle as text: each passage headed with its citation."""
+    if not items:
+        return "SAMWISE: no hits."
+    out = []
+    for it in items:
+        number = f"{it.section_no} " if it.section_no else ""
+        where = f" § {number}{it.heading}" if it.kind != "document" else " (whole file)"
+        lines = f" L{it.lines[0]}-{it.lines[1]}" if it.lines else ""
+        note = "" if it.reason == "hit" else f" [{it.reason}]"
+        out.append(f"=== {it.path}{where}{lines} — {it.privacy}, {it.tokens} tok, score {it.score}{note}\n"
+                   f"{it.text}\n")
+    return "\n".join(out)
+
+
+def format_hits(results: list[dict]) -> str:
+    """Ranked hits as text: score, path, section, snippet."""
+    if not results:
+        return "SAMWISE: no hits."
+    out = []
+    for r in results:
+        heading = f" § {r['heading']}" if r.get("heading") else ""
+        out.append(f"{r['score']:>8}  {r['path']}{heading}\n          {r['snippet']}")
+    return "\n".join(out)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="S.A.M.W.I.S.E. — query-time reader over B.I.L.B.O.'s embedding index"
@@ -185,16 +211,7 @@ def main():
         if args.format == "json":
             print(json.dumps([vars(it) for it in items], ensure_ascii=False, indent=2))
         else:
-            if not items:
-                print("SAMWISE: no hits.")
-            for it in items:
-                number = f"{it.section_no} " if it.section_no else ""
-                where = f" § {number}{it.heading}" if it.kind != "document" else " (whole file)"
-                lines = f" L{it.lines[0]}-{it.lines[1]}" if it.lines else ""
-                note = "" if it.reason == "hit" else f" [{it.reason}]"
-                print(f"=== {it.path}{where}{lines} — {it.privacy}, {it.tokens} tok, score {it.score}{note}")
-                print(it.text)
-                print()
+            print(format_context(items))
         return
     results = search(brain_dir, args.query, args.strategy, args.top_k, args.min_score,
                      diversify=args.diversify, stem=args.stem, reranker=reranker)
@@ -203,12 +220,7 @@ def main():
         print(json.dumps([{k: v for k, v in r.items() if k != "chunk"} for r in results],
                          ensure_ascii=False, indent=2))
     else:
-        if not results:
-            print("SAMWISE: no hits.")
-        for r in results:
-            heading = f" § {r['heading']}" if r.get("heading") else ""
-            print(f"{r['score']:>8}  {r['path']}{heading}")
-            print(f"          {r['snippet']}")
+        print(format_hits(results))
 
 
 if __name__ == "__main__":

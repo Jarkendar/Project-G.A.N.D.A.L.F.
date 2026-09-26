@@ -5,8 +5,8 @@ a scheduled task. Walks watched directories, detects new or modified files,
 chunks them, and stores them in the knowledge base."*
 
 Bilbo **writes** the embedding index. It never answers a query — that's
-**S.A.M.W.I.S.E.**'s job (`.claude/scripts/samwise/search.py` +
-`.claude/agents/samwise.md`): encode the query with the same pinned model,
+**S.A.M.W.I.S.E.**'s job (`.claude/scripts/samwise/search.py`, served to
+Gandalf as MCP tools by `mcp_server.py`): encode the query with the same pinned model,
 rank `brain/` chunks by cosine similarity against `chunks.vector`, and return
 ranked paths + snippets for Claude to `Read` deeper. Bilbo builds the index;
 Samwise reads it. Neither role crosses into the other.

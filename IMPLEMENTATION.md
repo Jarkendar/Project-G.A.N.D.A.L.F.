@@ -941,9 +941,19 @@ shown to match it, then it is removed. One commit per step on
 
       0.85 would do nearly as well but cuts `core/health/body.md` for "ile mam
       wzrostu" (0.8495). `--context`, Samwise's default, has no threshold.
-- [ ] **Q6 — Samwise as an MCP server:** `search` and `context` as MCP tools
-      so Gandalf (and other clients, e.g. n8n) query the RAG directly instead
-      of shelling out to `search.py`.
+- [x] **Q6 — Samwise as an MCP server (2026-09-26):** `mcp_server.py`
+      serves `context` and `search` over stdio (`mcp==2.2.0`, `samwise` in
+      `.mcp.json`); Gandalf calls them directly and the `samwise` sub-agent
+      is gone — its workflow moved into Gandalf's Step 2d and the tool
+      descriptions. The model loads once, on the first query: ~13 s, then
+      ~0.3–0.5 s per call (the CLI paid the load every time). Before each call
+      the server fingerprints the stored per-file hashes (~10 ms) and reloads
+      on a change, so a Bilbo reindex is picked up without a restart. Verified
+      over real stdio: both tools, argument validation, reload on change,
+      "index unavailable" with Qdrant unreachable. Open: stdio means one
+      process — and one model copy — per Claude Code session; an HTTP
+      transport for a single shared process (and n8n) when a second client
+      needs it.
 - [ ] **Q7 — Remove SQLite** once Q5 is confirmed in use.
 
 Sources: PL-MTEB (ACL 2026 Findings); IBM Granite Embedding Multilingual R2

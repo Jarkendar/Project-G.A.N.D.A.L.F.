@@ -15,6 +15,7 @@ dependencies = [
 
 [project.optional-dependencies]
 qdrant = ["qdrant-client==1.19.1"]  # the Qdrant store; the server itself: docker-compose.yml
+mcp = ["mcp==2.2.0"]  # serving retrieval as MCP tools (Samwise's mcp_server.py)
 
 [tool.setuptools.packages.find]
 include = ["imladris*"]

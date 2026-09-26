@@ -8,7 +8,7 @@ It is corpus-agnostic: callers hand it a directory and exclusion rules, a
 model and chunker choice, and a path for the index. Inside G.A.N.D.A.L.F. the
 callers are two thin adapters — B.I.L.B.O. (`.claude/scripts/bilbo/index.py`,
 writes the index) and S.A.M.W.I.S.E. (`.claude/scripts/samwise/search.py`,
-reads it) — which add everything specific to the `brain/` knowledge base.
+reads it, served as MCP tools by `mcp_server.py`) — which add everything specific to the `brain/` knowledge base.
 The package is meant to move to its own repository later without changes.
 
 ## Modules
