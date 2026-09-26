@@ -6,6 +6,10 @@
         "-c",
         "set -a; . ./.claude/gandalf.env 2>/dev/null; set +a; export PATH=\"$HOME/.bun/bin:$PATH\"; PKG=@r-huijts/strava-mcp-server; if command -v npx >/dev/null 2>&1; then exec npx -y \"$PKG\"; elif command -v bunx >/dev/null 2>&1; then exec bunx -y \"$PKG\"; else echo \"strava-mcp: neither npx nor bunx found on PATH\" >&2; exit 127; fi"
       ]
+    },
+    "samwise": {
+      "type": "http",
+      "url": "http://127.0.0.1:8765/mcp"
     }
   }
 }

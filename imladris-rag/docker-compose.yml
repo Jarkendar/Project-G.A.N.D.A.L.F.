@@ -1,0 +1,25 @@
+# imladris-rag — Qdrant vector store.
+# Start: docker compose up -d   (from imladris-rag/)
+name: imladris
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.19.1        # verify: https://hub.docker.com/r/qdrant/qdrant/tags
+    platform: linux/arm64               # Raspberry Pi 5; runs on its 16 KB-page kernel (checked 2026-09-25)
+    container_name: imladris-qdrant
+    restart: unless-stopped
+    environment:
+      QDRANT__TELEMETRY_DISABLED: "true"  # no outbound usage reports
+    ports:
+      - "127.0.0.1:6333:6333"           # HTTP/REST, localhost only; gRPC (6334) is not exposed
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    networks:
+      - imladris
+
+volumes:
+  qdrant_storage:
+
+networks:
+  imladris:
+    driver: bridge

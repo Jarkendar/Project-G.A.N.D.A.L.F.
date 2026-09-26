@@ -119,7 +119,8 @@ def _chunk_text(idx: "search.SamwiseIndex", result: dict) -> str:
 def evaluate_strategy(strategy: str, golden: list[dict], brain_dir: Path,
                        idx: "search.SamwiseIndex", stem: int = 5,
                        fts_weight: float = 1.0, context_args: dict | None = None,
-                       stopwords: frozenset | None = None, reranker: str | None = None) -> tuple[dict, list[dict]]:
+                       stopwords: frozenset | None = None, reranker: str | None = None,
+                       subqueries: dict | None = None, folders: dict | None = None) -> tuple[dict, list[dict]]:
     """`strategy` is a search.py strategy, optionally suffixed "+div" for
     one block per file (e.g. "hybrid-fts+div")."""
     stopwords = search.STOPWORDS if stopwords is None else stopwords
@@ -129,7 +130,10 @@ def evaluate_strategy(strategy: str, golden: list[dict], brain_dir: Path,
         start = time.perf_counter()
         if name == "context":
             # the bundle is the unit: every item counts, however many there are
-            items = search.build_context(idx, item["query"], reranker=reranker, **(context_args or {}))
+            items = search.build_context(idx, item["query"], reranker=reranker,
+                                         extra_queries=(subqueries or {}).get(item["query"], ()),
+                                         folders=(folders or {}).get(item["query"], ()),
+                                         **(context_args or {}))
             results = [{"path": it.path, "chunk": None, "text": it.text, "tokens": it.tokens,
                         "heading": "\u0000document" if it.kind == "document" else it.heading}
                        for it in items]
@@ -283,7 +287,8 @@ def _fmt(value, width=6):
 def main():
     parser = argparse.ArgumentParser(description="S.A.M.W.I.S.E. retrieval eval")
     parser.add_argument("--index", type=str, default=None,
-                        help="evaluate this index instead of brain/index/bilbo.db")
+                        help="evaluate this index instead of the production one (BILBO_INDEX) "
+                             "(a SQLite path or <qdrant url>/<collection>)")
     parser.add_argument("--strategies", type=str, default="grep,semantic,hybrid",
                         help="comma-separated search.py strategies (" + ",".join(search.STRATEGIES)
                              + "), each optionally suffixed +div for one block per file")
@@ -293,6 +298,12 @@ def main():
                         help="context: token budget of the bundle")
     parser.add_argument("--files", type=int, default=3, help="context: lead files (best block of each goes first)")
     parser.add_argument("--no-links", action="store_true", help="context: do not follow links")
+    parser.add_argument("--subqueries", type=str, default=None,
+                        help="context: JSON {query: [sub-queries]} — split questions, as the caller "
+                             "(an LLM) would split them")
+    parser.add_argument("--folders", type=str, default=None,
+                        help="context: JSON {query: [path prefixes]} — folders the caller "
+                             "(an LLM) narrows a question to")
     parser.add_argument("--file-rank", default=search.DEFAULT_FILE_RANK, choices=search.context_engine.FILE_RANKS,
                         help="context: how candidate files are ordered (zmax needs document vectors)")
     parser.add_argument("--no-stopwords", action="store_true",
@@ -318,7 +329,8 @@ def main():
         for line in stale:
             print(f"  {line}")
         print()
-    idx = search.load_index(brain_dir, Path(args.index).resolve() if args.index else None)
+    index = args.index and (args.index if search.engine.store.is_url(args.index) else Path(args.index).resolve())
+    idx = search.load_index(brain_dir, index or None)
 
     load_start = time.perf_counter()
     search.load_model(idx.spec)
@@ -340,7 +352,11 @@ def main():
         metrics, per_query = evaluate_strategy(strategy, golden, brain_dir, idx, args.stem, args.fts_weight,
                                                 {"budget": args.budget, "lead_files": args.files,
                                                  "links": not args.no_links, "file_rank": args.file_rank},
-                                                frozenset() if args.no_stopwords else None, args.rerank)
+                                                frozenset() if args.no_stopwords else None, args.rerank,
+                                                json.loads(Path(args.subqueries).read_text())
+                                                if args.subqueries else None,
+                                                json.loads(Path(args.folders).read_text())
+                                                if args.folders else None)
         summary[strategy] = metrics
         details[strategy] = per_query
 

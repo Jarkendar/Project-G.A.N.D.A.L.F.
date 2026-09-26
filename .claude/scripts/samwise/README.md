@@ -11,9 +11,65 @@ Retrieval itself is `imladris.search` from the `imladris-rag/` package at
 the repo root; `search.py` is the brain/ adapter (paths, corpus rules,
 threshold, CLI).
 
-The conversational sub-agent lives at `.claude/agents/samwise.md`; this
-directory holds the underlying query engine (`search.py`) and its eval
-harness (`eval/`).
+This directory holds the query engine (`search.py`), the MCP server Gandalf
+queries it through (`mcp_server.py`) and the eval harness (`eval/`). There is
+no sub-agent: Gandalf calls the tools directly and does the judging and
+reading itself (`.claude/skills/gandalf/SKILL.md`, Step 2d).
+
+## MCP server
+
+`mcp_server.py` serves the same retrieval as two read-only tools, registered
+as `samwise` in the repo's `.mcp.json`:
+
+| tool | = CLI | returns |
+|---|---|---|
+| `context(query, budget, follow_links, folders, rerank)` | `--context --format text` | a cited, token-budgeted bundle of passages |
+| `search(query, strategy, top_k, min_score, diversify, wide, rerank)` | ranked mode, `--format text` | score, path, section, snippet per hit |
+
+`folders` narrows `context` to path prefixes — meant as a second call for a
+category question, after a first bundle showed where its members live
+(Gandalf's Step 2d, 3a). `wide=True` is the broad-question preset (top 20, no threshold, one block per
+file). The tool descriptions carry the usage guidance and measured numbers —
+they are what the calling model reads.
+
+**One shared process over HTTP.** Production runs it as a systemd user
+service, `samwise-mcp.service`, on `http://127.0.0.1:8765/mcp`, stateless —
+so every Claude Code session shares one copy of the model, and a restart does
+not break clients. `--transport stdio` (the default when run by hand) gives
+one process per client. The unit is a template (`samwise-mcp.service.in`);
+`install-service.sh` fills in this checkout's path and copies it to
+`~/.config/systemd/user/`, so no path is hard-coded and switching branches
+never removes it.
+
+```bash
+.claude/scripts/samwise/install-service.sh   # install, or refresh after moving the repo / editing the template
+systemctl --user restart samwise-mcp          # after changing the server code
+```
+
+**RAM.** The MCP server is ~80 MB and never imports torch; the model and the
+index live in a worker process started by the first query (~14 s) and kept
+for later ones (~0.3–0.5 s). Measured on the Pi 5:
+
+| state | RSS |
+|---|---|
+| idle, no worker | ~95 MB |
+| worker loaded (granite-311m float32 = 1.6 GB of it) | ~2.2 GB |
+
+After `SAMWISE_IDLE_UNLOAD` seconds without a query (default 600, 0 = never)
+the worker is shut down. A separate process because an in-process unload
+gave back only ~0.4 GB of the 2.2 — torch keeps the rest, whatever glibc's
+malloc tunables say. If the worker dies (e.g. killed for RAM), the call
+reports it and the next one starts a new worker.
+
+**Never stale.** Before each call the worker fingerprints the index's
+per-file content hashes (~10 ms on Qdrant) and reloads when B.I.L.B.O. has
+changed anything since.
+
+**Index down** (Qdrant not running): the tools return `SAMWISE: index
+unavailable — …` with the fix; **service down**: the `samwise` tools are
+missing from the session. Either way Gandalf falls back to grep.
+
+`mcp==2.2.0` lives in Bilbo's venv (`.claude/scripts/bilbo/requirements.txt`).
 
 ## What it does
 
@@ -43,7 +99,7 @@ than installing `sentence-transformers`/`torch` twice:
 ```bash
 --strategy {semantic,grep,hybrid}   # default: semantic
 --top-k N                           # default: 8
---min-score F                       # default: 0.8684 (calibrated per model, see below)
+--min-score F                       # default: 0.845 (set per model, see below)
 --format {json,text}                # default: json
 ```
 
@@ -107,7 +163,9 @@ F1-optimal threshold **0.5047** (precision 0.665, recall 0.791) was wired into
 granite-311m with chunker v2 — semantic hit@1 0.76, MRR 0.82 on the 63-query
 set (MiniLM: 0.60 / 0.69). The threshold is recalibrated to **0.8684**
 (precision 0.552, recall 0.775): cosine scores are model-specific, so the old
-value means nothing for the new model. Semantic still beats hybrid. Samwise
+value means nothing for the new model. On 2026-09-26 it was lowered to
+**0.845** in favour of recall — on the 83-query set, no empty results and
+77/83 queries with a relevant hit, versus 3 empty and 69/83 at 0.8684. Semantic still beats hybrid. Samwise
 applies the index's recorded query prefix, `trust_remote_code` and config
 overrides from its `meta` table, and loads the model in float32. Full
 numbers: `IMPLEMENTATION.md` Step 9.

@@ -104,6 +104,14 @@ class SearchHelpersTest(unittest.TestCase):
             f.write_text("# comment\nThe\n\nand  # trailing\n")
             self.assertEqual(search.load_stopwords(f), frozenset({"the", "and"}))
 
+    def test_keyword_terms_meet_across_inflection(self):
+        try:
+            from imladris.qdrant_store import keyword_terms
+        except ImportError:
+            self.skipTest("qdrant extra not installed")
+        self.assertEqual(keyword_terms(["Polisie", "polisa", "Łódź", "kot"], 5), "polis polis lodz kot")
+        self.assertEqual(keyword_terms(["Naleśniki"], 0), "nalesniki")
+
     def test_fts_query_stems_and_drops_stopwords(self):
         stop = frozenset({"jest"})
         self.assertEqual(search.fts_query("kto jest uposażonym w polisie", 5, stop), '"kto" OR "uposa"* OR "polis"*')
@@ -115,15 +123,22 @@ class SearchHelpersTest(unittest.TestCase):
         self.assertEqual([h["path"] for h in search.diversify(hits, 2)], ["a", "b"])
 
 
-class ContextTest(unittest.TestCase):
+class StoreBackend:
+    """Where a test's index lives; subclasses switch the backend."""
+
+    def location(self, tmp):
+        return Path(tmp) / "i.db"
+
+
+class ContextTest(StoreBackend, unittest.TestCase):
     """build_context over a two-file store, with the query embedding faked."""
 
     def test_bundle_widens_hits_and_respects_budget(self):
         from unittest import mock
         from imladris import context
         with tempfile.TemporaryDirectory() as tmp:
-            db = Path(tmp) / "i.db"
-            conn = store.open_store(db)
+            db = self.location(tmp)
+            st = store.open_store(db)
             for path, axis in (("a.md", 0), ("b.md", 1)):
                 doc = parse_markdown(Path(path), DOC, count)
                 sections = [{"heading": " > ".join(s.path) or "Doc", "section_no": s.number,
@@ -138,13 +153,13 @@ class ContextTest(unittest.TestCase):
                     blocks.append({"heading": c.heading, "text": c.text, "section": c.section,
                                    "line_start": c.line_start, "line_end": c.line_end,
                                    "token_count": count(c.text), "vector": vec.tobytes()})
-                store.write_document(conn, path, content_hash="h", mtime=0.0, indexed_at="now", title="Doc",
-                                     frontmatter={}, privacy="private", sections=sections, blocks=blocks,
-                                     links=[])
-            store.set_meta(conn, model_name="m", model_revision="r", embed_dim="4",
-                           schema_version=store.SCHEMA_VERSION)
-            conn.commit()
-            conn.close()
+                st.write_document(path, content_hash="h", mtime=0.0, indexed_at="now", title="Doc",
+                                  frontmatter={}, privacy="private", sections=sections, blocks=blocks,
+                                  links=[])
+            st.set_meta(model_name="m", model_revision="r", embed_dim="4",
+                        schema_version=store.SCHEMA_VERSION)
+            st.commit()
+            st.close()
 
             idx = search.load_index(db)
             query = np.array([0.9, 0.44, 0.0, 0.0], dtype=np.float32)
@@ -164,21 +179,21 @@ class ContextTest(unittest.TestCase):
             return np.array([cos, np.sqrt(1 - cos * cos), 0, 0], dtype=np.float32).tobytes()
 
         with tempfile.TemporaryDirectory() as tmp:
-            db = Path(tmp) / "i.db"
-            conn = store.open_store(db)
+            db = self.location(tmp)
+            st = store.open_store(db)
             # c.md's block barely matches, but its summary names the category
             for path, block_cos, doc_cos in (("a.md", 0.9, 0.1), ("b.md", 0.5, 0.1), ("c.md", 0.1, 0.9)):
-                store.write_document(conn, path, content_hash="h", mtime=0.0, indexed_at="now", title=path,
-                                     frontmatter={}, privacy="public",
-                                     sections=[{"heading": path, "section_no": "", "line_start": 1,
-                                                "line_end": 1, "text": "x"}],
-                                     blocks=[{"heading": path, "text": "x", "section": 0, "line_start": 1,
-                                              "line_end": 1, "token_count": 1, "vector": at(block_cos)}],
-                                     links=[], doc_text=f"{path} summary", doc_vector=at(doc_cos))
-            store.set_meta(conn, model_name="m", model_revision="r", embed_dim="4",
-                           schema_version=store.SCHEMA_VERSION)
-            conn.commit()
-            conn.close()
+                st.write_document(path, content_hash="h", mtime=0.0, indexed_at="now", title=path,
+                                  frontmatter={}, privacy="public",
+                                  sections=[{"heading": path, "section_no": "", "line_start": 1,
+                                             "line_end": 1, "text": "x"}],
+                                  blocks=[{"heading": path, "text": "x", "section": 0, "line_start": 1,
+                                           "line_end": 1, "token_count": 1, "vector": at(block_cos)}],
+                                  links=[], doc_text=f"{path} summary", doc_vector=at(doc_cos))
+            st.set_meta(model_name="m", model_revision="r", embed_dim="4",
+                        schema_version=store.SCHEMA_VERSION)
+            st.commit()
+            st.close()
 
             idx = search.load_index(db)
             self.assertEqual(idx.doc_paths, ["a.md", "b.md", "c.md"])
@@ -191,48 +206,49 @@ class ContextTest(unittest.TestCase):
                     lead("max")
 
 
-class StoreTest(unittest.TestCase):
+class StoreTest(StoreBackend, unittest.TestCase):
     def test_document_tree_roundtrip(self):
         doc = parse_markdown(Path("d.md"), DOC, count)
         with tempfile.TemporaryDirectory() as tmp:
-            db = Path(tmp) / "i.db"
-            conn = store.open_store(db)
+            db = self.location(tmp)
+            st = store.open_store(db)
             sections = [{"heading": " > ".join(s.path) or "Doc", "section_no": s.number,
                          "line_start": s.line_start, "line_end": s.line_end, "text": s.text}
                         for s in doc.sections]
             blocks = [{"heading": c.heading, "text": c.text, "section": c.section,
                        "line_start": c.line_start, "line_end": c.line_end, "token_count": count(c.text),
                        "vector": np.ones(4, dtype=np.float32).tobytes()} for c in doc.chunks]
-            store.write_document(conn, "d.md", content_hash="h", mtime=0.0, indexed_at="now",
-                                 title="Doc", frontmatter={"title": "Doc"}, privacy="private",
-                                 sections=sections, blocks=blocks,
-                                 links=[{"dst": "e.md", "raw": "e.md", "kind": "path", "line": 1}])
-            store.set_meta(conn, model_name="m", model_revision="r", embed_dim="4",
-                           schema_version=store.SCHEMA_VERSION)
-            conn.commit()
+            st.write_document("d.md", content_hash="h", mtime=0.0, indexed_at="now",
+                              title="Doc", frontmatter={"title": "Doc"}, privacy="private",
+                              sections=sections, blocks=blocks,
+                              links=[{"dst": "e.md", "raw": "e.md", "kind": "path", "line": 1}])
+            st.set_meta(model_name="m", model_revision="r", embed_dim="4",
+                        schema_version=store.SCHEMA_VERSION)
+            st.commit()
 
-            levels = dict(conn.execute("SELECT level, COUNT(*) FROM nodes GROUP BY level").fetchall())
-            self.assertEqual(levels, {"doc": 1, "section": 4, "block": 4})
+            title, privacy, sections, blocks = st.document("d.md")
+            self.assertEqual((title, privacy, len(sections), len(blocks)), ("Doc", "private", 4, 4))
             # every block hangs under the section its chunk came from
-            parents = conn.execute(
-                "SELECT s.section_no FROM nodes b JOIN nodes s ON b.parent_id = s.id "
-                "WHERE b.level = 'block' ORDER BY b.ord").fetchall()
-            self.assertEqual([p[0] for p in parents], ["", "1", "1.1", "2"])
-            conn.close()
+            self.assertEqual([sections[b[1]][0] for b in blocks], ["", "1", "1.1", "2"])
+            self.assertEqual(st.neighbours("d.md"), {"e.md"})
+            self.assertEqual(st.neighbours("e.md"), {"d.md"})
+            st.close()
 
             idx = search.load_index(db)
             self.assertEqual(len(idx.texts), 4)
             self.assertEqual(idx.section_nos, ["", "1", "1.1", "2"])
-            # full text: backfilled blocks are searchable; "Dee" prefix-matches "Deep"
-            hits = search.fts_search(idx, "Deeper things", top_k=3, stem=3)
+            # keyword search: only the block that has the word
+            hits = search.fts_search(idx, "Deep things", top_k=3, stem=5)
             self.assertEqual([h["section_no"] for h in hits], ["1.1"])
+            idx.store.close()
 
-            conn = store.open_store(db)
-            store.delete_document(conn, "d.md")
-            conn.commit()
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM nodes").fetchone()[0], 0)
-            self.assertEqual(conn.execute("SELECT COUNT(*) FROM links").fetchone()[0], 0)
+            st = store.open_store(db)
+            st.delete_document("d.md")
+            st.commit()
+            self.assertEqual((st.stored_hashes(), st.blocks(), st.neighbours("e.md")), ({}, [], set()))
 
+
+class SqliteOnlyTest(unittest.TestCase):
     def test_schema1_index_is_left_alone_and_reported(self):
         with tempfile.TemporaryDirectory() as tmp:
             db = Path(tmp) / "old.db"
@@ -241,10 +257,92 @@ class StoreTest(unittest.TestCase):
                               "INSERT INTO meta VALUES ('model_name', 'm'), ('schema_version', '1');")
             old.commit()
             old.close()
-            conn = store.open_store(db)
+            st = store.open_store(db)
             with self.assertRaises(store.IndexMismatch):
-                store.check_consistency(conn, "m", "main", "v2")
-            self.assertEqual(store.stored_hashes(conn), {})
+                st.check_consistency("m", "main", "v2")
+            self.assertEqual(st.stored_hashes(), {})
+
+
+QDRANT_URL = "http://127.0.0.1:6333"
+
+
+class QdrantBackend(StoreBackend):
+    """The same tests against a Qdrant server; skipped when none is running.
+    Each test gets a throwaway collection."""
+
+    def setUp(self):
+        try:
+            from qdrant_client import QdrantClient
+            self.client = QdrantClient(url=QDRANT_URL, timeout=2)
+            self.client.get_collections()
+        except Exception as err:  # no extra installed, or no server
+            self.skipTest(f"no Qdrant at {QDRANT_URL}: {err}")
+        self.collections = []
+
+    def tearDown(self):
+        for name in self.collections:
+            self.client.delete_collection(name)
+        self.client.close()
+
+    def location(self, tmp):
+        import uuid
+        self.collections.append(f"imladris_test_{uuid.uuid4().hex[:8]}")
+        return f"{QDRANT_URL}/{self.collections[-1]}"
+
+
+class QdrantContextTest(QdrantBackend, ContextTest):
+    pass
+
+
+class QdrantStoreTest(QdrantBackend, StoreTest):
+    pass
+
+
+
+class QdrantCopyTest(QdrantBackend, unittest.TestCase):
+    def test_copy_from_sqlite_keeps_the_index(self):
+        # normalized, as the store expects: Qdrant's cosine space normalizes on write
+        unit = lambda v: (np.array(v, dtype=np.float32) / np.linalg.norm(v)).astype(np.float32).tobytes()
+        doc = parse_markdown(Path("d.md"), DOC, count)
+        sections = [{"heading": " > ".join(s.path) or "Doc", "section_no": s.number,
+                     "line_start": s.line_start, "line_end": s.line_end, "text": s.text} for s in doc.sections]
+        with tempfile.TemporaryDirectory() as tmp:
+            src = store.open_store(Path(tmp) / "i.db")
+            for n, path in enumerate(("d.md", "e.md")):
+                blocks = [{"heading": c.heading, "text": c.text, "section": c.section, "line_start": c.line_start,
+                           "line_end": c.line_end, "token_count": count(c.text),
+                           "vector": unit([n + 1, i + 1, 0, 1])}
+                          for i, c in enumerate(doc.chunks)]
+                src.write_document(path, content_hash=f"h{n}", mtime=0.0, indexed_at="now", title=path,
+                                   frontmatter={"title": path}, privacy="public", sections=sections, blocks=blocks,
+                                   links=[{"dst": "e.md", "raw": "e.md", "kind": "path", "line": 1}],
+                                   doc_text=f"{path} summary" if n else None,
+                                   doc_vector=unit([1, 1, 1, 1]) if n else None)
+            src.set_meta(model_name="m", model_revision="r", embed_dim="4", schema_version=store.SCHEMA_VERSION)
+            src.commit()
+
+            dst = store.open_store(self.location(tmp))
+            self.assertEqual(store.copy_store(src, dst, log=lambda _: None), 2)
+            self.assertEqual(dst.stored_hashes(), src.stored_hashes())
+            self.assertEqual(dst.get_meta()["model_name"], "m")
+            self.assertEqual(dst.doc_vectors(), src.doc_vectors())
+            strip = lambda rows: [{k: v for k, v in r.items() if k != "id"} for r in rows]
+            self.assertEqual(strip(dst.blocks()), strip(src.blocks()))
+            for path in ("d.md", "e.md"):
+                title, privacy, sections_src, blocks_src = src.document(path)
+                self.assertEqual(dst.document(path)[:2], (title, privacy))
+                self.assertEqual(list(dst.document(path)[2].values()), list(sections_src.values()))
+                self.assertEqual(dst.neighbours(path), src.neighbours(path))
+            # the server's vector search ranks blocks as the in-memory dot product does
+            rows = src.blocks()
+            vectors = np.stack([np.frombuffer(r["vector"], dtype=np.float32) for r in rows])
+            query = np.frombuffer(unit([2, 1, 0, 1]), dtype=np.float32)
+            local = [rows[i]["text"] for i in np.argsort(-(vectors @ query), kind="stable")[:3]]
+            texts = {r["id"]: r["text"] for r in dst.blocks()}
+            self.assertEqual([texts[i] for i, _ in dst.nearest(query, 3, -1.0)], local)
+            self.assertEqual(dst.nearest(query, 3, 1.1), [])  # nothing clears the bar
+            src.close()
+            dst.close()
 
 
 if __name__ == "__main__":

@@ -48,5 +48,11 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "mcp__samwise__context",
+      "mcp__samwise__search"
+    ]
   }
 }

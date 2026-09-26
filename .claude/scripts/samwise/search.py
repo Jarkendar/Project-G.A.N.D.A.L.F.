@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # S.A.M.W.I.S.E. — SQL And Markdown Wading Into Semantic Embeddings.
 #
-# The reader. B.I.L.B.O. (.claude/scripts/bilbo/index.py) WRITES the index at
-# brain/index/bilbo.db; Samwise only READS it — never a writer connection,
-# never a rebuild.
+# The reader. B.I.L.B.O. (.claude/scripts/bilbo/index.py) WRITES the index —
+# wherever BILBO_INDEX points (Qdrant, or brain/index/bilbo.db by default);
+# Samwise only READS it — never a writer connection, never a rebuild.
 #
 # Retrieval itself lives in the imladris-rag engine (imladris.search); this
 # adapter supplies brain/: where it is, what counts as knowledge (the same
@@ -39,7 +39,8 @@ from imladris import context as context_engine  # noqa: E402
 from imladris import rerank as rerank_engine  # noqa: E402
 from imladris import search as engine  # noqa: E402
 from imladris.models import load_model  # noqa: E402,F401  (re-exported for the eval)
-from index import brain_corpus, read_gandalf_env, resolve_brain_path  # noqa: E402,F401  (Bilbo's brain/ rules)
+from index import (brain_corpus, read_gandalf_env, resolve_brain_path,  # noqa: E402,F401  (Bilbo's brain/ rules)
+                   resolve_index_location)
 
 SamwiseIndex = engine.Index
 
@@ -47,19 +48,22 @@ SamwiseIndex = engine.Index
 # strategies. Config, not code: edit stopwords.txt.
 STOPWORDS = engine.load_stopwords(Path(__file__).with_name("stopwords.txt"))
 
-# Calibrated by eval/run_eval.py for the production index — granite-311m +
-# chunker v2 since 2026-09-24 — against the 63-query golden set (F1-optimal:
-# F1=0.645, precision=0.552, recall=0.775; IMPLEMENTATION.md Step 9, Index v2
-# phase B). The value is model-specific: cosine scores of different models
-# live on different scales (MiniLM's was 0.5047). Re-run the eval and update
-# this constant whenever BILBO_EMBED_MODEL or the chunker changes.
+# Recall-leaning, set 2026-09-26 for the production index (granite-311m +
+# chunker v2) on the 83-query golden set: no query comes back empty, 77/83
+# keep a relevant hit (precision 0.37, recall 0.93) — against the F1-optimal
+# 0.8684 (precision 0.50, recall 0.77), which left 3 queries with nothing
+# and 14 without a relevant hit. The reader judges the hits anyway, and
+# --top-k caps the noise. The value is model-specific: cosine scores of
+# different models live on different scales (MiniLM's F1 optimum was
+# 0.5047). Re-run the eval and revisit it whenever BILBO_EMBED_MODEL or the
+# chunker changes.
 #
 # Known limitation (measured, not theoretical): broad "list everything about
 # X" queries can legitimately score below any fixed cutoff on every relevant
 # chunk. A score threshold cannot fully solve this — see samwise.md's
 # workflow for the mitigation (widen --top-k / relax --min-score for
 # enumerative-sounding questions).
-DEFAULT_MIN_SCORE = 0.8684
+DEFAULT_MIN_SCORE = 0.845
 DEFAULT_TOP_K = 8
 
 # How --context orders its lead files. "zmax" uses the document-level vectors
@@ -86,14 +90,16 @@ def default_project_dir() -> Path:
     return PROJECT_DIR
 
 
-def load_index(brain_dir: Path, db_path: Path | None = None) -> SamwiseIndex:
-    """db_path defaults to Bilbo's production index; the eval harness passes an
-    experimental one (built with `index.py --db`) to compare variants."""
-    db_path = db_path or brain_dir / "index" / "bilbo.db"
+def load_index(brain_dir: Path, db_path=None) -> SamwiseIndex:
+    """db_path defaults to Bilbo's production index (BILBO_INDEX); the eval
+    harness passes an experimental one (built with `index.py --db`) to
+    compare variants."""
+    db_path = db_path or resolve_index_location(PROJECT_DIR, brain_dir)
     try:
         return engine.load_index(db_path)
     except engine.IndexUnavailable as err:
-        sys.exit(f"SAMWISE: {err} — run B.I.L.B.O. (.claude/scripts/bilbo/index.py) first.")
+        sys.exit(f"SAMWISE: {err} — run B.I.L.B.O. (.claude/scripts/bilbo/index.py) first, or, for a "
+                 f"Qdrant index, start the server: docker compose -f imladris-rag/docker-compose.yml up -d")
 
 
 semantic_search = engine.semantic_search
@@ -145,6 +151,32 @@ def build_context(idx: SamwiseIndex, query: str, reranker: str | None = None, **
     return context_engine.build_context(idx, query, token_counter(load_model(idx.spec)), **options)
 
 
+def format_context(items: list) -> str:
+    """A context bundle as text: each passage headed with its citation."""
+    if not items:
+        return "SAMWISE: no hits."
+    out = []
+    for it in items:
+        number = f"{it.section_no} " if it.section_no else ""
+        where = f" § {number}{it.heading}" if it.kind != "document" else " (whole file)"
+        lines = f" L{it.lines[0]}-{it.lines[1]}" if it.lines else ""
+        note = "" if it.reason == "hit" else f" [{it.reason}]"
+        out.append(f"=== {it.path}{where}{lines} — {it.privacy}, {it.tokens} tok, score {it.score}{note}\n"
+                   f"{it.text}\n")
+    return "\n".join(out)
+
+
+def format_hits(results: list[dict]) -> str:
+    """Ranked hits as text: score, path, section, snippet."""
+    if not results:
+        return "SAMWISE: no hits."
+    out = []
+    for r in results:
+        heading = f" § {r['heading']}" if r.get("heading") else ""
+        out.append(f"{r['score']:>8}  {r['path']}{heading}\n          {r['snippet']}")
+    return "\n".join(out)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="S.A.M.W.I.S.E. — query-time reader over B.I.L.B.O.'s embedding index"
@@ -179,16 +211,7 @@ def main():
         if args.format == "json":
             print(json.dumps([vars(it) for it in items], ensure_ascii=False, indent=2))
         else:
-            if not items:
-                print("SAMWISE: no hits.")
-            for it in items:
-                number = f"{it.section_no} " if it.section_no else ""
-                where = f" § {number}{it.heading}" if it.kind != "document" else " (whole file)"
-                lines = f" L{it.lines[0]}-{it.lines[1]}" if it.lines else ""
-                note = "" if it.reason == "hit" else f" [{it.reason}]"
-                print(f"=== {it.path}{where}{lines} — {it.privacy}, {it.tokens} tok, score {it.score}{note}")
-                print(it.text)
-                print()
+            print(format_context(items))
         return
     results = search(brain_dir, args.query, args.strategy, args.top_k, args.min_score,
                      diversify=args.diversify, stem=args.stem, reranker=reranker)
@@ -197,12 +220,7 @@ def main():
         print(json.dumps([{k: v for k, v in r.items() if k != "chunk"} for r in results],
                          ensure_ascii=False, indent=2))
     else:
-        if not results:
-            print("SAMWISE: no hits.")
-        for r in results:
-            heading = f" § {r['heading']}" if r.get("heading") else ""
-            print(f"{r['score']:>8}  {r['path']}{heading}")
-            print(f"          {r['snippet']}")
+        print(format_hits(results))
 
 
 if __name__ == "__main__":

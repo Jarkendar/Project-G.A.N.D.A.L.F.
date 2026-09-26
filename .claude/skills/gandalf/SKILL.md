@@ -26,7 +26,7 @@ is set).
 | Signal | Route |
 |---|---|
 | "how much", "how many", "count", "sum", "total", "average", "compare", "when did I last", questions over structured time-series or log data | → **G.I.M.L.I.** (sub-agent) |
-| "what do I know about", "my goals", "tell me about", "notes on", "context on", "find something like", open-ended personal knowledge | → **S.A.M.W.I.S.E.** (sub-agent, see Step 2d) |
+| "what do I know about", "my goals", "tell me about", "notes on", "context on", "find something like", open-ended personal knowledge | → **S.A.M.W.I.S.E.** (MCP tools, see Step 2d) |
 | "report", "raport", "chart", "wykres", "analyze the trend", "przeanalizuj", "compare periods", "porównaj okresy", "build my CV", "zbuduj CV" — anything asking for a rendered/analyzed deliverable | → **G.I.M.L.I. and/or S.A.M.W.I.S.E. (data) → R.A.D.A.G.A.S.T.** (chained, see Step 2c) |
 | Ambiguous — could be both | Prefer Samwise for qualitative, SQL for quantitative; if genuinely ambiguous, split: run both and merge. |
 
@@ -55,7 +55,8 @@ Proceed to Step 3 once Gimli returns.
 ## Step 2b — route to brain/ markdown (fallback: direct grep)
 
 This is now the **fallback path** for when Step 2d (Samwise) can't run — the
-embedding index missing, empty, or stale, or Samwise itself reports a fallback.
+index missing, empty, or unreachable (Samwise reports `index unavailable`), or
+the `samwise` MCP tools not loaded.
 For normal unstructured queries, prefer Step 2d.
 
 1. **Search:** `grep -ri "<keywords>" "$BRAIN_PATH"` — use 2–3 keywords from the query.
@@ -73,20 +74,51 @@ For normal unstructured queries, prefer Step 2d.
 
 ---
 
-## Step 2d — route to S.A.M.W.I.S.E. (semantic knowledge query)
+## Step 2d — query S.A.M.W.I.S.E. (semantic knowledge query)
 
-Invoke the `samwise` sub-agent with the original query plus the resolved
-`BRAIN_PATH`.
+Samwise is an MCP server (`.claude/scripts/samwise/mcp_server.py`, `samwise`
+in `.mcp.json`, the `samwise-mcp` user service) — call its tools directly, no
+sub-agent. It reads B.I.L.B.O.'s index (Qdrant, per `BILBO_INDEX`) and is
+read-only. The first call after ~10 idle minutes loads the embedding model
+(~15 s); later calls take under a second.
+Each tool's description carries the measured numbers behind its parameters.
 
-Samwise will:
-1. Encode the query and cosine-rank it against B.I.L.B.O.'s embedding index
-   (`brain/index/bilbo.db`).
-2. Read the top-ranked files for real excerpts.
-3. Return ranked results (path, score, excerpt) — or explicitly report a
-   fallback to grep if the index is unavailable.
+1. **Judge the question's shape** from its wording:
+   - **Point lookup** — one document answers it ("my CV gaps", "a broker's
+     profile").
+   - **Broad / enumerative** — plural nouns, "all", "every", a category name
+     ("what are my side-projects", "what cycling trips have I done").
+   When unsure, treat it as a point lookup and widen only if the result
+   looks thin — the judgment over-calls "broad" (Polish "jakie…" sounds
+   plural even when one file answers).
+2. **Always start with `mcp__samwise__context(query)`** — a ~1500-token
+   bundle of cited passages; the answer is inside it for 95% of golden-set
+   queries. Every passage is headed with path, section, lines and privacy.
+3. **Broad question:** also call `mcp__samwise__search(query, wide=True)` —
+   top 20 files, no threshold. Relevant files can score below any cutoff:
+   scan the list, group by path, and Read whatever is plausibly on-topic even
+   at a middling score. Tell the user you widened the net and judged by eye.
+3a. **Category question, thin result — narrow in a second call.** When the
+   question asks about a category (all my side-projects, trips, races, games
+   played, family) and the first bundle plus the wide list show where its
+   members live (several hits under one folder, e.g. `knowledge/events/`) but
+   cover only a few of them, call `mcp__samwise__context(query,
+   folders=["<that folder>/"])` and use both bundles. Pick the folder from the
+   hits you saw, not from folder names alone — a guessed folder hides the
+   answer (measured). Skip it when the first bundle already answers.
+4. **Exact names, numbers, identifiers:** a second look with
+   `mcp__samwise__search(query, strategy="fts")`.
+5. **Read** the files the answer rests on (1–3 for a point lookup, more for a
+   broad one) — passages and snippets locate, the file is the source. Apply
+   the privacy gate from Step 2b.
+6. **If a tool returns `SAMWISE: index unavailable`**, or the `samwise` tools
+   are missing (the service is down: `systemctl --user start samwise-mcp`):
+   name the fix, do not start anything yourself, and fall back to Step 2b —
+   saying explicitly that you did.
 
-If Samwise reports a fallback, that already covers Step 2b — do not also run
-grep yourself. Proceed to Step 3 once Samwise returns.
+Leave `rerank` off unless the user asks for it: ~1 min per query on the Pi.
+Never write, rebuild or reindex — that is B.I.L.B.O.'s job
+(`.claude/scripts/bilbo/index.py`), not a conversational step.
 
 ---
 
@@ -114,8 +146,9 @@ and/or 2d.
 Compose the final answer from the agent result or the markdown content:
 - Be concise and direct.
 - If the answer came from Gimli: include the key numbers and the source database.
-- If the answer came from Samwise: summarise what was found and cite the ranked
-  file path(s) + scores.
+- If the answer came from Samwise: summarise what was found and cite the file
+  path(s) + section from the passage headers (and scores for ranked hits); say
+  if you widened the net for a broad question.
 - If the answer came from a direct markdown fallback (Step 2b): summarise what
   was found and cite the file path(s).
 - If the answer came from Radagast: pass through its full report, assessment, and

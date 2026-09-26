@@ -5,8 +5,8 @@ a scheduled task. Walks watched directories, detects new or modified files,
 chunks them, and stores them in the knowledge base."*
 
 Bilbo **writes** the embedding index. It never answers a query — that's
-**S.A.M.W.I.S.E.**'s job (`.claude/scripts/samwise/search.py` +
-`.claude/agents/samwise.md`): encode the query with the same pinned model,
+**S.A.M.W.I.S.E.**'s job (`.claude/scripts/samwise/search.py`, served to
+Gandalf as MCP tools by `mcp_server.py`): encode the query with the same pinned model,
 rank `brain/` chunks by cosine similarity against `chunks.vector`, and return
 ranked paths + snippets for Claude to `Read` deeper. Bilbo builds the index;
 Samwise reads it. Neither role crosses into the other.
@@ -33,7 +33,7 @@ files — see `imladris-rag/imladris/store.py`.
    logs — not knowledge), `index/` (its own output), and every per-folder
    `CLAUDE.md` (operating instructions, not retrievable knowledge).
 2. Hashes each file's content and compares against the last-indexed hash
-   stored in `brain/index/bilbo.db`. **Unchanged files are skipped entirely —
+   stored in the index. **Unchanged files are skipped entirely —
    zero re-embedding cost.** Only new/changed files get (re)chunked and
    (re)embedded; deleted files have their chunks removed.
 3. Chunks each file — production uses **chunker v2** (see "Models and
@@ -42,8 +42,12 @@ files — see `imladris-rag/imladris/store.py`.
    v1 (heading + ~90-word windows) remains for reference.
 4. Embeds all changed chunks in one batched `model.encode(...)` call
    (normalized vectors, so cosine similarity = dot product at query time).
-5. Upserts everything into `brain/index/bilbo.db` (SQLite — outside
-   `brain/db/`, which is G.I.M.L.I.'s access monopoly per `brain/db/CLAUDE.md`).
+5. Upserts everything into the index `BILBO_INDEX` names in `gandalf.env`:
+   the Qdrant collection `http://127.0.0.1:6333/bilbo` in production (server:
+   `imladris-rag/docker-compose.yml`), or `brain/index/bilbo.db` (SQLite —
+   outside `brain/db/`, which is G.I.M.L.I.'s access monopoly per
+   `brain/db/CLAUDE.md`) when unset. If Qdrant is down the run exits with a
+   message; the next run catches up, since indexing is incremental.
 
 ## Running it
 

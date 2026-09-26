@@ -869,6 +869,201 @@ move to its own repo and serve other projects.
         against the same block order the reranker is flat to slightly worse.
         Untried: feeding reranked block scores into zmax instead of skipping it.
 
+#### Stage 3 — Qdrant as the only store (started 2026-09-25)
+
+Owner's decisions (2026-09-25): Qdrant becomes the **only** store: vectors,
+text, the `doc → section → block` tree, links and keyword search in one
+collection with indexed payload. The client is the official `qdrant-client`,
+an optional extra (`imladris-rag[qdrant]`). The server has its own
+`docker-compose.yml` in `imladris-rag/`, so the engine stays self-contained for
+its future repository. SQLite stays as a second backend only until Qdrant is
+shown to match it, then it is removed. One commit per step on
+`feat/imladris-qdrant`.
+
+- [x] **Q1 — Infrastructure:** `imladris-rag/docker-compose.yml` (Qdrant
+      1.19.1 arm64, telemetry off, `127.0.0.1:6333`, named volume, restart
+      unless stopped), `qdrant-client==1.19.1` as an extra and in Bilbo's venv.
+- [x] **Q2 — Store interface:** the SQLite code behind a `Store` interface,
+      no change in behavior. Verified: eval on 83 queries × semantic, fts,
+      hybrid-fts and context identical to `main` per query (only latencies
+      differ); tests now exercise the interface, not SQL.
+- [x] **Q3 — `QdrantStore`:** points for docs, sections and blocks; payload
+      with text, headings, lines, links, privacy, `superseded_by`, folder;
+      keyword payload indexes on `level`, `path`, `folder`, `privacy`,
+      `superseded_by`, `links[].dst`; index meta in point 0. Locations are
+      `<url>/<collection>` wherever a SQLite path was accepted (`index.py
+      --db`, `run_eval.py --index`). `store.copy_store` moves an index between
+      backends without re-embedding: the production index (275 files, 3,085
+      points) copies in ~10 s. Verified: semantic and context on 83 queries
+      identical to SQLite per query; Bilbo's incremental run works on Qdrant;
+      the store tests run against both backends. Qdrant's cosine space
+      normalizes vectors on write, so the store requires normalized ones.
+- [x] **Q4 — Keyword search:** BM25 sparse vectors in place of FTS5,
+      computed by the server (`qdrant/bm25`, IDF modifier) — no `fastembed`.
+      Qdrant has no Polish stemmer, so words are prepared client-side the way
+      FTS5 saw them: lower-cased, diacritics dropped, cut to 5 characters on
+      both sides ("polisie" and "polisa" meet as "polis"); the server's
+      stemmer and stopwords are off. The cut is fixed per collection (FTS5
+      took it per query). With BM25's default `avg_len` 256 fts hit@1 fell to
+      .55; set to the blocks' real ~60 words it matches FTS5 (83 queries):
+
+      | | hit@1 | hit@5 | MRR | ans@5 |
+      |---|---|---|---|---|
+      | fts — SQLite FTS5 | .59 | .75 | .65 | .69 |
+      | fts — Qdrant BM25 | .59 | .73 | .65 | .67 |
+      | hybrid-fts — SQLite | .70 | .81 | .75 | .78 |
+      | hybrid-fts — Qdrant | .70 | .81 | .75 | .78 |
+- [x] **Q5a — Switch-over (2026-09-25):** `BILBO_INDEX` in `gandalf.env`
+      picks the index for Bilbo, the post-commit hook and Samwise;
+      production is `http://127.0.0.1:6333/bilbo`, copied from `bilbo.db`
+      with `copy_store`. With the container down Samwise reports the index
+      unreachable (its agent falls back to grep and says so) and Bilbo exits
+      with a message; the next run catches up. `bilbo.db` stays untouched as
+      the way back until Q7.
+- [x] **Q5b — Server-side search:** semantic search (and the semantic side
+      of the hybrids) runs as a Qdrant query (`Store.nearest`, blocks only,
+      `score_threshold` = `--min-score`) instead of a dot product over the
+      local vector copy; SQLite keeps the in-memory path. Verified: 83 queries
+      identical per query to SQLite; semantic p50 ~0.32 → ~0.28 s. `--context`
+      still scores every block in memory — it needs all scores (z-scores,
+      link thresholds). Retrieval filters (skip `superseded_by`, public-only)
+      moved to Step 10: no file carries `superseded_by` until
+      T.R.E.E.B.E.A.R.D. writes it, and nothing needs public-only before Phase 2.
+- [x] **Samwise threshold lowered (2026-09-26):** `--min-score` 0.8684 →
+      **0.845**, for recall. Sweep on 83 queries (semantic top-20):
+
+      | threshold | precision | recall | queries with a relevant hit | empty |
+      |---|---|---|---|---|
+      | 0.8684 (F1-optimal) | .50 | .77 | 69 | 3 |
+      | 0.855 | .41 | .89 | 75 | 1 |
+      | **0.845** | .37 | .93 | 77 | 0 |
+      | 0.83 | .33 | .98 | 79 | 0 |
+
+      0.85 would do nearly as well but cuts `core/health/body.md` for "ile mam
+      wzrostu" (0.8495). `--context`, Samwise's default, has no threshold.
+- [x] **Q6 — Samwise as an MCP server (2026-09-26):** `mcp_server.py`
+      serves `context` and `search` (`mcp==2.2.0`); Gandalf calls them
+      directly and the `samwise` sub-agent is gone — its workflow moved into
+      Gandalf's Step 2d and the tool descriptions. Production: one shared,
+      stateless HTTP process (`samwise-mcp.service`, user systemd,
+      `127.0.0.1:8765/mcp`) — stdio gave every Claude Code session its own
+      copy of the model. RAM, measured: ~2.2 GB loaded (granite-311m float32
+      = 1.6 GB), so the model and index live in a worker process that starts
+      on the first query (~14 s, then ~0.3–0.5 s per call) and is shut down
+      after `SAMWISE_IDLE_UNLOAD` (600 s): ~95 MB idle. An in-process unload
+      was tried first and freed only ~0.4 GB — torch keeps the rest whatever
+      glibc is told. Before each call the worker fingerprints the stored
+      per-file hashes (~10 ms) and reloads on a change, so a Bilbo reindex is
+      picked up without a restart. Verified over stdio and HTTP: both tools,
+      argument validation, two clients on one model copy, idle shutdown and
+      restart, reload on change, a killed worker, "index unavailable" with
+      Qdrant unreachable. Open: n8n runs in Docker and cannot reach
+      127.0.0.1 — binding for it waits until it needs Samwise.
+- [ ] **Q7 — Remove SQLite** once Q5 is confirmed in use.
+
+#### Multi-file questions — experiments (2026-09-26)
+
+`multi` is the weakest type under `--context` (hit@5 .79, MRR .71). The misses
+are category-shaped: the question names a kind of thing ("side-projects",
+"najbliższa rodzina", "gry latem 2026", "wyścigi rowerowe"), the notes name
+the members (AndroidLab, mama, Wukong, Gran Fondo) — no block is literally
+similar to the question. Two caller-side aids, both in `build_context` and
+`run_eval.py`, off by default (without them the 83 results are identical):
+
+- **`extra_queries` (`--subqueries`)** — the caller splits the question;
+  each block scores its best match over all queries, and each sub-query's
+  top file joins the lead files. Sub-queries written by Haiku, **one
+  question per call** (a batch of all 83 leaked names between questions —
+  "AndroidLab", "Kórnik" — and was discarded).
+- **`folders` (`--folders`)** — keep only files under the given path
+  prefixes. Folders picked by Haiku from the bare `brain/` folder tree.
+
+| `--context`, 83 queries | hit@1 | hit@5 | MRR | fullR@5 | `multi` hit@5 / MRR |
+|---|---|---|---|---|---|
+| production | **.80** | **.95** | **.87** | .88 | .79 / .71 |
+| + sub-queries | .78 | .95 | .86 | **.89** | .79 / **.75** |
+| + folders (Haiku) | .76 | .92 | .83 | .84 | .64 / .53 |
+| + both | — | — | — | — | .57 / .56 |
+
+- **Sub-queries: flat.** They work when a sub-query uses the notes' own words
+  ("mama" → family 1/3 → 3/3 files; cycling 1/3 → 2/3) and fail when a
+  one-word query embeds as its spelling ("tata" → *Tatra* restaurants,
+  "brat" → *Bartek*) or stays generic ("projekt uboczny" finds no project).
+  Splitting a point question ("cele na ten rok") pushed its answer 1 → 3.
+- **Folders: the right folder is a big win, picking it is the problem.**
+  With the expected folder given (an oracle), plain semantic top-5 over the
+  multi questions finds 26/42 expected files instead of 16/42. Haiku's
+  picks, from folder names alone, missed on 8 of 19 questions it narrowed:
+  `events` vs. `trips` vs. `travel`, `notes` vs. `daily` — a wrong folder
+  hides the answer, so the hard filter loses overall.
+- Follow-ups (same day). Counted as expected files anywhere in what the
+  caller read (bundle, or both bundles for the two-step variant):
+
+  | variant | expected files read (all 127) | `multi` (42) | no expected file | tokens / query |
+  |---|---|---|---|---|
+  | production | 103 | 22 | 4 | 1456 |
+  | folders from `CLAUDE.md` descriptions (replace) | 101 | 20 | 4 | 1444 |
+  | **two-step: narrow after reading the first bundle (union)** | **107** | **26** | **3** | 1551 |
+
+  - **Descriptions** help the picking (covering picks 12 → 14 of 19;
+    `multi` hit@5 .64 → .71) but a hard filter still loses to production
+    (.79): 20 of 40 folders have no description (`knowledge/notes/`,
+    `current/trips/`, all of `backlog/`).
+  - **Two-step wins, and cannot lose:** Haiku saw the first bundle's
+    passage headers and the top 15 files, and narrowed only 6 of 83 questions
+    — side-projects 0 → 2 of 3 files (`knowledge/projects/`), cycling 1 → 3
+    of 3 (`knowledge/events/`). The second bundle only adds to the first; ~95
+    tokens more per query on average.
+  - **A category vector per document** (title + the enrichment's bilingual
+    `topics` only, e.g. "gaming / gry wideo", "family / rodzina") instead of
+    or next to the summary vector: flat to worse (`multi` files 22 → 23 /
+    22; hit@1 .80 → .77 / .75). The categories are already in the document
+    vector; separating them does not help.
+  - **Shipped (2026-09-26):** `folders` on the `context` MCP tool, and the
+    two-step rule in Gandalf's Step 2d (3a) — narrow only after a first
+    bundle, to a folder its hits point at.
+  - **Golden set 83 → 97 (2026-09-26):** +14 closed category questions
+    (`multi` 14 → 28). New baseline, `--context`: hit@1 .76, hit@5 .93, MRR
+    .84, fullR@5 .84; `multi` hit@5 .79, MRR .70. Two-step on the 14 new
+    questions, unseen when the rule was designed: expected files read
+    25 → 33 of 38 (offers analysed on a day 3 → 6 of 6, sport events in a
+    month 0 → 3 of 3, mock interviews 0 → 2 of 2); Haiku narrowed 4 of 14.
+  - **B.I.L.B.O.'s post-commit hook reindexed production Qdrant** for the
+    first time (brain `51a2658`, 27.6 s) — the Q7 "confirmed in use" check.
+  - **Note kind + dates as filters (2026-09-26), measured before building.**
+    Haiku labelled all 275 files from their text with a fixed kind (person,
+    place, event, project, game, recipe, job-offer, interview, company, …)
+    and the days each records (a 9–13 Sept trip lists five days; a contact,
+    the day they met), plus the frontmatter date. On the 97 queries, counting
+    expected files anywhere in what the caller read (of 165):
+
+    | variant | files | `multi` (80) | none | tokens / query |
+    |---|---|---|---|---|
+    | production | 128 | 47 | 7 | 1456 |
+    | kind/date filter as the first call (Haiku, question only) | 116 | 45 | 13 | 1327 |
+    | kind/date filter added blind as a second bundle (65 of 97 filtered) | 141 | 60 | 4 | 2307 |
+    | two-step, folders only (shipped) | 140 | 59 | 4 | 1589 |
+    | two-step, folders + kinds + dates, picked after the first bundle | 140 | 58 | 4 | 1603 |
+
+    The blind union shows the metadata can win where folders cannot —
+    family across `core/contacts/` (1 → 3 of 3), an event and a place on one
+    day (Kórnik), walks over two months — but a caller that has read the
+    first bundle does not reach for it there, and labelling slips cost it
+    elsewhere (two offers labelled `interview`). With the same result as the
+    folders alone, **not built** into the index: it would need an
+    enrichment-prompt change, a re-enrichment of every file, and new payload
+    fields for as yet no measured gain. Labels and scripts:
+    `~/.local/share/gandalf/metadata-exp/` (private, outside both repos).
+  - **A file-name vector** (the path as words: "knowledge / projects /
+    androidlab", dates normalized) instead of or next to the summary vector:
+    worse / flat (hit@1 .80 → .70 / .76; `multi` files 22 → 22). A name like
+    `black-myth-wukong` no more says "game" than the note does. Dates in file
+    names go to the metadata filters instead.
+  - Not tried: lemmatization. The misses are not inflection — "rodzina" and
+    "mama" share no lemma, and the dense model already reads inflected
+    Polish; stemming affects only the BM25 side (prefix stem 5), which
+    `--context` does not use.
+
 Sources: PL-MTEB (ACL 2026 Findings); IBM Granite Embedding Multilingual R2
 model card; Snowflake Arctic Embed 2.0; Qu et al., "Is Semantic Chunking
 Worth the Computational Cost?" (NAACL 2025 Findings); Anthropic, "Contextual
@@ -901,6 +1096,8 @@ reshuffle it.**
   see the parking lot.
 - [ ] **Step 10 — T.R.E.E.B.E.A.R.D.** — nightly compression pass, supersession
   resolution, archive retrieval. Meaningful once 6–12 months of data accumulate.
+  Brings the retrieval filters deferred from Stage 3 (Q5b): default search skips
+  `superseded_by` files (payload already indexed in Qdrant), history on request.
 - [ ] **Step 11 — Optional voice layer** — Whisper.cpp (STT) + Piper TTS —
   only if real usage proves it's wanted.
 
