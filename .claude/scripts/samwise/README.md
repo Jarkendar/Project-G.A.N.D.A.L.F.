@@ -33,15 +33,17 @@ file). The tool descriptions carry the usage guidance and measured numbers —
 they are what the calling model reads.
 
 **One shared process over HTTP.** Production runs it as a systemd user
-service, `samwise-mcp.service` (in this directory, linked into
-`~/.config/systemd/user/`), on `http://127.0.0.1:8765/mcp`, stateless — so
-every Claude Code session shares one copy of the model, and a restart does
+service, `samwise-mcp.service`, on `http://127.0.0.1:8765/mcp`, stateless —
+so every Claude Code session shares one copy of the model, and a restart does
 not break clients. `--transport stdio` (the default when run by hand) gives
-one process per client.
+one process per client. The unit is a template (`samwise-mcp.service.in`);
+`install-service.sh` fills in this checkout's path and copies it to
+`~/.config/systemd/user/`, so no path is hard-coded and switching branches
+never removes it.
 
 ```bash
-systemctl --user enable --now "$PWD/.claude/scripts/samwise/samwise-mcp.service"
-systemctl --user restart samwise-mcp   # after changing the server code
+.claude/scripts/samwise/install-service.sh   # install, or refresh after moving the repo / editing the template
+systemctl --user restart samwise-mcp          # after changing the server code
 ```
 
 **RAM.** The MCP server is ~80 MB and never imports torch; the model and the
