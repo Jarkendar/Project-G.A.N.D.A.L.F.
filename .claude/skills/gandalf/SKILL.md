@@ -77,9 +77,10 @@ For normal unstructured queries, prefer Step 2d.
 ## Step 2d — query S.A.M.W.I.S.E. (semantic knowledge query)
 
 Samwise is an MCP server (`.claude/scripts/samwise/mcp_server.py`, `samwise`
-in `.mcp.json`) — call its tools directly, no sub-agent. It reads B.I.L.B.O.'s
-index (Qdrant, per `BILBO_INDEX`) and is read-only. The first call in a
-session loads the embedding model (~15 s); later calls take under a second.
+in `.mcp.json`, the `samwise-mcp` user service) — call its tools directly, no
+sub-agent. It reads B.I.L.B.O.'s index (Qdrant, per `BILBO_INDEX`) and is
+read-only. The first call after ~10 idle minutes loads the embedding model
+(~15 s); later calls take under a second.
 Each tool's description carries the measured numbers behind its parameters.
 
 1. **Judge the question's shape** from its wording:
@@ -102,9 +103,10 @@ Each tool's description carries the measured numbers behind its parameters.
 5. **Read** the files the answer rests on (1–3 for a point lookup, more for a
    broad one) — passages and snippets locate, the file is the source. Apply
    the privacy gate from Step 2b.
-6. **If a tool returns `SAMWISE: index unavailable`** (or the `samwise` tools
-   are missing): name the fix it gives, do not start Qdrant yourself, and
-   fall back to Step 2b — saying explicitly that you did.
+6. **If a tool returns `SAMWISE: index unavailable`**, or the `samwise` tools
+   are missing (the service is down: `systemctl --user start samwise-mcp`):
+   name the fix, do not start anything yourself, and fall back to Step 2b —
+   saying explicitly that you did.
 
 Leave `rerank` off unless the user asks for it: ~1 min per query on the Pi.
 Never write, rebuild or reindex — that is B.I.L.B.O.'s job

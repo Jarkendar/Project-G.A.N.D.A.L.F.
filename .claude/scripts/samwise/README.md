@@ -18,8 +18,8 @@ reading itself (`.claude/skills/gandalf/SKILL.md`, Step 2d).
 
 ## MCP server
 
-`mcp_server.py` serves the same retrieval over stdio as two read-only tools,
-registered as `samwise` in the repo's `.mcp.json`:
+`mcp_server.py` serves the same retrieval as two read-only tools, registered
+as `samwise` in the repo's `.mcp.json`:
 
 | tool | = CLI | returns |
 |---|---|---|
@@ -30,17 +30,42 @@ registered as `samwise` in the repo's `.mcp.json`:
 file). The tool descriptions carry the usage guidance and measured numbers —
 they are what the calling model reads.
 
-- **Model loaded once, lazily.** The CLI pays ~15–25 s of model loading per
-  call; the server loads on the first query and answers later ones in
-  ~0.3–0.5 s. A session that never searches never loads it — each Claude
-  Code session starts its own server process, so two searching sessions hold
-  two copies of the model.
-- **Never stale.** Before each call the server fingerprints the index's
-  per-file content hashes (~10 ms on Qdrant) and reloads when B.I.L.B.O. has
-  changed anything since.
-- **Index down** (Qdrant not running): the tools return `SAMWISE: index
-  unavailable — …` with the fix, and Gandalf falls back to grep.
-- `mcp==2.2.0` lives in Bilbo's venv (`.claude/scripts/bilbo/requirements.txt`).
+**One shared process over HTTP.** Production runs it as a systemd user
+service, `samwise-mcp.service` (in this directory, linked into
+`~/.config/systemd/user/`), on `http://127.0.0.1:8765/mcp`, stateless — so
+every Claude Code session shares one copy of the model, and a restart does
+not break clients. `--transport stdio` (the default when run by hand) gives
+one process per client.
+
+```bash
+systemctl --user enable --now "$PWD/.claude/scripts/samwise/samwise-mcp.service"
+systemctl --user restart samwise-mcp   # after changing the server code
+```
+
+**RAM.** The MCP server is ~80 MB and never imports torch; the model and the
+index live in a worker process started by the first query (~14 s) and kept
+for later ones (~0.3–0.5 s). Measured on the Pi 5:
+
+| state | RSS |
+|---|---|
+| idle, no worker | ~95 MB |
+| worker loaded (granite-311m float32 = 1.6 GB of it) | ~2.2 GB |
+
+After `SAMWISE_IDLE_UNLOAD` seconds without a query (default 600, 0 = never)
+the worker is shut down. A separate process because an in-process unload
+gave back only ~0.4 GB of the 2.2 — torch keeps the rest, whatever glibc's
+malloc tunables say. If the worker dies (e.g. killed for RAM), the call
+reports it and the next one starts a new worker.
+
+**Never stale.** Before each call the worker fingerprints the index's
+per-file content hashes (~10 ms on Qdrant) and reloads when B.I.L.B.O. has
+changed anything since.
+
+**Index down** (Qdrant not running): the tools return `SAMWISE: index
+unavailable — …` with the fix; **service down**: the `samwise` tools are
+missing from the session. Either way Gandalf falls back to grep.
+
+`mcp==2.2.0` lives in Bilbo's venv (`.claude/scripts/bilbo/requirements.txt`).
 
 ## What it does
 

@@ -8,11 +8,8 @@
       ]
     },
     "samwise": {
-      "command": "bash",
-      "args": [
-        "-c",
-        "exec .claude/scripts/bilbo/.venv/bin/python .claude/scripts/samwise/mcp_server.py"
-      ]
+      "type": "http",
+      "url": "http://127.0.0.1:8765/mcp"
     }
   }
 }
