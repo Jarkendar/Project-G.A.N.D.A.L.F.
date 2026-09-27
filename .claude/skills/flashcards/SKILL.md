@@ -83,7 +83,7 @@ One card, one fact. Rules:
   - `basic` — question → answer; the default.
   - `reversed` — both directions; only for term ↔ definition and vocabulary.
   - `cloze` — a sentence with `{{c1::…}}` deletions; good for definitions and exact phrasing. Use `{{c2::…}}` for a second, separately-tested gap.
-- **Code** in backticks, line breaks allowed; no HTML, no images.
+- **Code** in backticks, **bold** with `**…**` sparingly (the one key term, not whole phrases), line breaks allowed; no HTML, no images.
 - **Language:** the language of the material; keep established English terms as they are.
 - **Priorities:** what the owner struggled with, got wrong, or asked about twice first; skip what is trivial for them.
 - **Volume:** usually 5–20 cards per session; more only when the material warrants it and the owner asked for thoroughness.
