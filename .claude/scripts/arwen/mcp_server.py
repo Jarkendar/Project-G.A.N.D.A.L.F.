@@ -29,6 +29,7 @@ import fcntl
 import html
 import json
 import os
+import re
 import sys
 from contextlib import contextmanager
 from pathlib import Path
@@ -153,10 +154,16 @@ class Card(BaseModel):
     tags: list[str] = Field(default_factory=list, description="e.g. source:brain/knowledge/tech/x.md")
 
 
+_BOLD = re.compile(r"\*\*(.+?)\*\*")
+
+
 def _field_html(text: str) -> str:
-    """Plain text with `code` spans and line breaks, as Anki field HTML."""
+    """Plain text with `code` spans, **bold** and line breaks, as Anki field HTML."""
     parts = html.escape(text.strip()).split("`")
-    out = "".join(f"<code>{p}</code>" if i % 2 else p for i, p in enumerate(parts))
+    out = "".join(
+        f"<code>{p}</code>" if i % 2 else _BOLD.sub(r"<b>\1</b>", p)
+        for i, p in enumerate(parts)
+    )
     return out.replace("\n", "<br>")
 
 
@@ -220,7 +227,7 @@ def add_notes(cards: list[Card], allow_new_decks: bool = False) -> str:
     - Only cards the owner approved; at most 50 per call.
     - `deck` must exist unless `allow_new_decks` (only when the owner agreed to a new deck).
     - A card whose question already exists in its note type is skipped and reported.
-    - Every card is tagged `gandalf` plus its own tags. Text may use `code` and line breaks.
+    - Every card is tagged `gandalf` plus its own tags. Text may use `code`, **bold** (sparingly) and line breaks.
     - kind: basic (question -> answer), reversed (both directions — vocabulary, terms),
       cloze (`front` holds {{c1::...}} deletions, `back` an optional extra).
     """

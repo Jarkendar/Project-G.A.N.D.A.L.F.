@@ -36,7 +36,7 @@ the smaller risk.
 
 Note types are found by their stock kind, not their name, so a localized
 AnkiDroid collection ("Podstawowy", "Luka") works. Every card is tagged
-`gandalf`. Text is escaped; `` `code` `` and line breaks survive.
+`gandalf`. Text is escaped; `` `code` ``, `**bold**` and line breaks survive.
 
 ## Setup
 
