@@ -1233,6 +1233,22 @@ reshuffle it.**
   precedent: `english-prep` / `english-review`; language errors stay with
   those. → `.claude/skills/practice-prep/SKILL.md`,
   `.claude/skills/practice-review/SKILL.md`.
+- [x] **E12 — A.R.W.E.N. + `flashcards` skill (2026-09-26).** Flashcards from
+  what the owner learned (the chat, brain/ notes, `conversations/`, pasted
+  text) into Anki, reviewed on AnkiDroid. A.R.W.E.N. is an MCP server on the
+  official `anki` library: the Pi keeps a copy of the collection and syncs it
+  with AnkiWeb around every write — incremental always, a full download only
+  with nothing unsynced on the Pi, a full upload never (it would overwrite
+  the phone's reviews). Ready-made servers were weighed and dropped: the
+  AnkiConnect-based ones (ankimcp, the most used) need Anki desktop running,
+  i.e. Qt under a virtual display on the Pi; the headless `anki-sync-mcp` had
+  no users and would hold the AnkiWeb password. `flashcards` drafts atomic
+  cards, places them in existing decks, drops duplicates, and adds only after
+  the owner approves. **Privacy:** AnkiWeb is an external service — cards
+  from PRIVATE folders need the owner's explicit yes per batch (the owner's
+  choice, 2026-09-26). Knowledge, not speaking: the 2023 retro showed cards
+  do not fix spoken English. → `.claude/scripts/arwen/`,
+  `.claude/skills/flashcards/SKILL.md`.
 
 ---
 

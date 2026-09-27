@@ -10,6 +10,13 @@
     "samwise": {
       "type": "http",
       "url": "http://127.0.0.1:8765/mcp"
+    },
+    "arwen": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "exec .claude/scripts/arwen/.venv/bin/python .claude/scripts/arwen/mcp_server.py"
+      ]
     }
   }
 }

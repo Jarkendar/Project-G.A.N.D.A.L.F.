@@ -62,6 +62,7 @@ expansions: README.md § agents, and each agent's file in `.claude/agents/`.
 | R.A.D.A.G.A.S.T. | reporting & visualization | `.claude/agents/radagast.md` |
 | B.I.L.B.O. | embedding indexer (script, not reactive) | `.claude/scripts/bilbo/` |
 | S.M.E.A.G.O.L. | query logger (Stop hook) | `.claude/hooks/smeagol/` |
+| A.R.W.E.N. | Anki flashcards via AnkiWeb (MCP server) | `.claude/scripts/arwen/` |
 | F.A.R.A.M.I.R. | calendar, reminders, delegation | planned — Step 4 |
 | L.E.G.O.L.A.S. | web search | planned — Step 5 |
 | T.R.E.E.B.E.A.R.D. | archivist | planned — Step 10 |
