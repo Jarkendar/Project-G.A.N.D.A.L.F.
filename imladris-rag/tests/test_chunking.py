@@ -114,12 +114,15 @@ class CorpusTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             for rel in ("keep.md", "notes/keep2.md", "index/skip.md", "logs/raw/skip.md",
-                        "notes/CLAUDE.md", "notes/image.png"):
+                        "notes/CLAUDE.md", "notes/image.png",
+                        "people/ann/card.md", "people/ann/raw/2020.md"):
                 (root / rel).parent.mkdir(parents=True, exist_ok=True)
                 (root / rel).write_text("x")
             corpus = Corpus(root=root, exclude_top_dirs=frozenset({"index"}),
-                            exclude_prefixes=("logs/raw",), exclude_names=frozenset({"CLAUDE.md"}))
-            self.assertEqual([p.as_posix() for p in corpus.discover()], ["keep.md", "notes/keep2.md"])
+                            exclude_prefixes=("logs/raw",), exclude_names=frozenset({"CLAUDE.md"}),
+                            exclude_globs=("people/*/raw/*",))
+            self.assertEqual([p.as_posix() for p in corpus.discover()],
+                             ["keep.md", "notes/keep2.md", "people/ann/card.md"])
             self.assertEqual([p.as_posix() for p in corpus.discover(root / "notes")], ["notes/keep2.md"])
 
 

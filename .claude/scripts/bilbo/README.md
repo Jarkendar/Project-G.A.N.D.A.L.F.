@@ -17,7 +17,7 @@ Since 2026-09-24 the engine — chunking, models, the index store, incremental
 sync — is the `imladris-rag/` package at the repo root (see its README),
 written to know nothing about brain/. `index.py` is the brain/ adapter: it
 resolves `BRAIN_PATH`, defines what is not knowledge (`index/`,
-`current/smeagol/`, per-folder `CLAUDE.md`), reads the production model and
+`current/smeagol/`, per-folder `CLAUDE.md`, persona source digests), reads the production model and
 chunker from `.claude/gandalf.env`, applies brain/'s folder-first privacy
 rules (`brain_privacy`: core/, current/, conversations/, backlog/, _meta/
 always private; knowledge/ public unless the file says private), records the
@@ -31,7 +31,10 @@ files — see `imladris-rag/imladris/store.py`.
 
 1. Walks `brain/` for `*.md` files, excluding `current/smeagol/` (Smeagol's
    logs — not knowledge), `index/` (its own output), and every per-folder
-   `CLAUDE.md` (operating instructions, not retrievable knowledge).
+   `CLAUDE.md` (operating instructions, not retrievable knowledge), and
+   `knowledge/personas/*/sources/` (persona digests — they get their own
+   index, see IMPLEMENTATION.md Step 6; the persona's `persona.md` card stays
+   in the main index).
 2. Hashes each file's content and compares against the last-indexed hash
    stored in the index. **Unchanged files are skipped entirely —
    zero re-embedding cost.** Only new/changed files get (re)chunked and

@@ -49,11 +49,14 @@ def brain_privacy(rel_path: Path, frontmatter: dict) -> str:
 
 
 # What in brain/ is not knowledge: the index's own folder, Smeagol's logs (and
-# privacy-sensitive), and per-folder CLAUDE.md files (operating instructions).
+# privacy-sensitive), per-folder CLAUDE.md files (operating instructions), and
+# persona source digests (they get their own index; see IMPLEMENTATION.md
+# Step 6 — in the main one they would crowd out the owner's notes).
 BRAIN_CORPUS_RULES = dict(
     exclude_top_dirs=frozenset({"index"}),
     exclude_prefixes=("current/smeagol",),
     exclude_names=frozenset({"CLAUDE.md"}),
+    exclude_globs=("knowledge/personas/*/sources/*",),
     privacy_of=brain_privacy,
 )
 

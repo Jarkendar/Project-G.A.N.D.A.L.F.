@@ -1,6 +1,7 @@
 """A corpus: a directory of markdown files plus the rules for what to leave out.
 The engine knows nothing else about where the files come from."""
 
+import fnmatch
 import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -19,6 +20,7 @@ class Corpus:
     exclude_top_dirs: frozenset = field(default_factory=frozenset)   # first path part, e.g. "index"
     exclude_prefixes: tuple = ()                                      # posix prefixes, e.g. "logs/raw"
     exclude_names: frozenset = field(default_factory=frozenset)      # file names, e.g. "CLAUDE.md"
+    exclude_globs: tuple = ()                                         # posix globs, e.g. "people/*/raw/*"
     # (relative path, frontmatter) -> "private" | "public"; callers encode
     # their own rules here (e.g. folder-level privacy that overrides the file)
     privacy_of: Callable[[Path, dict], str] = default_privacy
@@ -28,6 +30,8 @@ class Corpus:
             return True
         posix = rel_path.as_posix()
         if any(posix.startswith(prefix) for prefix in self.exclude_prefixes):
+            return True
+        if any(fnmatch.fnmatchcase(posix, glob) for glob in self.exclude_globs):
             return True
         return rel_path.name in self.exclude_names
 
