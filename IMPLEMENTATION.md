@@ -1103,17 +1103,21 @@ unblocks E4. Design agreed 2026-09-28 (backlog item
 - **Two kinds of card:**
   - **Persona card** — a real person the owner values (e.g. Buffett, Bezos,
     Kotarski). Lives in `brain/knowledge/personas/<slug>/` (public figures,
-    public knowledge). A **core** of ~2–5k tokens — motivations, decision
-    heuristics, way of speaking, known views, pet hates, and a "useful for"
-    field (domains/categories) — plus **sources** (quotes, letters, transcripts;
-    may be a few MB) indexed in Qdrant as a per-persona collection and reached
-    through RAG. Tools: none, optionally web search. For consultation, not work.
+    public knowledge), written in Polish; verbatim quotes stay in the original
+    language. Three layers — see "Building a persona" below. Tools: none,
+    optionally web search. For consultation, not work.
   - **Role card** — a generic role with traits but no sources: critic, devil's
     advocate, moderator. Lives in the repo next to the agent (configuration,
     not knowledge).
-- **Composition:** three personas from the problem's category, optionally plus a
-  role card. Selection aims for contrast within the category (e.g. finance:
-  value, long-term growth, risk), guided by the "useful for" field.
+- **Categories and pools:** finance, career, projects & entrepreneurship first;
+  technology, learning & communication, health & sport, life decisions later
+  (the last two touch private `core/` — first candidates for a local model in
+  Step 7). A category is a tag in the card's "useful for" field, so one persona
+  can sit in several. Each category holds a pool larger than a council.
+- **Composition:** a subset of about three personas drawn from the pools —
+  sometimes across categories — optionally plus a role card. Selection aims for
+  contrast (e.g. finance: value, long-term growth, risk), guided by the
+  "useful for" / "not for" fields, which matter more than pool size.
 - **Flow:** blind round (each voice answers independently, without seeing the
   others) → 1–2 critique rounds (each responds to the others) → synthesis:
   agreements, disagreements with their reasons, each voice's strongest point,
@@ -1125,12 +1129,76 @@ unblocks E4. Design agreed 2026-09-28 (backlog item
   in-character frame is the value. A side-by-side run against the bare model
   on the same question is kept as a sanity check that the persona is not flat.
 
+**Building a persona (agreed 2026-09-28; first run: Warren Buffett):**
+
+Three layers, each distilled from the one below it, so every claim in the core
+traces back to a digest and every digest to an original:
+
+| Layer | What | Size (Buffett) | Where |
+|---|---|---|---|
+| **Core** | `persona.md` | ~5k tokens | git; always in context |
+| **Digests** | `sources/<year>-<slug>.md`, one per source | ~0.5 MB | git; persona RAG index |
+| **Originals** | full text / PDF | a few MB (PDFs far more) | URL + Wayback link; optional local cache outside git |
+
+```
+brain/knowledge/personas/<slug>/
+  persona.md      ← core card (living document)
+  sources.md      ← source catalogue
+  sources/        ← digests, one per source
+  validation.md   ← test questions + results
+```
+
+Process:
+1. **Scope** — why this person, "useful for" / "not for", time frame (which
+   period of their views is the default voice; abandoned views are marked).
+2. **Source catalogue** (`sources.md`) — primary sources (their own writing and
+   speech) before secondary (biographies). Per source: title, date, type, URL,
+   Wayback Machine link (guards against link rot), hash of the fetched text.
+   Copyrighted books are never stored in full — only notes and quotes.
+3. **Digests** (`sources/`) — one per source, in Polish: frontmatter (source
+   date, type, URL, Wayback, hash, topic tags); *Context* (what was happening
+   then); *Key theses*, each anchored to a section or a short quote; *Decisions
+   and views*; *Quotes* (5–10, verbatim, original language — they carry the
+   voice); *Change versus earlier years* (feeds the core's timeline).
+4. **Core** (`persona.md`) — distilled from the digests, not from raw text.
+   Frontmatter per `_meta/schema.md` plus `kind: persona`, `categories`,
+   `useful_for`, `not_for`, `era`, `card_version`. Sections: who they are
+   (3–5 sentences); motivations; decision heuristics (each with source and
+   year); views (topic → stance, date range, source, evolution); way of
+   speaking; red flags; **blind spots** (known criticism — keeps the card from
+   being a hagiography and gives the council honest hooks); sample quotes
+   (5–10, verbatim); behaviour in a council (how they handle disagreement).
+5. **Validation** (`validation.md`) — 10–15 questions with a known answer from
+   a specific source; score stance and style; bare-model comparison; spot-check
+   a few digests against their originals (LLM digests can slip in a "generic"
+   version of the person).
+6. **Upkeep** — `card_version` on the core; new sources become new digests;
+   changed views go through supersession.
+
+Storage and retrieval:
+- **Originals are not in git.** Reproducible from `sources.md` (URL, Wayback,
+  hash check). Rule: git holds everything a script cannot re-fetch — a source
+  that exists only locally (e.g. a Whisper transcript, a hand-cleaned text) is
+  committed or backed up.
+- **Persona RAG is separate from Gandalf's main index.** The main B.I.L.B.O.
+  index excludes `personas/*/sources/` (otherwise a persona's material would
+  crowd out the owner's notes); `persona.md` stays in the main index. Digests go
+  to one Qdrant collection `personas` with a `persona` payload field; B.E.O.R.N.
+  filters by it — effectively a per-persona index, without one HNSW index per
+  collection on the Pi, and multi-persona queries come for free.
+- **Lookup order at council time:** digest → local cached original (if present)
+  → URL / Wayback (network call).
+
 **Tasks:**
-- [ ] Persona card format (core fields, "useful for", sources layout) and role
-      card format.
-- [ ] First three personas, built by hand; first category: finance (tests
-      against E7 pre-investment analysis).
-- [ ] Per-persona source collections in Qdrant (reuse B.I.L.B.O.'s pipeline).
+- [x] Persona card format and build process (above).
+- [ ] First persona end-to-end, by hand: Warren Buffett (finance) — scope,
+      catalogue, digests, core, validation. Refine the process from what it
+      teaches before building the next.
+- [ ] Next finance personas from the pool (Munger, Marks, Taleb, Bogle, Dalio,
+      Lynch, Housel, Bezos — contrast over count).
+- [ ] Role card format.
+- [ ] Persona RAG: `personas` Qdrant collection filtered by `persona`, and the
+      main index excluding `personas/*/sources/` (reuse B.I.L.B.O.'s pipeline).
 - [ ] B.E.O.R.N. sub-agent — card loading, in-character answers, RAG over the
       persona's own sources. → `.claude/agents/beorn.md`
 - [ ] First role cards: critic, devil's advocate.
@@ -1139,8 +1207,8 @@ unblocks E4. Design agreed 2026-09-28 (backlog item
 - [ ] Smoke-test on a real finance question, with a bare-model comparison.
 
 **Open:**
-- Persona building: by hand for the first three; a dedicated skill
-  (research → processing → summary) once the card format settles.
+- Persona building: by hand for the first personas; a dedicated skill
+  (catalogue → digests → core → validation) once the process settles.
 - Where debate records live (`current/`, `conversations/`, or a private
   `analyses/` folder).
 - Debate memory per persona (what it said in past councils) — useful, but after
