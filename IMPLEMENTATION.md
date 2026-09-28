@@ -1087,6 +1087,75 @@ Retrieval"; Günther et al., "Late Chunking" (arXiv 2409.04701).
 
 ---
 
+### Step 6 (pulled forward) — White Council: deliberation with personas
+
+**Goal:** the first higher-order skill — a council of several voices on one hard
+question, returning where they agree, where they diverge and why, instead of one
+averaged answer. Validates the "skills orchestrate agents" split in practice and
+unblocks E4. Design agreed 2026-09-28 (backlog item
+`backlog/projects/skill-rada-white-council.md`); not built yet.
+
+**What it includes:**
+- **One agent, many cards — B.E.O.R.N.** (acronym to be finalised; Beorn is the
+  skin-changer). A single CC sub-agent that is told which card to embody. No
+  per-persona agent files: a new persona is data, not code, the Tolkien naming
+  convention stays intact, and the Step 7 engine swap touches one agent.
+- **Two kinds of card:**
+  - **Persona card** — a real person the owner values (e.g. Buffett, Bezos,
+    Kotarski). Lives in `brain/knowledge/personas/<slug>/` (public figures,
+    public knowledge). A **core** of ~2–5k tokens — motivations, decision
+    heuristics, way of speaking, known views, pet hates, and a "useful for"
+    field (domains/categories) — plus **sources** (quotes, letters, transcripts;
+    may be a few MB) indexed in Qdrant as a per-persona collection and reached
+    through RAG. Tools: none, optionally web search. For consultation, not work.
+  - **Role card** — a generic role with traits but no sources: critic, devil's
+    advocate, moderator. Lives in the repo next to the agent (configuration,
+    not knowledge).
+- **Composition:** three personas from the problem's category, optionally plus a
+  role card. Selection aims for contrast within the category (e.g. finance:
+  value, long-term growth, risk), guided by the "useful for" field.
+- **Flow:** blind round (each voice answers independently, without seeing the
+  others) → 1–2 critique rounds (each responds to the others) → synthesis:
+  agreements, disagreements with their reasons, each voice's strongest point,
+  plus a few closing sentences per voice. Consensus only when it actually
+  emerged, never forced.
+- **Debate record:** contains the owner's problem and context, so it is saved to
+  a PRIVATE location — exact folder to be decided with the skill.
+- **Grounding check:** a persona's view does not need to be novel — a coherent,
+  in-character frame is the value. A side-by-side run against the bare model
+  on the same question is kept as a sanity check that the persona is not flat.
+
+**Tasks:**
+- [ ] Persona card format (core fields, "useful for", sources layout) and role
+      card format.
+- [ ] First three personas, built by hand; first category: finance (tests
+      against E7 pre-investment analysis).
+- [ ] Per-persona source collections in Qdrant (reuse B.I.L.B.O.'s pipeline).
+- [ ] B.E.O.R.N. sub-agent — card loading, in-character answers, RAG over the
+      persona's own sources. → `.claude/agents/beorn.md`
+- [ ] First role cards: critic, devil's advocate.
+- [ ] `/council` skill — composition, blind round, critique rounds, synthesis,
+      private save of the record.
+- [ ] Smoke-test on a real finance question, with a bare-model comparison.
+
+**Open:**
+- Persona building: by hand for the first three; a dedicated skill
+  (research → processing → summary) once the card format settles.
+- Where debate records live (`current/`, `conversations/`, or a private
+  `analyses/` folder).
+- Debate memory per persona (what it said in past councils) — useful, but after
+  the MVP.
+- The "agent that judges work the way I would" backlog idea becomes one more
+  persona card, built from the owner's own data — later.
+
+**Done when:**
+- `/council` on a real question returns a synthesis with explicit agreements
+  and disagreements, not a single averaged answer.
+- Adding a persona means adding a card folder — no agent or skill edits.
+- The debate record is saved only to a PRIVATE location.
+
+---
+
 ## Long-term (condensed)
 
 Steps 4–11 from the README roadmap, condensed for orientation. Detailed tasks will
@@ -1099,6 +1168,8 @@ reshuffle it.**
   self-hosted SearXNG later). Only agent with external network access.
 - [ ] **Step 6 — First skill: White Council** — multi-perspective deliberation
   over a hard question; validates the agent/skill split in practice.
+  Design agreed 2026-09-28 (one card-driven agent, persona and role cards) —
+  see the detailed section above.
 - [ ] **Step 7 — Ollama + engine abstraction** — model-agnostic interface; agents
   become portable across Claude API, local Ollama, and hosted OSS. This is the
   point at which the system actually becomes local-first.
