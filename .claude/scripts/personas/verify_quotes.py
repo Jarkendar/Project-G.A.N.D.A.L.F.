@@ -3,7 +3,7 @@
 in the cached source text. Exits 1 if any quote is missing.
 
 Usage: verify_quotes.py <persona> [source_id ...]
-  No ids: every digest in brain/knowledge/personas/<persona>/sources/.
+  No ids: every digest already written in brain/knowledge/personas/<persona>/sources/.
 """
 
 import sys
@@ -13,7 +13,8 @@ from common import catalog, missing_quotes, persona_dir, source_text
 
 def main(slug: str, ids: list[str]) -> int:
     cat = catalog(slug)
-    ids = ids or [i for i, r in cat.items() if "file" in r]
+    ids = ids or [i for i, r in cat.items()
+                  if "file" in r and (persona_dir(slug) / "sources" / r["file"]).exists()]
     total = bad = 0
     for i in ids:
         digest = (persona_dir(slug) / "sources" / cat[i]["file"]).read_text()
