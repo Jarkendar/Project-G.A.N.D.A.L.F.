@@ -20,6 +20,16 @@ up an existing Wayback Machine snapshot; it never asks the archive to save
 a page (Save Page Now is an outbound write — only with the owner's yes, by
 hand). --table prints rows for the persona's sources.md.
 
+A source with `"from": "<parent id>"` and `"start": "<regex>"` is an
+excerpt: a part of another source's file (e.g. one memo in a collection
+of memos). The regex (multiline) marks where it starts, searched after the
+previous excerpt of the same parent; it runs to the next one. Its text is
+written to `text/<id>.txt`; url, sha256 and wayback are the parent's, plus
+the page range. A parent marked `"collection": true` is left out of
+--table. The source list lives in the persona's brain/ folder
+(`knowledge/personas/<slug>/sources.json`) when it carries anything a
+script cannot re-derive — such as these anchors.
+
 Usage: fetch.py <persona> [--sources FILE] [--only id,...] [--refetch]
                           [--wayback] [--table] [--batch-size N]
 """
@@ -35,7 +45,7 @@ import time
 import urllib.parse
 from html.parser import HTMLParser
 
-from common import cache_dir
+from common import cache_dir, persona_dir
 
 USER_AGENT = "Mozilla/5.0 (X11; Linux aarch64) gandalf-persona-fetch/1.0"
 BLOCK_TAGS = {"p", "br", "div", "li", "tr", "h1", "h2", "h3", "h4", "h5", "h6",
@@ -131,15 +141,31 @@ def table_rows(rows: list[dict], batch_size: int) -> str:
     for n, r in enumerate(rows):
         wb = f"[wayback]({r['wayback']})" if r.get("wayback") else "— brak"
         out.append(f"| {r['id']} | {r.get('source_type', '')} | {r.get('source_date', '')} | "
-                   f"{r.get('words', '')} | P{n // batch_size + 1} | todo | [link]({r['url']}) | "
+                   f"{r.get('words', '')} | P{n // batch_size + 1} | todo | "
+                   f"[link]({r['url']}{'#page=' + r['pages'].split('–')[0] if r.get('pages') else ''}) | "
                    f"{wb} | `{r.get('sha256', '')[:16]}` |")
     return "\n".join(out)
+
+
+def excerpt_bounds(parent_text: str, excerpts: list[dict]) -> list[tuple[int, int]]:
+    """(start, end) offsets of each excerpt in the parent text: each `start`
+    regex (multiline) is searched after the previous match, and an excerpt
+    runs to the next one's start (the last one to the end)."""
+    starts, pos = [], 0
+    for src in excerpts:
+        m = re.compile(src["start"], re.M).search(parent_text, pos)
+        if not m:
+            raise ValueError(f"{src['id']}: anchor not found after offset {pos}: {src['start']}")
+        starts.append(m.start())
+        pos = m.end()
+    return [(a, starts[i + 1] if i + 1 < len(starts) else len(parent_text)) for i, a in enumerate(starts)]
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("persona")
-    ap.add_argument("--sources", help="source list (default: <cache>/<persona>/sources.json)")
+    ap.add_argument("--sources", help="source list (default: sources.json in the persona's brain/ "
+                                      "folder, else in its cache)")
     ap.add_argument("--only", help="comma-separated ids to process")
     ap.add_argument("--refetch", action="store_true", help="download again even if cached")
     ap.add_argument("--wayback", action="store_true", help="look up existing Wayback snapshots")
@@ -148,17 +174,21 @@ def main() -> int:
     args = ap.parse_args()
 
     base = cache_dir(args.persona)
-    sources = json.loads(open(args.sources or base / "sources.json").read())
+    default = persona_dir(args.persona) / "sources.json"
+    sources = json.loads(open(args.sources or (default if default.exists() else base / "sources.json")).read())
     only = set(args.only.split(",")) if args.only else None
     (base / "originals").mkdir(parents=True, exist_ok=True)
     (base / "text").mkdir(exist_ok=True)
     catalog_path = base / "catalog.json"
     catalog = {r["id"]: r for r in json.loads(catalog_path.read_text())} if catalog_path.exists() else {}
+    excerpts = [src for src in sources if "from" in src]
+    parents = {src["from"] for src in excerpts}
 
     failed = 0
+    texts = {}
     for src in sources:
         sid = src["id"]
-        if only and sid not in only:
+        if "from" in src or (only and sid not in only and sid not in parents):
             continue
         row = {**catalog.get(sid, {}), **src}
         cached = sorted(base.glob(f"originals/{sid}.*"))
@@ -177,6 +207,7 @@ def main() -> int:
             print(f"{sid} FAILED: {err}", file=sys.stderr)
             failed += 1
             continue
+        texts[sid] = text
         (base / "text" / f"{sid}.txt").write_text(text)
         row.update(sha256=hashlib.sha256(path.read_bytes()).hexdigest(), words=len(text.split()))
         if args.wayback and not row.get("wayback"):
@@ -186,11 +217,38 @@ def main() -> int:
         print(f"{sid}: {ext}, {row['words']} words, sha256 {row['sha256'][:16]}"
               + (f", wayback {'yes' if row['wayback'] else 'none'}" if args.wayback else ""))
 
+    # Excerpts: sources cut out of a parent file (e.g. a collection of memos) —
+    # their own id, text and page range; the parent's url, sha256 and wayback.
+    for parent in sorted(parents):
+        if parent not in texts:
+            print(f"excerpts of {parent} skipped: parent not fetched", file=sys.stderr)
+            failed += 1
+            continue
+        group = [src for src in excerpts if src["from"] == parent]
+        try:
+            bounds = excerpt_bounds(texts[parent], group)
+        except ValueError as err:
+            print(f"FAILED: {err}", file=sys.stderr)
+            failed += 1
+            continue
+        prow = catalog[parent]
+        for src, (a, b) in zip(group, bounds):
+            if only and src["id"] not in only:
+                continue
+            text = texts[parent][a:b]
+            first, last = texts[parent][:a].count("\f") + 1, texts[parent][:b].rstrip("\f").count("\f") + 1
+            row = {**catalog.get(src["id"], {}), **src, "url": prow["url"], "sha256": prow["sha256"],
+                   "wayback": prow.get("wayback", ""), "words": len(text.split()),
+                   "pages": f"{first}–{last}" if last > first else str(first)}
+            (base / "text" / f"{src['id']}.txt").write_text(text)
+            catalog[src["id"]] = row
+        print(f"{parent}: {len(group)} excerpts")
+
     order = [s["id"] for s in sources]
     rows = sorted(catalog.values(), key=lambda r: order.index(r["id"]) if r["id"] in order else len(order))
     catalog_path.write_text(json.dumps(rows, indent=1, ensure_ascii=False) + "\n")
     if args.table:
-        print(table_rows([r for r in rows if r["id"] in order], args.batch_size))
+        print(table_rows([r for r in rows if r["id"] in order and not r.get("collection")], args.batch_size))
     return 1 if failed else 0
 
 
