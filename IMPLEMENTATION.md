@@ -1203,11 +1203,45 @@ Storage and retrieval:
       core `card_version: 1`, validation 24/24 stance vs 20/24 for the bare
       model — the card wins on dated and nuanced stances, ties on canonical
       ones. Phase 2 (partnership letters, annual meetings) later.
-- [ ] Refine the process from what Buffett taught before building the next;
-      next validation uses less-known and out-of-scope questions.
-- [ ] Next finance personas from the pool (Munger, Marks, Taleb, Bogle, Dalio,
-      Lynch, Housel, Bezos — contrast over count).
-- [ ] Role card format.
+- [ ] Refine the process from what Buffett taught before building the next:
+      - [ ] `fetch.py` — build `catalog.json` and the text cache from a
+            source list (URL → original, `pdftotext`/HTML → text, sha256,
+            Wayback lookup); Buffett's catalogue was built by hand.
+      - [ ] `validate.py` — the reusable behaviour test (approach dilemmas
+            × neutral / against / with framings, card vs bare model, blind
+            Opus judge) from validations 3–4; dilemmas per persona, judged
+            against that persona's documented stance.
+      - [ ] Validation priority follows the owner: approach, character,
+            stable views; factual recall is secondary. Judge fabrication
+            flags are checked by hand (the judge misattributes from memory).
+- [ ] **Finance persona queue** (2026-09-29) — ordered by contrast with
+      Buffett and by free primary sources, one at a time, each through the
+      full process and approved batch by batch. Source availability to be
+      confirmed in step 2 (catalogue); copyrighted books only as notes.
+      1. [ ] **Howard Marks** — risk, cycles, second-level thinking. Oaktree
+             memos 1990–today, free, dated, his own voice: the closest
+             analogue of Buffett's letters.
+      2. [ ] **John C. Bogle** — costs, indexing, the investor against the
+             industry. Speeches and essays (Bogle Center archive); books as
+             notes. The passive counterweight to active voices.
+      3. [ ] **Nassim Nicholas Taleb** — tail risk, fragility, skin in the
+             game. Free papers and essays; the Incerto books as notes only.
+             Contrast on risk and forecasting.
+      4. [ ] **Ray Dalio** — macro, debt cycles, diversification, radical
+             transparency. Principles (free early edition), published
+             research articles. The macro voice Buffett refuses to be.
+      5. [ ] **Peter Lynch** — growth at a reasonable price, the individual
+             investor's edge. Few free primary sources (interviews, Fidelity
+             pieces) — confirm the catalogue can carry a card first.
+      6. [ ] **Morgan Housel** — behaviour, money psychology. Collaborative
+             Fund essays, free. Bridges finance and life decisions.
+      Later, not in this queue: Charlie Munger (low contrast with Buffett;
+      worth it for multidisciplinary thinking once there are 3+ finance
+      voices), Jeff Bezos (shareholder letters — category *projects &
+      entrepreneurship*, not finance).
+- [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
+      useful_for / not_for; purpose, how it thinks, style, in a council,
+      does not). Next to the skill, not in `.claude/agents/`.
 - [x] Persona RAG (2026-09-29): `index.py --corpus personas` builds the
       `personas` Qdrant collection from `personas/*/sources/*` (same model
       and chunker, no enrichment; Buffett: 50 files, 509 chunks, ~10 min on
@@ -1235,16 +1269,17 @@ Storage and retrieval:
       persona's voice; absence from the card is not absence from the
       sources — search the digests before saying "I never said that";
       cite a year only next to the claim it backs.
-- [ ] First role cards: critic, devil's advocate.
-- [ ] `/council` skill — composition, blind round, critique rounds, synthesis,
-      private save of the record.
+- [x] First role cards: critic, devil's advocate.
+- [x] `/council` skill — composition, blind round, critique rounds, synthesis,
+      private save of the record (`.claude/skills/council/`, 2026-09-29).
 - [ ] Smoke-test on a real finance question, with a bare-model comparison.
 
 **Open:**
 - Persona building: by hand for the first personas; a dedicated skill
   (catalogue → digests → core → validation) once the process settles.
-- Where debate records live (`current/`, `conversations/`, or a private
-  `analyses/` folder).
+- ~~Where debate records live~~ — decided 2026-09-29: `knowledge/councils/`,
+  every file `privacy: private` (folder rule in its `CLAUDE.md`), saved
+  only on the owner's yes.
 - Debate memory per persona (what it said in past councils) — useful, but after
   the MVP.
 - The "agent that judges work the way I would" backlog idea becomes one more

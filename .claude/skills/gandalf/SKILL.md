@@ -152,10 +152,9 @@ and/or 2d.
    looks up the owner's data itself.
 3. Invoke the `beorn` sub-agent with: `persona` (slug), `question` (plus the
    gathered context), `round: single`, and the resolved `BRAIN_PATH`.
-4. Proceed to Step 3 with Beorn's answer. Several personas on one question
-   is a White Council — until `/council` exists, run one Beorn call per
-   persona in parallel and present the answers side by side, without
-   synthesising a consensus.
+4. Proceed to Step 3 with Beorn's answer. Several voices on one question,
+   or a hard decision the owner wants debated ("zwołaj radę"), is a White
+   Council — hand it to the `/council` skill instead.
 
 ---
 
@@ -206,5 +205,5 @@ additions:
 - **Step 4:** F.A.R.A.M.I.R. added as a route for calendar/delegation queries.
 - **Step 5:** L.E.G.O.L.A.S. added as a route for web-search queries.
 
-B.E.O.R.N. (Step 2e, persona voices) is the first piece of Step 6 —
-the `/council` skill will orchestrate several Beorn calls into a debate.
+B.E.O.R.N. (Step 2e, persona voices) and the `/council` skill (a debate
+of several Beorn voices) are Step 6.
