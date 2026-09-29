@@ -1197,9 +1197,14 @@ Storage and retrieval:
 
 **Tasks:**
 - [x] Persona card format and build process (above).
-- [ ] First persona end-to-end, by hand: Warren Buffett (finance) — scope,
-      catalogue, digests, core, validation. Refine the process from what it
-      teaches before building the next.
+- [x] First persona end-to-end, by hand: Warren Buffett (finance) — scope,
+      catalogue, digests, core, validation. Phase 1 done 2026-09-29: 50
+      digests (shareholder letters 1977–2024 + two Thanksgiving letters),
+      core `card_version: 1`, validation 24/24 stance vs 20/24 for the bare
+      model — the card wins on dated and nuanced stances, ties on canonical
+      ones. Phase 2 (partnership letters, annual meetings) later.
+- [ ] Refine the process from what Buffett taught before building the next;
+      next validation uses less-known and out-of-scope questions.
 - [ ] Next finance personas from the pool (Munger, Marks, Taleb, Bogle, Dalio,
       Lynch, Housel, Bezos — contrast over count).
 - [ ] Role card format.
