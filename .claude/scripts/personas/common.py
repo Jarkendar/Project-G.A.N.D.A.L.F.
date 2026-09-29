@@ -11,12 +11,13 @@ A persona lives in two places:
 """
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
 
 PROJECT_DIR = Path(__file__).resolve().parents[3]
-CACHE_ROOT = Path.home() / ".local/share/gandalf/personas"
+CACHE_ROOT = Path(os.environ.get("GANDALF_PERSONA_CACHE") or Path.home() / ".local/share/gandalf/personas")
 
 
 def brain_path() -> Path:

@@ -1204,9 +1204,10 @@ Storage and retrieval:
       model — the card wins on dated and nuanced stances, ties on canonical
       ones. Phase 2 (partnership letters, annual meetings) later.
 - [ ] Refine the process from what Buffett taught before building the next:
-      - [ ] `fetch.py` — build `catalog.json` and the text cache from a
+      - [x] `fetch.py` — build `catalog.json` and the text cache from a
             source list (URL → original, `pdftotext`/HTML → text, sha256,
-            Wayback lookup); Buffett's catalogue was built by hand.
+            Wayback lookup). Verified by re-fetching Buffett 1977, 1990,
+            1998: identical originals and text.
       - [ ] `validate.py` — the reusable behaviour test (approach dilemmas
             × neutral / against / with framings, card vs bare model, blind
             Opus judge) from validations 3–4; dilemmas per persona, judged
