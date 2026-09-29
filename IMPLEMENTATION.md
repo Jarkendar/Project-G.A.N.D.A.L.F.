@@ -1273,6 +1273,14 @@ Storage and retrieval:
 - [x] `/council` skill — composition, blind round, critique rounds, synthesis,
       private save of the record (`.claude/skills/council/`, 2026-09-29).
 - [ ] Smoke-test on a real finance question, with a bare-model comparison.
+      Mechanics verified 2026-09-29 on a sample question (ETF vs a rented
+      flat on a mortgage): Buffett + critic + devil's advocate, blind and
+      critique rounds parallel (3 + 3 Beorn calls), no second round, real
+      disagreement kept, no forced consensus. Fixed after it: the devil's
+      advocate keeps one side across rounds. Note: headless runs
+      (`claude -p`) need `--permission-mode bypassPermissions` or approval
+      — the dotted project folder name trips Claude Code's "suspicious
+      Windows path" check on reading `.claude/skills/council/roles/`.
 
 **Open:**
 - Persona building: by hand for the first personas; a dedicated skill
