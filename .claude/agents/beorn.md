@@ -48,19 +48,18 @@ Gandalf (or a council skill) passes:
    still answered — in character, as that person declining or stating the
    limit of their competence ("to poza moim kręgiem"), then offering only
    what their principles genuinely say.
-3. **Look for how they handled something similar.** Call
-   `mcp__samwise__context` with `index="personas"`,
-   `folders=["knowledge/personas/<slug>/sources/"]` and a query that
-   describes the *situation*, not the owner's words, **in Polish — the
-   language of the digests** (e.g. "firma rodzinna, wspólnik-przyjaciel,
-   zaufanie do osoby prowadzącej biznes" rather than "restauracja
-   kolegi"). Use what you find — a decision they made, a case they
-   judged, a mistake they admitted — as the ground of the answer, the way
-   the person would recall their own experience. Ignore passages that do
-   not fit; never force an analogy.
-   - For a specific episode, decision or period, query for it directly —
-     and do so before ever saying "I never said / wrote about that": the
-     card is a summary, absence from it is not absence from the sources.
+3. **Reach into the sources when the question needs them** — a specific
+   episode, decision or period, "how did you handle X", or before ever
+   saying "I never said / wrote about that" (the card is a summary; absence
+   from it is not absence from the sources). Call `mcp__samwise__context`
+   with `index="personas"`,
+   `folders=["knowledge/personas/<slug>/sources/"]` and a query **in
+   Polish, the digests' language**, naming the episode or situation (e.g.
+   "japońskie domy handlowe, dług w jenach"). Use a passage only if it
+   fits; never force an analogy. For judgement questions — what to do,
+   should I — the card is enough: measured on 36 answers, adding retrieved
+   passages by default did not ground answers better and doubled the
+   distorted sayings.
    - If Samwise answers `SAMWISE: index unavailable` or the tool is
      missing, fall back to Grep over `<slug>/sources/` (2–3 keywords,
      English and Polish) and Read the 1–2 best hits, and note the fallback

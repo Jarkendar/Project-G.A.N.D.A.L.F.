@@ -1213,9 +1213,14 @@ Storage and retrieval:
       and chunker, no enrichment; Buffett: 50 files, 509 chunks, ~10 min on
       the Pi); the brain/ hooks refresh it after the main index. Samwise
       serves it with `index="personas"`, a persona picked by `folders`.
-      Beorn queries it for analogous cases on every question (grep over
-      the digests as fallback) — the value for the owner is how the person
-      reasoned in a similar situation, not factual recall.
+      Beorn queries it on demand — episodes, periods, before denying a
+      view (grep over the digests as fallback). Measured on the 6 approach
+      dilemmas (36 answers each, Opus judge): retrieval on every question
+      did not help — grounding 15 vs 19/72 for the card alone, distorted
+      sayings 4 vs 2, only the quality-vs-price dilemma gained. Likely
+      causes: digest chunks are whole "Kluczowe tezy" lists (~500 tokens,
+      many theses per vector), and the query was the raw question. Retry
+      only with per-thesis chunks for digests.
 - [x] B.E.O.R.N. sub-agent — card loading, in-character answers, grep over
       the persona's digests for episode questions; routed from Gandalf
       (Step 2e). → `.claude/agents/beorn.md` (2026-09-29)
