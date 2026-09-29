@@ -9,6 +9,7 @@ is the canonical specification.
 date: 2026-06-08T14:30:00    # ISO 8601, creation datetime
 source: manual               # who/what created this file
                              # values: manual | n8n/<flow-name> | bookmarklet | treebeard | interview
+                             #   | persona-digest | <skill-name> (the skill that wrote the file)
 privacy: public              # privacy level — values: private | public
 tags: [tag1, tag2]           # list, at least one tag required
 ```
@@ -24,6 +25,35 @@ status: active                          # lifecycle: draft | active | archived
 assistant: claude                       # conversations/ only — detected assistant (claude|gemini|unknown)
 content_hash: sha256:<hex>              # conversations/ only — SHA-256 of raw transcript for dedup
 ```
+
+## Persona cards (`knowledge/personas/<slug>/`)
+
+White Council personas (G.A.N.D.A.L.F. IMPLEMENTATION.md, Step 6). The core
+card and the digests use `source: persona-digest` and add:
+
+```yaml
+# persona.md — core card
+kind: persona
+slug: buffett
+categories: [finanse, biznes]            # council pools the persona sits in
+useful_for: [...]                        # what to ask this persona
+not_for: [...]                           # what not to ask
+era: {default: "...", abandoned: "..."}  # default voice; dropped views
+card_version: 1                          # bumped on every rebuild of the core
+sources_basis: "..."                     # which sources the core is distilled from
+
+# sources/<id>-<slug>.md — one digest per source
+persona: buffett
+source_id: "2015"                        # id in sources.md
+source_type: list do akcjonariuszy Berkshire Hathaway
+source_date: 2016-02-27                  # date of the source itself (YYYY-MM allowed)
+url: https://...                         # original
+wayback: http://web.archive.org/...      # archived copy
+sha256: <hex>                            # of the original file as fetched
+digest_lang: pl
+```
+
+Digests are excluded from the main B.I.L.B.O. index (`personas/*/sources/*`).
 
 ## Naming convention
 
