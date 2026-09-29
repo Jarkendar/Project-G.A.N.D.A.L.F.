@@ -1160,6 +1160,12 @@ Process:
    then); *Key theses*, each anchored to a section or a short quote; *Decisions
    and views*; *Quotes* (5–10, verbatim, original language — they carry the
    voice); *Change versus earlier years* (feeds the core's timeline).
+   Written in chronological batches of ~10, each batch approved.
+   **3b. Quote check** — every quote must appear verbatim in the source text
+   before a digest lands in `brain/`; a script checks it, not the model.
+   Tooling: `.claude/scripts/personas/` (`reflow.py` prepares the text,
+   `assemble.py` checks quotes and adds frontmatter, `verify_quotes.py`
+   re-checks finished digests).
 4. **Core** (`persona.md`) — distilled from the digests, not from raw text.
    Frontmatter per `_meta/schema.md` plus `kind: persona`, `categories`,
    `useful_for`, `not_for`, `era`, `card_version`. Sections: who they are
