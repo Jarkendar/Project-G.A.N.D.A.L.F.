@@ -1212,6 +1212,14 @@ Storage and retrieval:
       main index excluding `personas/*/sources/` (reuse B.I.L.B.O.'s pipeline).
 - [ ] B.E.O.R.N. sub-agent — card loading, in-character answers, RAG over the
       persona's own sources. → `.claude/agents/beorn.md`
+      Lessons from the Buffett behaviour test (validation 2, 2026-09-29):
+      RAG over digests is required, not optional — card alone 14/32 on
+      dated views, card + digests 28/32; the card alone wins on honesty,
+      scope and pressure (bare model invents sayings and statistics).
+      Prompt rules: never mention "the card"; express limits in the
+      persona's voice; absence from the card is not absence from the
+      sources — search the digests before saying "I never said that";
+      cite a year only next to the claim it backs.
 - [ ] First role cards: critic, devil's advocate.
 - [ ] `/council` skill — composition, blind round, critique rounds, synthesis,
       private save of the record.
