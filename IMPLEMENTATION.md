@@ -1096,8 +1096,8 @@ unblocks E4. Design agreed 2026-09-28 (backlog item
 `backlog/projects/skill-rada-white-council.md`); not built yet.
 
 **What it includes:**
-- **One agent, many cards — B.E.O.R.N.** (acronym to be finalised; Beorn is the
-  skin-changer). A single CC sub-agent that is told which card to embody. No
+- **One agent, many cards — B.E.O.R.N.** (Bearer of Embodied Opinions, Roles
+  & Natures; Beorn is the skin-changer). A single CC sub-agent that is told which card to embody. No
   per-persona agent files: a new persona is data, not code, the Tolkien naming
   convention stays intact, and the Step 7 engine swap touches one agent.
 - **Two kinds of card:**
@@ -1208,14 +1208,21 @@ Storage and retrieval:
 - [ ] Next finance personas from the pool (Munger, Marks, Taleb, Bogle, Dalio,
       Lynch, Housel, Bezos — contrast over count).
 - [ ] Role card format.
-- [ ] Persona RAG: `personas` Qdrant collection filtered by `persona`, and the
-      main index excluding `personas/*/sources/` (reuse B.I.L.B.O.'s pipeline).
-- [ ] B.E.O.R.N. sub-agent — card loading, in-character answers, RAG over the
-      persona's own sources. → `.claude/agents/beorn.md`
-      Lessons from the Buffett behaviour test (validation 2, 2026-09-29):
-      RAG over digests is required, not optional — card alone 14/32 on
-      dated views, card + digests 28/32; the card alone wins on honesty,
-      scope and pressure (bare model invents sayings and statistics).
+- [ ] Persona RAG: `personas` Qdrant collection filtered by `persona`
+      (reuse B.I.L.B.O.'s pipeline). Useful, not blocking: the owner values
+      approach, character and stable views over factual recall, and Beorn
+      greps the digests for episode questions meanwhile. Main index already
+      excludes `personas/*/sources/`.
+- [x] B.E.O.R.N. sub-agent — card loading, in-character answers, grep over
+      the persona's digests for episode questions; routed from Gandalf
+      (Step 2e). → `.claude/agents/beorn.md` (2026-09-29)
+      Lessons from the Buffett tests (validations 2–3, 2026-09-29): the
+      card alone scores 14/32 on dated views, card + digests 28/32; the
+      card wins on honesty, scope and pressure (bare model invents sayings
+      and statistics); under framing pressure neither the card nor the bare
+      model flipped a view (0/36), the card adds consistency (23 vs 20/24)
+      and character (71 vs 65/72). Owner's priority: approach, character,
+      stable views — so digest RAG is useful, not blocking.
       Prompt rules: never mention "the card"; express limits in the
       persona's voice; absence from the card is not absence from the
       sources — search the digests before saying "I never said that";

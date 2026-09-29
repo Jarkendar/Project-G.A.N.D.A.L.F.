@@ -63,6 +63,7 @@ expansions: README.md § agents, and each agent's file in `.claude/agents/`.
 | B.I.L.B.O. | embedding indexer (script, not reactive) | `.claude/scripts/bilbo/` |
 | S.M.E.A.G.O.L. | query logger (Stop hook) | `.claude/hooks/smeagol/` |
 | A.R.W.E.N. | Anki flashcards via AnkiWeb (MCP server) | `.claude/scripts/arwen/` |
+| B.E.O.R.N. | speaks as a persona card (White Council voice) | `.claude/agents/beorn.md` |
 | F.A.R.A.M.I.R. | calendar, reminders, delegation | planned — Step 4 |
 | L.E.G.O.L.A.S. | web search | planned — Step 5 |
 | T.R.E.E.B.E.A.R.D. | archivist | planned — Step 10 |
