@@ -61,6 +61,7 @@ from imladris.rerank import RERANKER_REGISTRY  # noqa: E402
 
 Reranker = Literal[tuple(RERANKER_REGISTRY) + ("off",)]
 Strategy = Literal[samwise.STRATEGIES]
+IndexName = Literal["brain", "personas"]
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
 DEFAULT_IDLE_UNLOAD = 600  # seconds
@@ -81,7 +82,9 @@ server = MCPServer(
 
 # --- worker process: holds the index and the models -------------------------
 
-_worker: dict = {"idx": None, "fingerprint": None}
+# Per index name: {"idx": ..., "fingerprint": ...}. The embedding model is
+# cached by imladris.models.load_model, so both indexes share one copy.
+_worker: dict = {}
 
 
 def _fingerprint(store) -> str:
@@ -90,22 +93,24 @@ def _fingerprint(store) -> str:
     return hashlib.sha256(repr(sorted(hashes.items())).encode()).hexdigest()
 
 
-def _index() -> engine.Index:
-    """The loaded index, reloaded when the stored one has changed since.
-    Raises engine.IndexUnavailable when there is none (or Qdrant is down)."""
-    idx = _worker["idx"]
+def _index(name: str = "brain") -> engine.Index:
+    """The loaded index `name` (brain | personas), reloaded when the stored
+    one has changed since. Raises engine.IndexUnavailable when there is none
+    (or Qdrant is down)."""
+    slot = _worker.setdefault(name, {"idx": None, "fingerprint": None})
+    idx = slot["idx"]
     if idx is not None:
         try:
-            if _fingerprint(idx.store) == _worker["fingerprint"]:
+            if _fingerprint(idx.store) == slot["fingerprint"]:
                 return idx
         except Exception:  # server went away: reopen below, which reports it
             pass
         idx.store.close()
-        _worker["idx"] = None
+        slot["idx"] = None
     brain_dir = samwise.resolve_brain_path(samwise.PROJECT_DIR)
-    location = samwise.resolve_index_location(samwise.PROJECT_DIR, brain_dir)
+    location = samwise.resolve_index_location(samwise.PROJECT_DIR, brain_dir, name)
     idx = engine.load_index(location)
-    _worker.update(idx=idx, fingerprint=_fingerprint(idx.store))
+    slot.update(idx=idx, fingerprint=_fingerprint(idx.store))
     return idx
 
 
@@ -116,9 +121,9 @@ def _unavailable(err: Exception) -> str:
 
 
 def _run_context(query: str, budget: int, follow_links: bool, reranker: str | None,
-                 folders: list[str]) -> str:
+                 folders: list[str], index: str = "brain") -> str:
     try:
-        idx = _index()
+        idx = _index(index)
     except engine.IndexUnavailable as err:
         return _unavailable(err)
     items = samwise.build_context(idx, query, reranker=reranker, budget=budget,
@@ -130,10 +135,12 @@ def _run_context(query: str, budget: int, follow_links: bool, reranker: str | No
 
 
 def _run_search(query: str, strategy: str, top_k: int, min_score: float, diversify: bool,
-                reranker: str | None) -> str:
+                reranker: str | None, index: str = "brain") -> str:
     brain_dir = samwise.resolve_brain_path(samwise.PROJECT_DIR)
+    if index != "brain" and strategy in ("grep", "hybrid"):
+        return f"SAMWISE: strategy '{strategy}' walks the brain/ files — only for index='brain'."
     try:
-        idx = None if strategy == "grep" else _index()
+        idx = None if strategy == "grep" else _index(index)
     except engine.IndexUnavailable as err:
         return _unavailable(err)
     results = samwise.search(brain_dir, query, strategy, top_k, min_score, idx=idx,
@@ -229,7 +236,8 @@ def _reranker(rerank: str | None) -> str | None:
 
 @server.tool(annotations=READ_ONLY)
 def context(query: str, budget: int = samwise.DEFAULT_BUDGET, follow_links: bool = True,
-            folders: list[str] | None = None, rerank: Reranker | None = None) -> str:
+            folders: list[str] | None = None, rerank: Reranker | None = None,
+            index: IndexName = "brain") -> str:
     """Default retrieval: a token-budgeted bundle of passages that answer the question.
 
     The best block of each of the top 3 files first, then further hits by score, each
@@ -251,16 +259,21 @@ def context(query: str, budget: int = samwise.DEFAULT_BUDGET, follow_links: bool
     few of them. Measured as a second step: expected files read 103 -> 107 of 127,
     multi-file questions 22 -> 26 of 42. As a first call, with the folder guessed
     from its name, it hid answers and lost (multi hit@5 .79 -> .64).
+
+    `index="personas"`: White Council persona source digests instead of brain/ (for
+    B.E.O.R.N.). There `folders=["knowledge/personas/<slug>/sources/"]` picks the
+    persona and belongs on the first call — the rule above is about brain/.
     """
     reranker = _reranker(rerank)
-    return _call("context", {"folders": len(folders or ()), "budget": budget, "rerank": reranker},
-                 _run_context, query, budget, follow_links, reranker, list(folders or ()))
+    return _call("context", {"index": index, "folders": len(folders or ()), "budget": budget,
+                             "rerank": reranker},
+                 _run_context, query, budget, follow_links, reranker, list(folders or ()), index)
 
 
 @server.tool(annotations=READ_ONLY)
 def search(query: str, strategy: Strategy = "semantic", top_k: int = samwise.DEFAULT_TOP_K,
            min_score: float = samwise.DEFAULT_MIN_SCORE, diversify: bool = False,
-           wide: bool = False, rerank: Reranker | None = None) -> str:
+           wide: bool = False, rerank: Reranker | None = None, index: IndexName = "brain") -> str:
     """Ranked hits (score, path, section, snippet) — the snippet locates, Read the file.
 
     - Point lookup (one document answers it): the defaults. `min_score` 0.845 leans to
@@ -275,12 +288,15 @@ def search(query: str, strategy: Strategy = "semantic", top_k: int = samwise.DEF
     - `strategy="grep"`: keyword baseline over the files, no index needed.
     - `rerank="bge-m3"`: better top 5 (answer in top 5 .84 -> .92) at ~1 min per query
       on the Pi — only on explicit request or when the default ranking clearly missed.
+    - `index="personas"`: persona source digests instead of brain/ (semantic and
+      fts strategies only).
     """
     if wide:
         top_k, min_score, diversify = max(top_k, 20), 0.0, True
     reranker = _reranker(rerank)
-    return _call("search", {"strategy": strategy, "wide": wide, "top_k": top_k, "rerank": reranker},
-                 _run_search, query, strategy, top_k, min_score, diversify, reranker)
+    return _call("search", {"index": index, "strategy": strategy, "wide": wide, "top_k": top_k,
+                            "rerank": reranker},
+                 _run_search, query, strategy, top_k, min_score, diversify, reranker, index)
 
 
 def default_idle_unload() -> int:

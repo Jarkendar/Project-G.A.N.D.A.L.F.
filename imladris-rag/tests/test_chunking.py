@@ -125,6 +125,16 @@ class CorpusTest(unittest.TestCase):
                              ["keep.md", "notes/keep2.md", "people/ann/card.md"])
             self.assertEqual([p.as_posix() for p in corpus.discover(root / "notes")], ["notes/keep2.md"])
 
+    def test_include_globs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for rel in ("keep.md", "people/ann/card.md", "people/ann/raw/2020.md", "people/bob/raw/2021.md"):
+                (root / rel).parent.mkdir(parents=True, exist_ok=True)
+                (root / rel).write_text("x")
+            corpus = Corpus(root=root, include_globs=("people/*/raw/*",))
+            self.assertEqual([p.as_posix() for p in corpus.discover()],
+                             ["people/ann/raw/2020.md", "people/bob/raw/2021.md"])
+
 
 if __name__ == "__main__":
     unittest.main()

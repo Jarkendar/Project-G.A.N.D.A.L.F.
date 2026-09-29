@@ -33,8 +33,8 @@ files — see `imladris-rag/imladris/store.py`.
    logs — not knowledge), `index/` (its own output), and every per-folder
    `CLAUDE.md` (operating instructions, not retrievable knowledge), and
    `knowledge/personas/*/sources/` (persona digests — they get their own
-   index, see IMPLEMENTATION.md Step 6; the persona's `persona.md` card stays
-   in the main index).
+   index, see "The persona index" below; the persona's `persona.md` card
+   stays in the main index).
 2. Hashes each file's content and compares against the last-indexed hash
    stored in the index. **Unchanged files are skipped entirely —
    zero re-embedding cost.** Only new/changed files get (re)chunked and
@@ -62,7 +62,19 @@ python index.py                # incremental sync
 python index.py --dry-run      # show what would change, without embedding
 python index.py --path knowledge/career  # limit to one file/subtree
 python index.py --rebuild      # wipe and re-embed everything
+python index.py --corpus personas  # the persona index (see below)
 ```
+
+### The persona index
+
+`--corpus personas` indexes only `knowledge/personas/*/sources/*` — the
+White Council persona digests (IMPLEMENTATION.md Step 6) — into their own
+Qdrant collection, `BILBO_PERSONAS_INDEX` (default
+`http://127.0.0.1:6333/personas`). One collection for all personas; a
+search picks one with `folders=["knowledge/personas/<slug>/sources/"]`.
+Same model and chunker as the main index, never enriched (no Haiku calls).
+S.A.M.W.I.S.E. serves it with `index="personas"`; B.E.O.R.N. is its reader.
+Every other flag works the same (`--dry-run`, `--rebuild`, `--path`).
 
 The first run downloads the pinned model revision to the local
 Hugging Face cache (`~/.cache/huggingface/...`, outside this repo — never
@@ -97,8 +109,9 @@ brain/'s `core.hooksPath` points at `.claude/hooks/brain/` (set by
 - `post-merge` — after every pull; the SessionStart sync pulls with
   `--ff-only`, which fires it.
 
-Both start `index.py --if-new-commits` **detached** (`setsid`, `nice -n 19`)
-and return at once — loading the model alone takes ~20 s. `--if-new-commits`
+Both start `index.py --if-new-commits` and then
+`index.py --corpus personas --if-new-commits` **detached** (`setsid`,
+`nice -n 19`), one after the other under one lock, and return at once — loading the model alone takes ~20 s. `--if-new-commits`
 skips the run when brain/ HEAD equals `meta.last_indexed_commit`, which every
 full-scope, non-dry run records. `flock -n` on `brain/index/.reindex.lock`
 keeps two runs from writing the index at once; a commit that finds the lock

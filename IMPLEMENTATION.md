@@ -1208,11 +1208,14 @@ Storage and retrieval:
 - [ ] Next finance personas from the pool (Munger, Marks, Taleb, Bogle, Dalio,
       Lynch, Housel, Bezos — contrast over count).
 - [ ] Role card format.
-- [ ] Persona RAG: `personas` Qdrant collection filtered by `persona`
-      (reuse B.I.L.B.O.'s pipeline). Useful, not blocking: the owner values
-      approach, character and stable views over factual recall, and Beorn
-      greps the digests for episode questions meanwhile. Main index already
-      excludes `personas/*/sources/`.
+- [x] Persona RAG (2026-09-29): `index.py --corpus personas` builds the
+      `personas` Qdrant collection from `personas/*/sources/*` (same model
+      and chunker, no enrichment; Buffett: 50 files, 509 chunks, ~10 min on
+      the Pi); the brain/ hooks refresh it after the main index. Samwise
+      serves it with `index="personas"`, a persona picked by `folders`.
+      Beorn queries it for analogous cases on every question (grep over
+      the digests as fallback) — the value for the owner is how the person
+      reasoned in a similar situation, not factual recall.
 - [x] B.E.O.R.N. sub-agent — card loading, in-character answers, grep over
       the persona's digests for episode questions; routed from Gandalf
       (Step 2e). → `.claude/agents/beorn.md` (2026-09-29)

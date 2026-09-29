@@ -50,15 +50,22 @@ def brain_privacy(rel_path: Path, frontmatter: dict) -> str:
 
 # What in brain/ is not knowledge: the index's own folder, Smeagol's logs (and
 # privacy-sensitive), per-folder CLAUDE.md files (operating instructions), and
-# persona source digests (they get their own index; see IMPLEMENTATION.md
-# Step 6 — in the main one they would crowd out the owner's notes).
+# persona source digests (they get their own index, below; see
+# IMPLEMENTATION.md Step 6 — in the main one they would crowd out the
+# owner's notes).
+PERSONA_SOURCES = "knowledge/personas/*/sources/*"
 BRAIN_CORPUS_RULES = dict(
     exclude_top_dirs=frozenset({"index"}),
     exclude_prefixes=("current/smeagol",),
     exclude_names=frozenset({"CLAUDE.md"}),
-    exclude_globs=("knowledge/personas/*/sources/*",),
+    exclude_globs=(PERSONA_SOURCES,),
     privacy_of=brain_privacy,
 )
+# The persona index (White Council, B.E.O.R.N.): only the digests, one
+# collection for all personas — a search filters by folder
+# (knowledge/personas/<slug>/sources/). Same model and chunker as the main
+# index, no enrichment.
+PERSONA_CORPUS_RULES = dict(include_globs=(PERSONA_SOURCES,), privacy_of=brain_privacy)
 
 
 def read_gandalf_env(project_dir: Path) -> dict:
@@ -90,17 +97,25 @@ def resolve_brain_path(project_dir: Path) -> Path:
 
 
 DEFAULT_INDEX = "http://127.0.0.1:6333/bilbo"
+DEFAULT_PERSONAS_INDEX = "http://127.0.0.1:6333/personas"
 
 
-def resolve_index_location(project_dir: Path, brain_dir: Path) -> str:
-    """Where the production index lives: BILBO_INDEX (environment, then
-    gandalf.env) as "<qdrant url>/<collection>", else DEFAULT_INDEX.
-    `brain_dir` is unused since the SQLite index went; kept for callers."""
-    return os.environ.get("BILBO_INDEX") or read_gandalf_env(project_dir).get("BILBO_INDEX") or DEFAULT_INDEX
+def resolve_index_location(project_dir: Path, brain_dir: Path, corpus: str = "brain") -> str:
+    """Where a production index lives as "<qdrant url>/<collection>":
+    BILBO_INDEX (brain) or BILBO_PERSONAS_INDEX (personas) from the
+    environment, then gandalf.env, else the default. `brain_dir` is unused
+    since the SQLite index went; kept for callers."""
+    key, default = (("BILBO_PERSONAS_INDEX", DEFAULT_PERSONAS_INDEX) if corpus == "personas"
+                    else ("BILBO_INDEX", DEFAULT_INDEX))
+    return os.environ.get(key) or read_gandalf_env(project_dir).get(key) or default
 
 
 def brain_corpus(brain_dir: Path) -> Corpus:
     return Corpus(root=brain_dir, **BRAIN_CORPUS_RULES)
+
+
+def persona_corpus(brain_dir: Path) -> Corpus:
+    return Corpus(root=brain_dir, **PERSONA_CORPUS_RULES)
 
 
 def brain_head(brain_dir: Path) -> str | None:
@@ -116,6 +131,9 @@ def brain_head(brain_dir: Path) -> str | None:
 
 def main():
     parser = argparse.ArgumentParser(description="B.I.L.B.O. — embedding indexer for brain/")
+    parser.add_argument("--corpus", choices=("brain", "personas"), default="brain",
+                        help="brain: the main index (default); personas: persona source digests "
+                             "only, in their own collection (BILBO_PERSONAS_INDEX), never enriched")
     parser.add_argument("--rebuild", action="store_true", help="wipe and rebuild the full index")
     parser.add_argument("--path", type=str, default=None,
                         help="limit to one file or subdirectory (relative to BRAIN_PATH)")
@@ -149,7 +167,10 @@ def main():
     args = parser.parse_args()
 
     brain_dir = resolve_brain_path(PROJECT_DIR)
-    corpus = brain_corpus(brain_dir)
+    personas = args.corpus == "personas"
+    corpus = persona_corpus(brain_dir) if personas else brain_corpus(brain_dir)
+    if personas and args.enrich:
+        sys.exit("BILBO: the persona index is never enriched — drop --enrich.")
 
     # Precedence: CLI flag > environment variable > .claude/gandalf.env > built-in
     # default. gandalf.env is what the post-commit hook runs with, so it is where
@@ -162,7 +183,7 @@ def main():
     spec = resolve_model(args.model or setting("BILBO_EMBED_MODEL", DEFAULT_MODEL),
                          os.environ.get("BILBO_EMBED_REVISION"))
     raw_use = args.enrichment_use if args.enrichment_use is not None else setting("BILBO_ENRICHMENT_USE", "")
-    use = tuple(u.strip() for u in raw_use.split(",") if u.strip())
+    use = () if personas else tuple(u.strip() for u in raw_use.split(",") if u.strip())
 
     scope = None
     if args.path:
@@ -185,7 +206,7 @@ def main():
         run_enrichment()
         return
 
-    db_path = args.db or resolve_index_location(PROJECT_DIR, brain_dir)
+    db_path = args.db or resolve_index_location(PROJECT_DIR, brain_dir, args.corpus)
     try:
         st = store.open_store(db_path)
     except ValueError as err:
