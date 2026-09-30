@@ -1161,14 +1161,20 @@ Process:
    *Way of thinking* (how they reach a conclusion — analogy, history,
    inversion, probabilities; how they act under pressure and against fashion;
    what they admit as a mistake or as not knowing; tone towards the reader);
-   *Decisions and views*; *Quotes* (2–4, verbatim, original language — only
-   ones that carry the voice or the crux of a thesis); *Change versus earlier
-   years* (feeds the core's timeline). The card is for approach, character
+   *Decisions and views* — for each real decision: situation → what they
+   weighed → decision → how they judged it later; *Quotes* (0–2, optional,
+   verbatim, original language — only when the line is the crux of the
+   reasoning; never words of people the persona cites, and none from
+   co-authored texts); *Change versus earlier years* (feeds the core's
+   timeline). The card is for approach, character
    and consistency of views, not for facts or quotations — the digest serves
    that (revised 2026-09-30: the first digests spent a third of their words
    on quotes). Written in chronological batches of ~10, each batch approved.
    **3b. Quote check** — every quote must appear verbatim in the source text
    before a digest lands in `brain/`; a script checks it, not the model.
+   It is a guard against fabrication, not a measure of the persona
+   (revised 2026-09-30: the persona is judged by how it reasons and
+   decides, not by how it quotes).
    Tooling: `.claude/scripts/personas/` (`reflow.py` prepares the text,
    `assemble.py` checks quotes and adds frontmatter, `verify_quotes.py`
    re-checks finished digests).
@@ -1178,13 +1184,21 @@ Process:
    (3–5 sentences); motivations; decision heuristics (each with source and
    year); way of thinking (the pattern distilled from the digests' *Way of
    thinking* sections); views (topic → stance, date range, source,
-   evolution); way of speaking; red flags; **blind spots** (known criticism — keeps the card from
-   being a hagiography and gives the council honest hooks); sample quotes
-   (3–5, verbatim — voice, not evidence); behaviour in a council (how they handle disagreement).
-5. **Validation** (`validation.md`) — 10–15 questions with a known answer from
-   a specific source; score stance and style; bare-model comparison; spot-check
-   a few digests against their originals (LLM digests can slip in a "generic"
-   version of the person).
+   evolution); **how they decide** (the questions they ask, in order; how
+   they weigh conflicting goals; what changes their mind and what does not;
+   mistakes they admit); way of speaking; red flags; **blind spots** (known
+   criticism — keeps the card from being a hagiography and gives the council
+   honest hooks); **reasoning examples** (3–5 real decisions: situation →
+   what they weighed → decision → later assessment); behaviour in a council
+   (how they handle disagreement). No sample-quote section, and every
+   borrowed saying in the card names its author — the Marks validation
+   showed a persona repeats an uncredited line as its own.
+5. **Validation** (`validation.md`) — approach dilemmas in three framings
+   (neutral, pressure against, exaggeration on their side), card vs bare
+   model, blind judge; the score is the reasoning: stance, the person's path
+   to it, nuance, consistency. Spot-check a few digest facts against their
+   originals (LLM digests can slip in a "generic" version of the person).
+   Quotes are only audited for fabrication, not scored.
 6. **Upkeep** — `card_version` on the core; new sources become new digests;
    changed views go through supersession.
 
