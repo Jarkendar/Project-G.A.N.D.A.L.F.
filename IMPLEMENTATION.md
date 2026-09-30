@@ -1176,8 +1176,9 @@ Process:
    Frontmatter per `_meta/schema.md` plus `kind: persona`, `categories`,
    `useful_for`, `not_for`, `era`, `card_version`. Sections: who they are
    (3–5 sentences); motivations; decision heuristics (each with source and
-   year); views (topic → stance, date range, source, evolution); way of
-   speaking; red flags; **blind spots** (known criticism — keeps the card from
+   year); way of thinking (the pattern distilled from the digests' *Way of
+   thinking* sections); views (topic → stance, date range, source,
+   evolution); way of speaking; red flags; **blind spots** (known criticism — keeps the card from
    being a hagiography and gives the council honest hooks); sample quotes
    (3–5, verbatim — voice, not evidence); behaviour in a council (how they handle disagreement).
 5. **Validation** (`validation.md`) — 10–15 questions with a known answer from
