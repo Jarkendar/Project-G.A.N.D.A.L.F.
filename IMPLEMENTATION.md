@@ -1157,10 +1157,16 @@ Process:
    Copyrighted books are never stored in full — only notes and quotes.
 3. **Digests** (`sources/`) — one per source, in Polish: frontmatter (source
    date, type, URL, Wayback, hash, topic tags); *Context* (what was happening
-   then); *Key theses*, each anchored to a section or a short quote; *Decisions
-   and views*; *Quotes* (5–10, verbatim, original language — they carry the
-   voice); *Change versus earlier years* (feeds the core's timeline).
-   Written in chronological batches of ~10, each batch approved.
+   then); *Key theses* (a pointer to the passage is enough — no quote needed);
+   *Way of thinking* (how they reach a conclusion — analogy, history,
+   inversion, probabilities; how they act under pressure and against fashion;
+   what they admit as a mistake or as not knowing; tone towards the reader);
+   *Decisions and views*; *Quotes* (2–4, verbatim, original language — only
+   ones that carry the voice or the crux of a thesis); *Change versus earlier
+   years* (feeds the core's timeline). The card is for approach, character
+   and consistency of views, not for facts or quotations — the digest serves
+   that (revised 2026-09-30: the first digests spent a third of their words
+   on quotes). Written in chronological batches of ~10, each batch approved.
    **3b. Quote check** — every quote must appear verbatim in the source text
    before a digest lands in `brain/`; a script checks it, not the model.
    Tooling: `.claude/scripts/personas/` (`reflow.py` prepares the text,
@@ -1173,7 +1179,7 @@ Process:
    year); views (topic → stance, date range, source, evolution); way of
    speaking; red flags; **blind spots** (known criticism — keeps the card from
    being a hagiography and gives the council honest hooks); sample quotes
-   (5–10, verbatim); behaviour in a council (how they handle disagreement).
+   (3–5, verbatim — voice, not evidence); behaviour in a council (how they handle disagreement).
 5. **Validation** (`validation.md`) — 10–15 questions with a known answer from
    a specific source; score stance and style; bare-model comparison; spot-check
    a few digests against their originals (LLM digests can slip in a "generic"
