@@ -1226,9 +1226,15 @@ Storage and retrieval:
       Buffett and by free primary sources, one at a time, each through the
       full process and approved batch by batch. Source availability to be
       confirmed in step 2 (catalogue); copyrighted books only as notes.
-      1. [ ] **Howard Marks** — risk, cycles, second-level thinking. Oaktree
+      1. [x] **Howard Marks** — risk, cycles, second-level thinking. Oaktree
              memos 1990–today, free, dated, his own voice: the closest
-             analogue of Buffett's letters.
+             analogue of Buffett's letters. Done 2026-09-30: 163 digests
+             (memos 1990–2025), core `card_version: 2`, behaviour validation
+             (0/36 yielding for card and bare model; card ahead on nuance
+             69 vs 63/72). Lessons: quotes must be the persona's own words
+             (36 quotes of other people removed from P1–P4), and every
+             borrowed saying in a card needs its author — otherwise the
+             persona repeats it as its own.
       2. [ ] **John C. Bogle** — costs, indexing, the investor against the
              industry. Speeches and essays (Bogle Center archive); books as
              notes. The passive counterweight to active voices.
