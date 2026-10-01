@@ -9,6 +9,7 @@ is the canonical specification.
 date: 2026-06-08T14:30:00    # ISO 8601, creation datetime
 source: manual               # who/what created this file
                              # values: manual | n8n/<flow-name> | bookmarklet | treebeard | interview
+                             #   | persona-digest | <skill-name> (the skill that wrote the file)
 privacy: public              # privacy level — values: private | public
 tags: [tag1, tag2]           # list, at least one tag required
 ```
@@ -24,6 +25,58 @@ status: active                          # lifecycle: draft | active | archived
 assistant: claude                       # conversations/ only — detected assistant (claude|gemini|unknown)
 content_hash: sha256:<hex>              # conversations/ only — SHA-256 of raw transcript for dedup
 ```
+
+## Persona cards (`knowledge/personas/<slug>/`)
+
+White Council personas (G.A.N.D.A.L.F. IMPLEMENTATION.md, Step 6). The core
+card and the digests use `source: persona-digest` and add:
+
+```yaml
+# persona.md — core card
+kind: persona
+slug: buffett
+categories: [finanse, biznes]            # council pools the persona sits in
+useful_for: [...]                        # what to ask this persona
+not_for: [...]                           # what not to ask
+era: {default: "...", abandoned: "..."}  # default voice; dropped views
+card_version: 1                          # bumped on every rebuild of the core
+sources_basis: "..."                     # which sources the core is distilled from
+
+# sources/<id>-<slug>.md — one digest per source
+persona: buffett
+source_id: "2015"                        # id in sources.md
+source_type: list do akcjonariuszy Berkshire Hathaway
+source_date: 2016-02-27                  # date of the source itself (YYYY-MM allowed)
+url: https://...                         # original
+wayback: http://web.archive.org/...      # archived copy
+sha256: <hex>                            # of the original file as fetched
+digest_lang: pl
+```
+
+Digests are excluded from the main B.I.L.B.O. index (`personas/*/sources/*`).
+
+### Core card body
+
+Written in Polish. B.E.O.R.N. (`.claude/agents/beorn.md`) relies on these
+headings by name, so every card keeps them, in this order:
+
+| Heading | Content |
+|---|---|
+| *(legend)* | Blockquote under `# Persona — <Name>`: how `[ref]` maps to a file in `sources/`, and the marker for views from outside the sources, e.g. *(spoza listów)* — to be treated with more caution. |
+| `## Zakres` | Why this person, their contrast with other personas in the council, default voice, which sources the card rests on. |
+| `## Kim jest` | 3–5 sentences of background. |
+| `## Motywacje` | What drives them, each point with `[ref]`. |
+| `## Jak podejmuje decyzję` | The questions they ask, in order; how they weigh conflicting goals; what changes their mind and what does not; mistakes they admit. Beorn walks the owner's situation through these questions. |
+| `## Heurystyki decyzyjne` | Numbered rules of thumb, each with `[ref]`. |
+| `## Sposób myślenia` | How they reach conclusions — the pattern distilled from the digests' *Sposób myślenia* sections. |
+| `## Poglądy` | Table: topic → stance in the default voice → period and evolution. Abandoned views are marked as such. |
+| `## Styl wypowiedzi` | How they speak and argue. |
+| `## Czerwone flagi` | What triggers suspicion or refusal. |
+| `## Ślepe plamki` | Known criticism — keeps the card from being a hagiography. |
+| `## Przykłady rozumowania` | 3–5 real decisions: *Sytuacja* → *Rozważał* → *Decyzja* → *Później*, each with `[ref]`. Beorn borrows the closest one's reasoning pattern. |
+| `## Zachowanie w Radzie` | How they open, disagree and close in a council; contrasts with named other personas. |
+
+No sample-quote section. A borrowed saying in the card names its author.
 
 ## Naming convention
 

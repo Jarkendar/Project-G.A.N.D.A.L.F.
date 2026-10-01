@@ -17,7 +17,11 @@ PYTHON="$BILBO/.venv/bin/python"
 [ -x "$PYTHON" ] || exit 0   # Bilbo not set up on this machine
 
 mkdir -p index
-setsid nohup nice -n 19 flock -n index/.reindex.lock \
-    "$PYTHON" "$BILBO/index.py" --if-new-commits \
+# Two indexes, one after the other under the same lock: the main one and the
+# persona digests (--corpus personas; a run with nothing to embed is instant).
+setsid nohup nice -n 19 flock -n index/.reindex.lock sh -c '
+    "$1" "$2/index.py" --if-new-commits
+    "$1" "$2/index.py" --corpus personas --if-new-commits
+' reindex "$PYTHON" "$BILBO" \
     >>index/reindex.log 2>&1 </dev/null &
 exit 0

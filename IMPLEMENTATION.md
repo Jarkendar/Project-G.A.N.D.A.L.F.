@@ -1087,6 +1087,248 @@ Retrieval"; Günther et al., "Late Chunking" (arXiv 2409.04701).
 
 ---
 
+### Step 6 (pulled forward) — White Council: deliberation with personas
+
+**Goal:** the first higher-order skill — a council of several voices on one hard
+question, returning where they agree, where they diverge and why, instead of one
+averaged answer. Validates the "skills orchestrate agents" split in practice and
+unblocks E4. Design agreed 2026-09-28 (backlog item
+`backlog/projects/skill-rada-white-council.md`); not built yet.
+
+**What it includes:**
+- **One agent, many cards — B.E.O.R.N.** (Bearer of Embodied Opinions, Roles
+  & Natures; Beorn is the skin-changer). A single CC sub-agent that is told which card to embody. No
+  per-persona agent files: a new persona is data, not code, the Tolkien naming
+  convention stays intact, and the Step 7 engine swap touches one agent.
+- **Two kinds of card:**
+  - **Persona card** — a real person the owner values (e.g. Buffett, Bezos,
+    Kotarski). Lives in `brain/knowledge/personas/<slug>/` (public figures,
+    public knowledge), written in Polish; verbatim quotes stay in the original
+    language. Three layers — see "Building a persona" below. Tools: none,
+    optionally web search. For consultation, not work.
+  - **Role card** — a generic role with traits but no sources: critic, devil's
+    advocate, moderator. Lives in the repo next to the agent (configuration,
+    not knowledge).
+- **Categories and pools:** finance, career, projects & entrepreneurship first;
+  technology, learning & communication, health & sport, life decisions later
+  (the last two touch private `core/` — first candidates for a local model in
+  Step 7). A category is a tag in the card's "useful for" field, so one persona
+  can sit in several. Each category holds a pool larger than a council.
+- **Composition:** a subset of about three personas drawn from the pools —
+  sometimes across categories — optionally plus a role card. Selection aims for
+  contrast (e.g. finance: value, long-term growth, risk), guided by the
+  "useful for" / "not for" fields, which matter more than pool size.
+- **Flow:** blind round (each voice answers independently, without seeing the
+  others) → 1–2 critique rounds (each responds to the others) → synthesis:
+  agreements, disagreements with their reasons, each voice's strongest point,
+  plus a few closing sentences per voice. Consensus only when it actually
+  emerged, never forced.
+- **Debate record:** contains the owner's problem and context, so it is saved to
+  a PRIVATE location — exact folder to be decided with the skill.
+- **Grounding check:** a persona's view does not need to be novel — a coherent,
+  in-character frame is the value. A side-by-side run against the bare model
+  on the same question is kept as a sanity check that the persona is not flat.
+
+**Building a persona (agreed 2026-09-28; first run: Warren Buffett):**
+
+Three layers, each distilled from the one below it, so every claim in the core
+traces back to a digest and every digest to an original:
+
+| Layer | What | Size (Buffett) | Where |
+|---|---|---|---|
+| **Core** | `persona.md` | ~5k tokens | git; always in context |
+| **Digests** | `sources/<year>-<slug>.md`, one per source | ~0.5 MB | git; persona RAG index |
+| **Originals** | full text / PDF | a few MB (PDFs far more) | URL + Wayback link; optional local cache outside git |
+
+```
+brain/knowledge/personas/<slug>/
+  persona.md      ← core card (living document)
+  sources.md      ← source catalogue
+  sources/        ← digests, one per source
+  validation.md   ← test questions + results
+```
+
+Process:
+1. **Scope** — why this person, "useful for" / "not for", time frame (which
+   period of their views is the default voice; abandoned views are marked).
+2. **Source catalogue** (`sources.md`) — primary sources (their own writing and
+   speech) before secondary (biographies). Per source: title, date, type, URL,
+   Wayback Machine link (guards against link rot), hash of the fetched text.
+   Copyrighted books are never stored in full — only notes and quotes.
+3. **Digests** (`sources/`) — one per source, in Polish: frontmatter (source
+   date, type, URL, Wayback, hash, topic tags); *Context* (what was happening
+   then); *Key theses* (a pointer to the passage is enough — no quote needed);
+   *Way of thinking* (how they reach a conclusion — analogy, history,
+   inversion, probabilities; how they act under pressure and against fashion;
+   what they admit as a mistake or as not knowing; tone towards the reader);
+   *Decisions and views* — for each real decision: situation → what they
+   weighed → decision → how they judged it later; *Quotes* (0–2, optional,
+   verbatim, original language — only when the line is the crux of the
+   reasoning; never words of people the persona cites, and none from
+   co-authored texts); *Change versus earlier years* (feeds the core's
+   timeline). The card is for approach, character
+   and consistency of views, not for facts or quotations — the digest serves
+   that (revised 2026-09-30: the first digests spent a third of their words
+   on quotes). Written in chronological batches of ~10, each batch approved.
+   **3b. Quote check** — every quote must appear verbatim in the source text
+   before a digest lands in `brain/`; a script checks it, not the model.
+   It is a guard against fabrication, not a measure of the persona
+   (revised 2026-09-30: the persona is judged by how it reasons and
+   decides, not by how it quotes).
+   Tooling: `.claude/scripts/personas/` (`reflow.py` prepares the text,
+   `assemble.py` checks quotes and adds frontmatter, `verify_quotes.py`
+   re-checks finished digests).
+4. **Core** (`persona.md`) — distilled from the digests, not from raw text.
+   Frontmatter per `_meta/schema.md` plus `kind: persona`, `categories`,
+   `useful_for`, `not_for`, `era`, `card_version`. Sections: who they are
+   (3–5 sentences); motivations; decision heuristics (each with source and
+   year); way of thinking (the pattern distilled from the digests' *Way of
+   thinking* sections); views (topic → stance, date range, source,
+   evolution); **how they decide** (the questions they ask, in order; how
+   they weigh conflicting goals; what changes their mind and what does not;
+   mistakes they admit); way of speaking; red flags; **blind spots** (known
+   criticism — keeps the card from being a hagiography and gives the council
+   honest hooks); **reasoning examples** (3–5 real decisions: situation →
+   what they weighed → decision → later assessment); behaviour in a council
+   (how they handle disagreement). No sample-quote section, and every
+   borrowed saying in the card names its author — the Marks validation
+   showed a persona repeats an uncredited line as its own.
+5. **Validation** (`validation.md`) — approach dilemmas in three framings
+   (neutral, pressure against, exaggeration on their side), card vs bare
+   model, blind judge; the score is the reasoning: stance, the person's path
+   to it, nuance, consistency. Spot-check a few digest facts against their
+   originals (LLM digests can slip in a "generic" version of the person).
+   Quotes are only audited for fabrication, not scored.
+6. **Upkeep** — `card_version` on the core; new sources become new digests;
+   changed views go through supersession.
+
+Storage and retrieval:
+- **Originals are not in git.** Reproducible from `sources.md` (URL, Wayback,
+  hash check). Rule: git holds everything a script cannot re-fetch — a source
+  that exists only locally (e.g. a Whisper transcript, a hand-cleaned text) is
+  committed or backed up.
+- **Persona RAG is separate from Gandalf's main index.** The main B.I.L.B.O.
+  index excludes `personas/*/sources/` (otherwise a persona's material would
+  crowd out the owner's notes); `persona.md` stays in the main index. Digests go
+  to one Qdrant collection `personas` with a `persona` payload field; B.E.O.R.N.
+  filters by it — effectively a per-persona index, without one HNSW index per
+  collection on the Pi, and multi-persona queries come for free.
+- **Lookup order at council time:** digest → local cached original (if present)
+  → URL / Wayback (network call).
+
+**Tasks:**
+- [x] Persona card format and build process (above).
+- [x] First persona end-to-end, by hand: Warren Buffett (finance) — scope,
+      catalogue, digests, core, validation. Phase 1 done 2026-09-29: 50
+      digests (shareholder letters 1977–2024 + two Thanksgiving letters),
+      core `card_version: 1`, validation 24/24 stance vs 20/24 for the bare
+      model — the card wins on dated and nuanced stances, ties on canonical
+      ones. Phase 2 (partnership letters, annual meetings) later.
+- [ ] Refine the process from what Buffett taught before building the next:
+      - [x] `fetch.py` — build `catalog.json` and the text cache from a
+            source list (URL → original, `pdftotext`/HTML → text, sha256,
+            Wayback lookup). Verified by re-fetching Buffett 1977, 1990,
+            1998: identical originals and text.
+      - [ ] `validate.py` — the reusable behaviour test (approach dilemmas
+            × neutral / against / with framings, card vs bare model, blind
+            Opus judge) from validations 3–4; dilemmas per persona, judged
+            against that persona's documented stance.
+      - [ ] Validation priority follows the owner: approach, character,
+            stable views; factual recall is secondary. Judge fabrication
+            flags are checked by hand (the judge misattributes from memory).
+- [ ] **Finance persona queue** (2026-09-29) — ordered by contrast with
+      Buffett and by free primary sources, one at a time, each through the
+      full process and approved batch by batch. Source availability to be
+      confirmed in step 2 (catalogue); copyrighted books only as notes.
+      1. [x] **Howard Marks** — risk, cycles, second-level thinking. Oaktree
+             memos 1990–today, free, dated, his own voice: the closest
+             analogue of Buffett's letters. Done 2026-09-30: 163 digests
+             (memos 1990–2025), core `card_version: 2`, behaviour validation
+             (0/36 yielding for card and bare model; card ahead on nuance
+             69 vs 63/72). Lessons: quotes must be the persona's own words
+             (36 quotes of other people removed from P1–P4), and every
+             borrowed saying in a card needs its author — otherwise the
+             persona repeats it as its own.
+      2. [ ] **John C. Bogle** — costs, indexing, the investor against the
+             industry. Speeches and essays (Bogle Center archive); books as
+             notes. The passive counterweight to active voices.
+      3. [ ] **Nassim Nicholas Taleb** — tail risk, fragility, skin in the
+             game. Free papers and essays; the Incerto books as notes only.
+             Contrast on risk and forecasting.
+      4. [ ] **Ray Dalio** — macro, debt cycles, diversification, radical
+             transparency. Principles (free early edition), published
+             research articles. The macro voice Buffett refuses to be.
+      5. [ ] **Peter Lynch** — growth at a reasonable price, the individual
+             investor's edge. Few free primary sources (interviews, Fidelity
+             pieces) — confirm the catalogue can carry a card first.
+      6. [ ] **Morgan Housel** — behaviour, money psychology. Collaborative
+             Fund essays, free. Bridges finance and life decisions.
+      Later, not in this queue: Charlie Munger (low contrast with Buffett;
+      worth it for multidisciplinary thinking once there are 3+ finance
+      voices), Jeff Bezos (shareholder letters — category *projects &
+      entrepreneurship*, not finance).
+- [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
+      useful_for / not_for; purpose, how it thinks, style, in a council,
+      does not). Next to the skill, not in `.claude/agents/`.
+- [x] Persona RAG (2026-09-29): `index.py --corpus personas` builds the
+      `personas` Qdrant collection from `personas/*/sources/*` (same model
+      and chunker, no enrichment; Buffett: 50 files, 509 chunks, ~10 min on
+      the Pi); the brain/ hooks refresh it after the main index. Samwise
+      serves it with `index="personas"`, a persona picked by `folders`.
+      Beorn queries it on demand — episodes, periods, before denying a
+      view (grep over the digests as fallback). Measured on the 6 approach
+      dilemmas (36 answers each, Opus judge): retrieval on every question
+      did not help — grounding 15 vs 19/72 for the card alone, distorted
+      sayings 4 vs 2, only the quality-vs-price dilemma gained. Likely
+      causes: digest chunks are whole "Kluczowe tezy" lists (~500 tokens,
+      many theses per vector), and the query was the raw question. Retry
+      only with per-thesis chunks for digests.
+- [x] B.E.O.R.N. sub-agent — card loading, in-character answers, grep over
+      the persona's digests for episode questions; routed from Gandalf
+      (Step 2e). → `.claude/agents/beorn.md` (2026-09-29)
+      Lessons from the Buffett tests (validations 2–3, 2026-09-29): the
+      card alone scores 14/32 on dated views, card + digests 28/32; the
+      card wins on honesty, scope and pressure (bare model invents sayings
+      and statistics); under framing pressure neither the card nor the bare
+      model flipped a view (0/36), the card adds consistency (23 vs 20/24)
+      and character (71 vs 65/72). Owner's priority: approach, character,
+      stable views — so digest RAG is useful, not blocking.
+      Prompt rules: never mention "the card"; express limits in the
+      persona's voice; absence from the card is not absence from the
+      sources — search the digests before saying "I never said that";
+      cite a year only next to the claim it backs.
+- [x] First role cards: critic, devil's advocate.
+- [x] `/council` skill — composition, blind round, critique rounds, synthesis,
+      private save of the record (`.claude/skills/council/`, 2026-09-29).
+- [ ] Smoke-test on a real finance question, with a bare-model comparison.
+      Mechanics verified 2026-09-29 on a sample question (ETF vs a rented
+      flat on a mortgage): Buffett + critic + devil's advocate, blind and
+      critique rounds parallel (3 + 3 Beorn calls), no second round, real
+      disagreement kept, no forced consensus. Fixed after it: the devil's
+      advocate keeps one side across rounds. Note: headless runs
+      (`claude -p`) need `--permission-mode bypassPermissions` or approval
+      — the dotted project folder name trips Claude Code's "suspicious
+      Windows path" check on reading `.claude/skills/council/roles/`.
+
+**Open:**
+- Persona building: by hand for the first personas; a dedicated skill
+  (catalogue → digests → core → validation) once the process settles.
+- ~~Where debate records live~~ — decided 2026-09-29: `knowledge/councils/`,
+  every file `privacy: private` (folder rule in its `CLAUDE.md`), saved
+  only on the owner's yes.
+- Debate memory per persona (what it said in past councils) — useful, but after
+  the MVP.
+- The "agent that judges work the way I would" backlog idea becomes one more
+  persona card, built from the owner's own data — later.
+
+**Done when:**
+- `/council` on a real question returns a synthesis with explicit agreements
+  and disagreements, not a single averaged answer.
+- Adding a persona means adding a card folder — no agent or skill edits.
+- The debate record is saved only to a PRIVATE location.
+
+---
+
 ## Long-term (condensed)
 
 Steps 4–11 from the README roadmap, condensed for orientation. Detailed tasks will
@@ -1099,6 +1341,8 @@ reshuffle it.**
   self-hosted SearXNG later). Only agent with external network access.
 - [ ] **Step 6 — First skill: White Council** — multi-perspective deliberation
   over a hard question; validates the agent/skill split in practice.
+  Design agreed 2026-09-28 (one card-driven agent, persona and role cards) —
+  see the detailed section above.
 - [ ] **Step 7 — Ollama + engine abstraction** — model-agnostic interface; agents
   become portable across Claude API, local Ollama, and hosted OSS. This is the
   point at which the system actually becomes local-first.

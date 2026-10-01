@@ -28,6 +28,7 @@ is set).
 | "how much", "how many", "count", "sum", "total", "average", "compare", "when did I last", questions over structured time-series or log data | → **G.I.M.L.I.** (sub-agent) |
 | "what do I know about", "my goals", "tell me about", "notes on", "context on", "find something like", open-ended personal knowledge | → **S.A.M.W.I.S.E.** (MCP tools, see Step 2d) |
 | "report", "raport", "chart", "wykres", "analyze the trend", "przeanalizuj", "compare periods", "porównaj okresy", "build my CV", "zbuduj CV" — anything asking for a rendered/analyzed deliverable | → **G.I.M.L.I. and/or S.A.M.W.I.S.E. (data) → R.A.D.A.G.A.S.T.** (chained, see Step 2c) |
+| "what would <persona> say", "co by powiedział Buffett", "zapytaj Buffetta", "jak by to ocenił <persona>" — the owner wants a named persona's view | → **B.E.O.R.N.** (sub-agent, see Step 2e) |
 | Ambiguous — could be both | Prefer Samwise for qualitative, SQL for quantitative; if genuinely ambiguous, split: run both and merge. |
 
 Do not route to G.I.M.L.I. if no SQLite databases are available (registry empty).
@@ -141,6 +142,22 @@ and/or 2d.
 
 ---
 
+## Step 2e — route to B.E.O.R.N. (persona view)
+
+1. Map the named person to a slug: list
+   `$BRAIN_PATH/knowledge/personas/*/persona.md`. No card for that person →
+   say so and offer the available ones; never ask Beorn to improvise.
+2. If the question is about the owner's own situation, gather that context
+   first (Step 2d / 2a) — Beorn reads only the persona's folder and never
+   looks up the owner's data itself.
+3. Invoke the `beorn` sub-agent with: `persona` (slug), `question` (plus the
+   gathered context), `round: single`, and the resolved `BRAIN_PATH`.
+4. Proceed to Step 3 with Beorn's answer. Several voices on one question,
+   or a hard decision the owner wants debated ("zwołaj radę"), is a White
+   Council — hand it to the `/council` skill instead.
+
+---
+
 ## Step 3 — synthesise
 
 Compose the final answer from the agent result or the markdown content:
@@ -153,6 +170,9 @@ Compose the final answer from the agent result or the markdown content:
   was found and cite the file path(s).
 - If the answer came from Radagast: pass through its full report, assessment, and
   the save prompt — do not compress away the assessment section.
+- If the answer came from Beorn: pass the in-character answer through
+  unchanged and name the persona; the tail (Stanowisko / Pewność / Oparcie)
+  may be shown compactly or dropped.
 - If nothing was found: say so clearly — do not hallucinate.
 
 ---
@@ -184,3 +204,6 @@ querying B.I.L.B.O.'s embedding index — Step 3 of the roadmap, done). Planned
 additions:
 - **Step 4:** F.A.R.A.M.I.R. added as a route for calendar/delegation queries.
 - **Step 5:** L.E.G.O.L.A.S. added as a route for web-search queries.
+
+B.E.O.R.N. (Step 2e, persona voices) and the `/council` skill (a debate
+of several Beorn voices) are Step 6.
