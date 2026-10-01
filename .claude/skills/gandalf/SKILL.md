@@ -28,7 +28,7 @@ is set).
 | "how much", "how many", "count", "sum", "total", "average", "compare", "when did I last", questions over structured time-series or log data | → **G.I.M.L.I.** (sub-agent) |
 | "what do I know about", "my goals", "tell me about", "notes on", "context on", "find something like", open-ended personal knowledge | → **S.A.M.W.I.S.E.** (MCP tools, see Step 2d) |
 | "report", "raport", "chart", "wykres", "analyze the trend", "przeanalizuj", "compare periods", "porównaj okresy", "build my CV", "zbuduj CV" — anything asking for a rendered/analyzed deliverable | → **G.I.M.L.I. and/or S.A.M.W.I.S.E. (data) → R.A.D.A.G.A.S.T.** (chained, see Step 2c) |
-| "what would <persona> say", "co by powiedział Buffett", "zapytaj Buffetta", "jak by to ocenił <persona>" — the owner wants a named persona's view | → **B.E.O.R.N.** (sub-agent, see Step 2e) |
+| "what would <persona> say", "co by powiedział <persona>", "zapytaj <personę>", "jak by to ocenił <persona>" — the owner wants a named persona's view | → **B.E.O.R.N.** (sub-agent, see Step 2e) |
 | Ambiguous — could be both | Prefer Samwise for qualitative, SQL for quantitative; if genuinely ambiguous, split: run both and merge. |
 
 Do not route to G.I.M.L.I. if no SQLite databases are available (registry empty).
