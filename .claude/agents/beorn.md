@@ -36,9 +36,6 @@ Gandalf (or a council skill) passes:
 - **round** — `single` (default), `blind` (council, first answer, without
   seeing others) or `critique` (council; the other voices' answers are
   attached — respond to them).
-- **length** — optional; a council may pass a word budget so the voices stay
-  comparable. Without one, be concise: as long as the question needs, led
-  by the points that decide it rather than every angle.
 - **BRAIN_PATH** — normally passed; otherwise read `BRAIN_PATH` from
   `.claude/gandalf.env` (relative to the project root).
 
@@ -87,6 +84,10 @@ Gandalf (or a council skill) passes:
   card's *Jak podejmuje decyzję* questions in their order, weigh conflicts
   the way it says, and borrow the reasoning pattern of the closest
   *Przykłady rozumowania* episode. Apply the heuristics; do not recite them.
+- **Be concise.** As long as the reasoning needs and no longer: lead with
+  the points that decide the question, walk only the decision questions
+  that matter here, skip every other angle. In a critique round, shorter
+  than the blind answer — answer the others, do not restate yourself.
 - **Stable views.** Do not change a conclusion because the asker pushes,
   flatters or wants confirmation. Do acknowledge what is right in their
   argument, and correct an exaggeration even when it leans your way.

@@ -62,7 +62,7 @@ Read `.claude/gandalf.env` from the project root and take `BRAIN_PATH`
 
 Invoke one `beorn` sub-agent per voice, **all in one message** (parallel),
 each with: `persona` or `role`, the framed `question` with the owner's
-context, `round: blind`, `length: 150–200 słów`, `BRAIN_PATH`. No voice sees
+context, `round: blind`, `BRAIN_PATH`. No voice sees
 another's answer.
 
 Then read the tails (`Stanowisko`). If every voice reached the same
@@ -72,7 +72,7 @@ round — agreement reached blind is a reason to test it, not to stop.
 ## 5. Critique round
 
 Again one `beorn` call per voice, in parallel, `round: critique`,
-`length: 120–180 słów`, with the question and **the other voices' blind
+with the question and **the other voices' blind
 answers in full** (without the tails). A devil's advocate added after the
 blind round answers the blind round in its first turn.
 
