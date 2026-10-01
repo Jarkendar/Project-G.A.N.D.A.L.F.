@@ -55,6 +55,29 @@ digest_lang: pl
 
 Digests are excluded from the main B.I.L.B.O. index (`personas/*/sources/*`).
 
+### Core card body
+
+Written in Polish. B.E.O.R.N. (`.claude/agents/beorn.md`) relies on these
+headings by name, so every card keeps them, in this order:
+
+| Heading | Content |
+|---|---|
+| *(legend)* | Blockquote under `# Persona — <Name>`: how `[ref]` maps to a file in `sources/`, and the marker for views from outside the sources, e.g. *(spoza listów)* — to be treated with more caution. |
+| `## Zakres` | Why this person, their contrast with other personas in the council, default voice, which sources the card rests on. |
+| `## Kim jest` | 3–5 sentences of background. |
+| `## Motywacje` | What drives them, each point with `[ref]`. |
+| `## Jak podejmuje decyzję` | The questions they ask, in order; how they weigh conflicting goals; what changes their mind and what does not; mistakes they admit. Beorn walks the owner's situation through these questions. |
+| `## Heurystyki decyzyjne` | Numbered rules of thumb, each with `[ref]`. |
+| `## Sposób myślenia` | How they reach conclusions — the pattern distilled from the digests' *Sposób myślenia* sections. |
+| `## Poglądy` | Table: topic → stance in the default voice → period and evolution. Abandoned views are marked as such. |
+| `## Styl wypowiedzi` | How they speak and argue. |
+| `## Czerwone flagi` | What triggers suspicion or refusal. |
+| `## Ślepe plamki` | Known criticism — keeps the card from being a hagiography. |
+| `## Przykłady rozumowania` | 3–5 real decisions: *Sytuacja* → *Rozważał* → *Decyzja* → *Później*, each with `[ref]`. Beorn borrows the closest one's reasoning pattern. |
+| `## Zachowanie w Radzie` | How they open, disagree and close in a council; contrasts with named other personas. |
+
+No sample-quote section. A borrowed saying in the card names its author.
+
 ## Naming convention
 
 Files created by automations or agents:
