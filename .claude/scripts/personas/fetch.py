@@ -14,8 +14,9 @@ Only `id` and `url` are required; the other fields are copied into the
 catalog row (assemble.py needs title, source_type, source_date and file
 later). For each source this script downloads the original into
 `originals/<id>.<ext>` (skipped when present, unless --refetch), extracts
-plain text into `text/<id>.txt` (PDF: `pdftotext -layout`; HTML: tags
-dropped, layout kept), and records sha256 and word count. --wayback looks
+plain text into `text/<id>.txt` (PDF: `pdftotext -layout`, or reading
+order with `"layout": false` for multi-column scans; HTML: tags dropped,
+layout kept), and records sha256 and word count. --wayback looks
 up an existing Wayback Machine snapshot; it never asks the archive to save
 a page (Save Page Now is an outbound write — only with the owner's yes, by
 hand). --table prints rows for the persona's sources.md.
@@ -115,9 +116,13 @@ def extension(url: str, content_type: str, raw: bytes) -> str:
     return "txt"
 
 
-def extract(path, ext: str) -> str:
+def extract(path, ext: str, layout: bool = True) -> str:
+    """Plain text of an original. `layout=False` drops `pdftotext -layout`:
+    reading order instead of physical layout, for multi-column scans
+    (journal articles, newspaper clippings) whose columns -layout
+    interleaves line by line."""
     if ext == "pdf":
-        return subprocess.run(["pdftotext", "-layout", str(path), "-"],
+        return subprocess.run(["pdftotext", *(["-layout"] if layout else []), str(path), "-"],
                               capture_output=True, text=True, check=True).stdout
     raw = path.read_bytes()
     return html_to_text(raw) if ext == "html" else decode(raw)
@@ -202,7 +207,7 @@ def main() -> int:
                 path = base / "originals" / f"{sid}.{ext}"
                 path.write_bytes(raw)
                 time.sleep(1)  # be polite to the source site
-            text = extract(path, ext)
+            text = extract(path, ext, src.get("layout", True))
         except (subprocess.CalledProcessError, OSError) as err:
             print(f"{sid} FAILED: {err}", file=sys.stderr)
             failed += 1
