@@ -2,7 +2,7 @@
 name: council
 description: >-
   White Council — a debate of several voices on one hard question: persona
-  cards (brain/knowledge/personas/, e.g. Warren Buffett) and role cards
+  cards (brain/knowledge/personas/, real people's approaches) and role cards
   (critic, devil's advocate), each spoken by the B.E.O.R.N. sub-agent. Runs a
   blind round, one or two critique rounds, then a synthesis of agreements,
   disagreements and their reasons — not one averaged answer. Use for a
@@ -54,7 +54,7 @@ Read `.claude/gandalf.env` from the project root and take `BRAIN_PATH`
    With fewer than two fitting personas, roles fill the council — a
    council of one persona plus two roles is fine; a persona forced onto an
    off-topic question is not.
-4. If the owner named voices ("z Buffettem i krytykiem"), use exactly those.
+4. If the owner named voices ("z <personą> i krytykiem"), use exactly those.
 5. Tell the owner the composition in one line with a reason per voice, and
    go on — do not wait for approval.
 
@@ -131,7 +131,7 @@ status: active
 tags: [council, <category>, ...]
 title: "Rada — <question in a few words>"
 question: "<the framed question>"
-voices: [buffett, critic, ...]
+voices: [<persona-slug>, critic, ...]
 rounds: <1 or 2 critique rounds>
 consensus: <yes | no | partial>
 ---
