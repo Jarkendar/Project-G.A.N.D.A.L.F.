@@ -15,8 +15,9 @@ catalog row (assemble.py needs title, source_type, source_date and file
 later). For each source this script downloads the original into
 `originals/<id>.<ext>` (skipped when present, unless --refetch), extracts
 plain text into `text/<id>.txt` (PDF: `pdftotext -layout`, or reading
-order with `"layout": false` for multi-column scans; HTML: tags dropped,
-layout kept), and records sha256 and word count. --wayback looks
+order with `"layout": false` for multi-column scans, or OCR with `"ocr":
+true` for scans without a text layer; HTML: tags dropped, layout kept),
+and records sha256 and word count. --wayback looks
 up an existing Wayback Machine snapshot; it never asks the archive to save
 a page (Save Page Now is an outbound write — only with the owner's yes, by
 hand). --table prints rows for the persona's sources.md.
@@ -42,7 +43,9 @@ import json
 import re
 import subprocess
 import sys
+import tempfile
 import time
+from pathlib import Path
 import urllib.parse
 from html.parser import HTMLParser
 
@@ -116,11 +119,26 @@ def extension(url: str, content_type: str, raw: bytes) -> str:
     return "txt"
 
 
-def extract(path, ext: str, layout: bool = True) -> str:
+def ocr_pdf(path) -> str:
+    """Text of a scanned PDF without a text layer: each page rendered at
+    300 dpi in greyscale (`pdftoppm`) and read by `tesseract` (English);
+    pages separated by form feeds, like pdftotext."""
+    with tempfile.TemporaryDirectory() as tmp:
+        subprocess.run(["pdftoppm", "-r", "300", "-gray", "-png", str(path), f"{tmp}/p"], check=True)
+        pages = []
+        for png in sorted(Path(tmp).glob("p-*.png")):
+            pages.append(subprocess.run(["tesseract", str(png), "-", "-l", "eng"], capture_output=True,
+                                        text=True, check=True).stdout)
+    return "\f".join(pages)
+
+
+def extract(path, ext: str, layout: bool = True, ocr: bool = False) -> str:
     """Plain text of an original. `layout=False` drops `pdftotext -layout`:
     reading order instead of physical layout, for multi-column scans
     (journal articles, newspaper clippings) whose columns -layout
     interleaves line by line."""
+    if ext == "pdf" and ocr:
+        return ocr_pdf(path)
     if ext == "pdf":
         return subprocess.run(["pdftotext", *(["-layout"] if layout else []), str(path), "-"],
                               capture_output=True, text=True, check=True).stdout
@@ -207,7 +225,7 @@ def main() -> int:
                 path = base / "originals" / f"{sid}.{ext}"
                 path.write_bytes(raw)
                 time.sleep(1)  # be polite to the source site
-            text = extract(path, ext, src.get("layout", True))
+            text = extract(path, ext, src.get("layout", True), src.get("ocr", False))
         except (subprocess.CalledProcessError, OSError) as err:
             print(f"{sid} FAILED: {err}", file=sys.stderr)
             failed += 1
