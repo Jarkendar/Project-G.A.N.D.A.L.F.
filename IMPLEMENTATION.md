@@ -1251,14 +1251,14 @@ Storage and retrieval:
              persona repeats it as its own.
       2. [x] **John C. Bogle** — costs, indexing, the investor against the
              industry. The passive counterweight to active voices. Done
-             2026-10-02: 149 digests (speeches, FAJ/JPM essays, memos
+             2026-10-02: 148 digests (speeches, FAJ/JPM essays, memos
              1977–2017 from johncbogle.com; 191 quotes verified), core
              `card_version: 1`, behaviour validation (0/36 yielding for
              card and bare model; card ahead on reasoning path 65 vs 54/72,
              consistency 23 vs 18/24). Phase 2: OCR of scanned early texts
              (1972 memo, Q-Group 1984), vanguard.com speeches via Wayback.
              Lesson: archives hold other people's texts too (an IBM ad
-             filed as an exhibit) — check authorship in the catalogue.
+             filed as an exhibit, removed) — check authorship in the catalogue.
       3. [ ] **Nassim Nicholas Taleb** — tail risk, fragility, skin in the
              game. Free papers and essays; the Incerto books as notes only.
              Contrast on risk and forecasting.
