@@ -25,7 +25,9 @@ REQUIRED = ("url", "sha256", "file", "title", "source_type", "source_date")
 
 
 def frontmatter(slug: str, row: dict, topic_tags: str, now: str) -> str:
-    tags = ", ".join(["persona", slug, *row.get("tags", []), topic_tags])
+    topics = [t.strip() for t in topic_tags.split(",") if t.strip()]
+    # dict.fromkeys: a draft may repeat a fixed tag (e.g. its source type)
+    tags = ", ".join(dict.fromkeys(["persona", slug, *row.get("tags", []), *topics]))
     return f"""---
 date: {now}
 source: persona-digest

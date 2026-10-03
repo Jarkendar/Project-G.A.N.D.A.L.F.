@@ -1249,9 +1249,25 @@ Storage and retrieval:
              (36 quotes of other people removed from P1–P4), and every
              borrowed saying in a card needs its author — otherwise the
              persona repeats it as its own.
-      2. [ ] **John C. Bogle** — costs, indexing, the investor against the
-             industry. Speeches and essays (Bogle Center archive); books as
-             notes. The passive counterweight to active voices.
+      2. [x] **John C. Bogle** — costs, indexing, the investor against the
+             industry. The passive counterweight to active voices. Done
+             2026-10-02: 148 digests (speeches, FAJ/JPM essays, memos
+             1977–2017 from johncbogle.com; 191 quotes verified), core
+             `card_version: 1`, behaviour validation (0/36 yielding for
+             card and bare model; card ahead on reasoning path 65 vs 54/72,
+             consistency 23 vs 18/24). Phase 2 done 2026-10-03 (P8, 21
+             digests): OCR of six scans (`"ocr": true` in `fetch.py` —
+             memos 1972 and 1978, Q-Group 1984, WSJ letter 2013, 2016,
+             JOIM 2017) and 15 vanguard.com speeches 1996–1999 via Wayback
+             (`url` = the `id_` snapshot); Wayback links for 141 of 148
+             phase-1 sources. Card v2 (early voice 1972–1999) revalidated:
+             same path and character, nuance 65 vs 62, consistency 21 vs
+             23 — noise-level. Open: 86 vanguard.com texts 2000–2006
+             (period already covered by P2–P3; overlap check first —
+             owner's call). Lessons: archives hold other people's texts
+             too (an IBM ad, a 1964 Walter Morgan speech, press clippings
+             — check authorship in the catalogue); vanguard.com has
+             nothing before 1996.
       3. [ ] **Nassim Nicholas Taleb** — tail risk, fragility, skin in the
              game. Free papers and essays; the Incerto books as notes only.
              Contrast on risk and forecasting.
