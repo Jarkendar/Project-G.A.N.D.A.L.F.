@@ -1270,7 +1270,17 @@ Storage and retrieval:
              nothing before 1996.
       3. [ ] **Nassim Nicholas Taleb** — tail risk, fragility, skin in the
              game. Free papers and essays; the Incerto books as notes only.
-             Contrast on risk and forecasting.
+             Contrast on risk and forecasting. In progress 2026-10-03:
+             scope and catalogue done — 74 sources, ~254k words,
+             2008–2024 (Edge essays, the Darwin College lecture and five
+             prose chapters of *Statistical Consequences of Fat Tails*,
+             the 2009 House hearing, arXiv papers, 27 Medium essays via
+             Wayback, four interview transcripts, 17 entries of the
+             "Opacity" notebook); four batches P1–P4, digests wait for the
+             owner's go. `fetch.py` gained an optional `"end"` anchor for
+             excerpts. Gap: the Incerto books (his full reasoning) are
+             copyrighted, so the card rests on essays, papers and the
+             notebook; nothing before 2008.
       4. [ ] **Ray Dalio** — macro, debt cycles, diversification, radical
              transparency. Principles (free early edition), published
              research articles. The macro voice Buffett refuses to be.
