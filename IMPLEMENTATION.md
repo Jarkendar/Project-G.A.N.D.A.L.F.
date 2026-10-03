@@ -1276,8 +1276,8 @@ Storage and retrieval:
              prose chapters of *Statistical Consequences of Fat Tails*,
              the 2009 House hearing, arXiv papers, 27 Medium essays via
              Wayback, four interview transcripts, 17 entries of the
-             "Opacity" notebook); four batches P1–P4. P1 done 2026-10-03
-             (29 digests, 2008–2014, 27 quotes checked); P2–P4 open.
+             "Opacity" notebook); four batches P1–P4. P1 and P2 done 2026-10-03
+             (49 digests, 2008–2017, 68 quotes checked); P3–P4 open.
              `fetch.py` gained an optional `"end"` anchor for
              excerpts. Gap: the Incerto books (his full reasoning) are
              copyrighted, so the card rests on essays, papers and the
