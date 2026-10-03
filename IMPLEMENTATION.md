@@ -1268,21 +1268,26 @@ Storage and retrieval:
              too (an IBM ad, a 1964 Walter Morgan speech, press clippings
              — check authorship in the catalogue); vanguard.com has
              nothing before 1996.
-      3. [ ] **Nassim Nicholas Taleb** — tail risk, fragility, skin in the
-             game. Free papers and essays; the Incerto books as notes only.
-             Contrast on risk and forecasting. In progress 2026-10-03:
-             scope and catalogue done — 74 sources, ~254k words,
-             2008–2024 (Edge essays, the Darwin College lecture and five
-             prose chapters of *Statistical Consequences of Fat Tails*,
-             the 2009 House hearing, arXiv papers, 27 Medium essays via
-             Wayback, four interview transcripts, 17 entries of the
-             "Opacity" notebook); four batches P1–P4. P1–P4 done 2026-10-03
-             (74 digests, 2008–2024, 99 quotes checked); card and
-             validation open.
-             `fetch.py` gained an optional `"end"` anchor for
-             excerpts. Gap: the Incerto books (his full reasoning) are
-             copyrighted, so the card rests on essays, papers and the
-             notebook; nothing before 2008.
+      3. [x] **Nassim Nicholas Taleb** — tail risk, fragility, skin in the
+             game. Done 2026-10-03: 74 digests (2008–2024, ~250k words:
+             Edge essays, the Darwin College lecture and six more prose
+             chapters of *Statistical Consequences of Fat Tails*, the 2009
+             House hearing, 13 arXiv papers, 27 Medium essays via
+             Wayback, 17 notebook entries, four interviews), 99 quotes
+             checked, core `card_version: 1`, behaviour validation (0/36
+             yielding for card and bare model; card ahead on path 72 vs
+             66, nuance 63 vs 52, consistency 23 vs 21; the bare model
+             already knows Taleb, so the margin is smaller than for
+             Bogle). Gaps: the Incerto books are copyrighted (the card
+             rests on essays, papers, notebook and interviews), nothing
+             before 2008 except his own recollections; digest spot-check
+             against originals still open for v2. `fetch.py` gained an
+             optional `"end"` anchor for excerpts. Lessons: co-authored
+             texts and interviews carry other people's words (quotes only
+             from Taleb's own lines); a collection split into excerpts
+             needs end anchors (numbered entries are not contiguous);
+             PDFs in two columns break verbatim quote checks — pick
+             quotes from HTML sources or short single-line passages.
       4. [ ] **Ray Dalio** — macro, debt cycles, diversification, radical
              transparency. Principles (free early edition), published
              research articles. The macro voice Buffett refuses to be.
