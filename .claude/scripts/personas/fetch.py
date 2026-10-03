@@ -25,7 +25,9 @@ hand). --table prints rows for the persona's sources.md.
 A source with `"from": "<parent id>"` and `"start": "<regex>"` is an
 excerpt: a part of another source's file (e.g. one memo in a collection
 of memos). The regex (multiline) marks where it starts, searched after the
-previous excerpt of the same parent; it runs to the next one. Its text is
+previous excerpt of the same parent; it runs to the next one, or to its own
+optional `"end": "<regex>"` (searched after the start; ignored when it lies
+beyond the next excerpt's start). Its text is
 written to `text/<id>.txt`; url, sha256 and wayback are the parent's, plus
 the page range. A parent marked `"collection": true` is left out of
 --table. The source list lives in the persona's brain/ folder
@@ -172,16 +174,27 @@ def table_rows(rows: list[dict], batch_size: int) -> str:
 
 def excerpt_bounds(parent_text: str, excerpts: list[dict]) -> list[tuple[int, int]]:
     """(start, end) offsets of each excerpt in the parent text: each `start`
-    regex (multiline) is searched after the previous match, and an excerpt
-    runs to the next one's start (the last one to the end)."""
-    starts, pos = [], 0
+    regex (multiline) is searched after the previous match. An excerpt runs to
+    its own `end` regex when it has one and that matches before the next
+    excerpt's start, otherwise to the next excerpt's start (the last one to
+    the end)."""
+    starts, ends, pos = [], [], 0
     for src in excerpts:
         m = re.compile(src["start"], re.M).search(parent_text, pos)
         if not m:
             raise ValueError(f"{src['id']}: anchor not found after offset {pos}: {src['start']}")
         starts.append(m.start())
+        ends.append(m.end())
         pos = m.end()
-    return [(a, starts[i + 1] if i + 1 < len(starts) else len(parent_text)) for i, a in enumerate(starts)]
+    bounds = []
+    for i, (src, a) in enumerate(zip(excerpts, starts)):
+        b = starts[i + 1] if i + 1 < len(starts) else len(parent_text)
+        if "end" in src:
+            m = re.compile(src["end"], re.M).search(parent_text, ends[i])
+            if m and m.start() < b:
+                b = m.start()
+        bounds.append((a, b))
+    return bounds
 
 
 def main() -> int:
