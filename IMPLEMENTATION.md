@@ -1364,8 +1364,38 @@ Storage and retrieval:
              `claude -p` calls — a Pi reboot at 69/72 lost the whole first
              run; Wayback originals have broken lines and glued words, so
              search them flattened, not with line grep.
-      6. [ ] **Morgan Housel** — behaviour, money psychology. Collaborative
-             Fund essays, free. Bridges finance and life decisions.
+      6. [x] **Morgan Housel** — behaviour, money psychology. Collaborative
+             Fund essays, free. Bridges finance and life decisions. Done
+             2026-10-04: 116 digests (2016–2026: 111 Collaborative Fund
+             essays selected from 352, Tim Ferriss interviews 2022 and 2023,
+             Motley Fool 2024, and two critical reviews — Michael James 2021,
+             Byron Carson/AIER 2023), 124 quotes checked, core card v1 and
+             v2. Validation v1 (0/36 yielding for card and bare model; card
+             ahead on path 69 vs 59/72 and nuance 68 vs 53, character only
+             56 vs 52 — the bare model already knows his voice). Weak points
+             in v1: "what game are you playing?" as an opening formula
+             (19/36), view changes from `era.abandoned` announced as "I
+             changed my mind", no stories. **Card v2:** the game question
+             asked in plain words, one story from the digests as evidence,
+             view changes as context. Re-validated: "game" 19 → 2, stock
+             phrases 35 → 16, ornaments 20 → 13, nuance 70, path 69, still
+             0/36 yielding; character flat (54 vs 53 bare) and the March 2020
+             anecdote became the new refrain (5 answers). Left for v3: a pool
+             of stories mapped to question types, March 2020 only for
+             questions about his own mistakes, one form of address. Digest
+             spot-check (four digests against the originals): figures match;
+             two inconsistencies inside his own material noted (13 vs 14
+             divorces, airport vs dinner in the Sham Gad story). Gaps: the
+             three books are copyrighted (their theses come through the
+             essays they grew out of), Motley Fool and WSJ columns 2008–2016
+             unreachable, no podcast transcripts; essays repeat each other,
+             so frequency of a theme says more about style than certainty.
+             Ferriss transcripts allow quotes up to 500 words with
+             attribution — digests keep at most two short ones. Lessons:
+             write validation answers to disk and resume by missing frame —
+             the v2 run was cut by the API usage limit halfway and resumed
+             without loss; a removed refrain tends to move to the next
+             vivid item (here an anecdote), so cap repeated stories too.
       Later, not in this queue: Charlie Munger (low contrast with Buffett;
       worth it for multidisciplinary thinking once there are 3+ finance
       voices), Jeff Bezos (shareholder letters — category *projects &
