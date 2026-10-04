@@ -1327,9 +1327,28 @@ Storage and retrieval:
              write the card's biography only from the digests — the first
              draft had facts from memory (school, founding year) that the
              sources do not contain.
-      5. [ ] **Peter Lynch** — growth at a reasonable price, the individual
-             investor's edge. Few free primary sources (interviews, Fidelity
-             pieces) — confirm the catalogue can carry a card first.
+      5. [x] **Peter Lynch** — growth at a reasonable price, the individual
+             investor's edge. Done 2026-10-04: 49 digests (1993–2025: 42
+             "Investor's Edge" columns from *Worth* 1993–1999, written with
+             John Rothchild and available only in the Wayback Machine; the
+             1994 National Press Club lecture, PBS Frontline 1996, Barron's
+             2019, a Fidelity webinar 2022, Josh Brown 2025, and one critical
+             *Forbes* piece 2000), 61 quotes checked, core `card_version: 1`,
+             behaviour validation (0/36 yielding for card and bare model;
+             card ahead on path 69 vs 55/72, character 58 vs 41, nuance 63 vs
+             54, consistency 22 vs 20/24). Biggest gain where the bare model
+             falls back on generic advice: fear of a crash (path 10 vs 6) and
+             gold/bitcoin (producer instead of the commodity, 11 vs 7). Weak
+             points: the "two-minute story" test as a refrain (22/36 answers),
+             little humour or self-irony (own mistake admitted in 5/36), long
+             answers. Gaps: the books are copyrighted, Magellan letters are
+             paywalled, no video yet (`yt-dlp` deferred); the card leans on
+             1990s columns; one *Worth* column ("Winner's Curse", 1999/02)
+             is by another author and was excluded, "Best of the Best"
+             (1998/03) is mostly other managers' words. Lessons: build
+             persona dilemmas from the categories the card details most;
+             write validation answers to disk as they arrive — a Pi reboot at
+             69/72 lost the whole first run.
       6. [ ] **Morgan Housel** — behaviour, money psychology. Collaborative
              Fund essays, free. Bridges finance and life decisions.
       Later, not in this queue: Charlie Munger (low contrast with Buffett;
