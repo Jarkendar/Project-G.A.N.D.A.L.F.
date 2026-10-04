@@ -1340,15 +1340,30 @@ Storage and retrieval:
              falls back on generic advice: fear of a crash (path 10 vs 6) and
              gold/bitcoin (producer instead of the commodity, 11 vs 7). Weak
              points: the "two-minute story" test as a refrain (22/36 answers),
-             little humour or self-irony (own mistake admitted in 5/36), long
-             answers. Gaps: the books are copyrighted, Magellan letters are
+             little humour or self-irony, long answers. **Card v2
+             (2026-10-04):** the two-minute test is raised only when the
+             speaker cannot describe the company; one fitting mistake of his
+             own instead of a moral; under pressure he first grants what is
+             right. Re-validated: stock phrases 41 → 18 in 36 answers
+             ("two minutes" 22 → 0, the test survives as behaviour), own
+             mistakes cited 9 → 17/36 and checked against the digests, path
+             70, nuance 64, still 0/36 yielding; character flat (58 → 57) —
+             the crash dilemma stays generic, with no company and no humour.
+             Left for v3: anchor market questions in one company and an
+             anecdote, "a stock doesn't know you own it" as a fact rather
+             than a refrain (7/36), dilemmas on company categories and the 5%
+             withdrawal. Digest spot-check (four digests against the
+             originals): figures match; two errors fixed in Barron's 2019 (a
+             TV segment, not a cover; "10, 20, 30 years", not "5–25"). Gaps: the books are copyrighted, Magellan letters are
              paywalled, no video yet (`yt-dlp` deferred); the card leans on
              1990s columns; one *Worth* column ("Winner's Curse", 1999/02)
              is by another author and was excluded, "Best of the Best"
              (1998/03) is mostly other managers' words. Lessons: build
              persona dilemmas from the categories the card details most;
-             write validation answers to disk as they arrive — a Pi reboot at
-             69/72 lost the whole first run.
+             write validation answers to disk as they arrive and retry failed
+             `claude -p` calls — a Pi reboot at 69/72 lost the whole first
+             run; Wayback originals have broken lines and glued words, so
+             search them flattened, not with line grep.
       6. [ ] **Morgan Housel** — behaviour, money psychology. Collaborative
              Fund essays, free. Bridges finance and life decisions.
       Later, not in this queue: Charlie Munger (low contrast with Buffett;
