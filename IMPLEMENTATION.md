@@ -1298,14 +1298,29 @@ Storage and retrieval:
              49, consistency 24 vs 19/24; nuance 65 vs 54). Weak point: the
              card makes him repeat stock phrases ("teach to fish", "wrong a
              third of the time", "not an advisor" — 14/13/18 of 36 answers vs
-             0–2 for the bare model); fix for v2 is written down in
-             `validation.md`, untested. Gaps: *Principles*, *Big Debt Crises*
+             0–2 for the bare model). **Card v2 (2026-10-04):** the stock
+             phrases are now facts about him, not a refrain (at most one per
+             answer, only when the question is about it). Re-validated: stock
+             phrases 64 → 19 in 36 answers (judge-counted ornaments 39 → 13),
+             path 71, nuance 65, consistency 24/24, still 0/36 yielding;
+             character 70 → 63, partly because the judge rubric itself lists
+             the phrases as character markers. Left for v3: "a framework, not
+             a trade" as behaviour (neutral answers on forecasts slid into
+             numbered retail recipes), the 1982 story only when asked about
+             his own mistakes, and a rubric that describes behaviour instead
+             of phrases. Gaps: *Principles*, *Big Debt Crises*
              and *Changing World Order* are copyrighted or e-mail-gated (the
              card rests on the free PDF, articles and posts), no video or
              podcasts, no critics of Bridgewater; late texts are written
              "under his name" with a research team; 2026 geopolitical posts
-             are stored as his claims, not verified. Digest spot-check against
-             originals still open for v2. Lessons: LinkedIn originals need an
+             are stored as his claims, not verified. Digest spot-check
+             (2026-10-04, four digests plus the card's figures against the
+             originals): figures and theses match; one misattribution fixed
+             ("unreliable" probabilities came from 2023, not the 2025 book),
+             two bio citations pointed at the wrong sources. `verify_quotes.py`
+             only checks blockquotes, so inline quoted words in digests and
+             the card go unchecked — the misattribution slipped through that
+             gap. Lessons: LinkedIn originals need an
              extraction window (`</header>`…`</article>`) and clean quote
              fragments (hyphens and ligatures break verbatim checks); mark
              duplicates (a post that repeats a book chapter) in the digest;
