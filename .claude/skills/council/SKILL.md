@@ -3,12 +3,12 @@ name: council
 description: >-
   White Council — a debate of several voices on one hard question: persona
   cards (brain/knowledge/personas/, real people's approaches) and role cards
-  (critic, devil's advocate), each spoken by the B.E.O.R.N. sub-agent. Runs a
-  blind round, one or two critique rounds, then a synthesis of agreements,
-  disagreements and their reasons — not one averaged answer. Use for a
-  decision with real trade-offs (money, career, a project, a life choice),
-  or when the owner says "zwołaj radę", "rada", "co by na to powiedzieli",
-  "przedyskutuj to z personami", "/council".
+  (critic, devil's advocate, local practitioner), each spoken by the
+  B.E.O.R.N. sub-agent. Runs a blind round, one or two critique rounds, then a
+  synthesis of agreements, disagreements and their reasons — not one averaged
+  answer. Use for a decision with real trade-offs (money, career, a project, a
+  life choice), or when the owner says "zwołaj radę", "rada", "co by na to
+  powiedzieli", "przedyskutuj to z personami", "/council".
 ---
 
 # council — White Council
@@ -39,6 +39,13 @@ Read `.claude/gandalf.env` from the project root and take `BRAIN_PATH`
 - If one fact would change every answer (amount, deadline, what the owner
   can afford to lose) and it is not in the request or in brain/, ask the
   owner once. Otherwise proceed and list your assumptions in the question.
+- **Facts as facts, your reading as a question.** Pass what the owner said
+  or what brain/ records as context; pass your own inference about it
+  (a contradiction you think you see, a number you derived) as an open
+  question — "sprawdź, czy …" — never as a fact. Voices build on the
+  framing: in the 2026-10-05 smoke test three of four took a wrong
+  orchestrator remark ("the IKE is counted twice") as given, and only the
+  critic checked it.
 
 ## 3. Compose the council
 
@@ -50,7 +57,10 @@ Read `.claude/gandalf.env` from the project root and take `BRAIN_PATH`
    those whose `not_for` rules it out; across categories when the question
    spans them.
 3. Add a **role** when it earns its place: `critic` when the voices are
-   likely to agree; `devils-advocate` when the owner already leans one way.
+   likely to agree; `devils-advocate` when the owner already leans one way;
+   `local-practitioner` when the decision runs through Polish taxes,
+   accounts, instruments or law and the personas are foreign (they answer
+   "outside my circle" exactly there).
    With fewer than two fitting personas, roles fill the council — a
    council of one persona plus two roles is fine; a persona forced onto an
    off-topic question is not.
@@ -75,6 +85,14 @@ Again one `beorn` call per voice, in parallel, `round: critique`,
 with the question and **the other voices' blind
 answers in full** (without the tails). A devil's advocate added after the
 blind round answers the blind round in its first turn.
+
+Pass that input as a **file**, not inline: per voice, write the question
+followed by the other voices' answers (each under `## <voice name>`) to
+a temporary file — the session scratchpad if there is one, else a
+temporary directory — and give Beorn its path as `input_file`, plus the
+voice's own blind `Stanowisko` as a reminder. Three answers are ~15–20k
+characters per call; inline, the orchestrator writes them out once per
+voice. Same for a second critique round (blind + first critique answers).
 
 **Second critique round** only when a disagreement is still live and
 sharp after the first (two voices directly contradicting each other on
