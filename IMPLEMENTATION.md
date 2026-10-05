@@ -1426,7 +1426,38 @@ Storage and retrieval:
       owner's loose suggestions: Marcin Iwuć, a dividend-investing voice,
       Tomasz Jaroszek. Names and sources to be confirmed in the catalogue
       step (blogs, podcasts with transcripts, free primary texts). Built
-      with the persona-building instruction (below), not by hand.
+      with the persona-building instruction (below), not by hand. Owner's
+      pick and order: Iwuć, Samołyk, Jaroszek.
+      1. [x] **Marcin Iwuć** — Polish personal finance system (order of
+             steps, emergency fund, IKE/IKZE, retail treasury bonds,
+             mortgage), ex-TFI, CFA, public quarterly portfolio. Done
+             2026-10-05: 147 digests (2013–2026: 145 posts from
+             marciniwuc.com — post body from the WordPress API, since the
+             page is mostly reader comments — incl. 30 "Finansowa Forteca w
+             Praktyce" portfolio reports and the IKE Plus series 2014–2020,
+             plus two reviews of his book: DNA Rynków 2020, Kobiece Finanse
+             2021), ~403k words, 180 quotes checked, core card v1 (525
+             lines, above the usual 400–450). Validation v1: 0/36 yielding
+             for card and bare model; the widest gap of any persona so far —
+             path 67 vs 42/72, character 62 vs 39, nuance 64 vs 48; tics
+             3/36. The bare model barely knows him and answers like a
+             generic adviser, so the card matters more than for famous
+             Americans. Weak points: on a product question (insurance
+             policy) the persona starts from the product, not the asker's
+             stage; one invented detail ("a plan B saved me in 2008" — the
+             digests credit luck and rising income); ornaments 14 vs 3 are
+             mostly short quoted phrases, not borrowed sayings. No v2
+             needed by the skill's criteria. Spot-check (four digests vs
+             originals): figures match. Gaps: his books and paid courses,
+             podcast audio and YouTube (only post notes); interviews and
+             co-written analyses (Pielok, Dudek, Świder, Narkun, Jaroszek,
+             Lempart) separated from his voice in the digests. Lessons:
+             for a Polish blog, take the post body from the WordPress API
+             (`/wp-json/wp/v2/posts/<id>?_fields=content`), not the page;
+             the critical reviews of a popular local author can be thin
+             (one with a conflict of interest), so blind spots come mainly
+             from his own admitted mistakes and from tracking how his
+             explanations shift across years.
 - [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
       useful_for / not_for; purpose, how it thinks, style, in a council,
       does not). Next to the skill, not in `.claude/agents/`.
