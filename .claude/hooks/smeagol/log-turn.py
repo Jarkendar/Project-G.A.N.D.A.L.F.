@@ -57,8 +57,13 @@ def content_blocks(entry):
 
 
 def is_genuine_user_prompt(entry):
-    if entry.get("type") != "user":
+    if entry.get("type") != "user" or entry.get("isMeta"):
         return False
+    # A typed prompt is usually stored as a plain string, not a block list —
+    # missing it made every turn span the whole session.
+    content = (entry.get("message") or {}).get("content")
+    if isinstance(content, str):
+        return bool(content.strip())
     blocks = content_blocks(entry)
     return any(b.get("type") == "text" and b.get("text", "").strip() for b in blocks)
 
