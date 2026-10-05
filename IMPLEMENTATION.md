@@ -1237,19 +1237,23 @@ Storage and retrieval:
       core `card_version: 1`, validation 24/24 stance vs 20/24 for the bare
       model — the card wins on dated and nuanced stances, ties on canonical
       ones. Phase 2 (partnership letters, annual meetings) later.
-- [ ] Refine the process from what Buffett taught before building the next:
+- [x] Refine the process from what Buffett taught before building the next:
       - [x] `fetch.py` — build `catalog.json` and the text cache from a
             source list (URL → original, `pdftotext`/HTML → text, sha256,
             Wayback lookup). Verified by re-fetching Buffett 1977, 1990,
             1998: identical originals and text.
-      - [ ] `validate.py` — the reusable behaviour test (approach dilemmas
+      - [x] `validate.py` — the reusable behaviour test (approach dilemmas
             × neutral / against / with framings, card vs bare model, blind
             Opus judge) from validations 3–4; dilemmas per persona, judged
-            against that persona's documented stance.
-      - [ ] Validation priority follows the owner: approach, character,
+            against that persona's documented stance. Done 2026-10-05:
+            `.claude/scripts/personas/validate.py`, config in the persona's
+            `validation.json` (brain, git), runs resumable after every
+            call, `--reuse-bare` across card versions; Housel migrated and
+            its v1/v2 totals reproduced.
+      - [x] Validation priority follows the owner: approach, character,
             stable views; factual recall is secondary. Judge fabrication
             flags are checked by hand (the judge misattributes from memory).
-- [ ] **Finance persona queue** (2026-09-29) — ordered by contrast with
+- [x] **Finance persona queue** (2026-09-29) — ordered by contrast with
       Buffett and by free primary sources, one at a time, each through the
       full process and approved batch by batch. Source availability to be
       confirmed in step 2 (catalogue); copyrighted books only as notes.
@@ -1504,8 +1508,13 @@ Storage and retrieval:
       Windows path" check on reading `.claude/skills/council/roles/`.
 
 **Open:**
-- Persona building: by hand for the first personas; a dedicated skill
-  (catalogue → digests → core → validation) once the process settles.
+- ~~Persona building: by hand for the first personas; a dedicated skill
+  once the process settles~~ — done 2026-10-05 after seven personas:
+  `/persona` (Mírdain, `.claude/skills/persona/`) walks scope → catalogue
+  → digests → card → validation → record, with the owner's approval at
+  scope, catalogue, each digest batch and the card, and every lesson
+  learned so far in the step where it applies. First use: the Polish
+  voices.
 - ~~Where debate records live~~ — decided 2026-09-29: `knowledge/councils/`,
   every file `privacy: private` (folder rule in its `CLAUDE.md`), saved
   only on the owner's yes.
