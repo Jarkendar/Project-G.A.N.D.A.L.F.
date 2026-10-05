@@ -950,7 +950,7 @@ shown to match it, then it is removed. One commit per step on
       copy of the model. RAM, measured: ~2.2 GB loaded (granite-311m float32
       = 1.6 GB), so the model and index live in a worker process that starts
       on the first query (~14 s, then ~0.3–0.5 s per call) and is shut down
-      after `SAMWISE_IDLE_UNLOAD` (600 s): ~95 MB idle. An in-process unload
+      after `SAMWISE_IDLE_UNLOAD` (600 s, since 2026-10-05 3600 s): ~95 MB idle. An in-process unload
       was tried first and freed only ~0.4 GB — torch keeps the rest whatever
       glibc is told. Before each call the worker fingerprints the stored
       per-file hashes (~10 ms) and reloads on a change, so a Bilbo reindex is
@@ -976,6 +976,19 @@ shown to match it, then it is removed. One commit per step on
       cold start, latency, results, status; no query text). Both before
       splitting imladris into its own repo: let the two-step search settle
       and see how often it runs.
+- [x] **Usage review (2026-10-05):** 13 server calls since 2026-09-26, 12 of
+      them on the `personas` index (B.E.O.R.N., persona building) and one on
+      `brain` — brain/ was reached by grep instead (~340 grep calls in 30
+      sessions, nearly all dev work with known paths; the 2–3 real
+      personal-knowledge questions also went to grep). On the one replayed
+      question (the wishlist) `context` and grep found the same answer. 8 of
+      13 calls paid the cold start (13–38 s), since calls come in bursts
+      hours apart. Sméagol's counts were inflated: a plain-string prompt was
+      not recognised as a turn start, so each entry spanned the whole
+      session (fixed, PR #61). Changes: idle unload 600 → 3600 s, and a
+      `SessionStart` hook warms the worker (`POST /warmup`). Splitting
+      imladris stays deferred; the `brain` index is re-reviewed on
+      2026-10-26 and 2026-11-30, with open questions going to Samwise first.
 
 #### Multi-file questions — experiments (2026-09-26)
 

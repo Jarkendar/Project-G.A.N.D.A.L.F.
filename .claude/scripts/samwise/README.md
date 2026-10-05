@@ -55,8 +55,16 @@ for later ones (~0.3–0.5 s). Measured on the Pi 5:
 | idle, no worker | ~95 MB |
 | worker loaded (granite-311m float32 = 1.6 GB of it) | ~2.2 GB |
 
-After `SAMWISE_IDLE_UNLOAD` seconds without a query (default 600, 0 = never)
-the worker is shut down. A separate process because an in-process unload
+After `SAMWISE_IDLE_UNLOAD` seconds without a query (default 3600, 0 = never)
+the worker is shut down. An hour, not the earlier 10 minutes: calls come in
+bursts within a session, and at 600 s 8 of the first 13 logged calls paid
+the cold start.
+
+**Warm-up.** `POST /warmup` (HTTP transport) starts the worker in the
+background and returns `202` at once; on a running worker it only resets the
+idle clock. The `SessionStart` hook `.claude/hooks/samwise-warmup/warmup.sh`
+calls it, so the model loads while the first question is being typed. It is
+logged as tool `warmup` — leave it out when counting real calls. A separate process because an in-process unload
 gave back only ~0.4 GB of the 2.2 — torch keeps the rest, whatever glibc's
 malloc tunables say. If the worker dies (e.g. killed for RAM), the call
 reports it and the next one starts a new worker.

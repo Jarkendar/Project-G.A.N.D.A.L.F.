@@ -10,8 +10,9 @@
 # RAM: the model and the index live in a worker process (~2.2 GB loaded;
 # granite-311m in float32 is 1.6 of it), the MCP server itself in ~80 MB
 # without torch. After --idle-unload seconds without a call
-# (SAMWISE_IDLE_UNLOAD, default 600; 0 = never) the worker is shut down and
-# the next query starts a new one (~15 s). A process, not an in-process
+# (SAMWISE_IDLE_UNLOAD, default 3600; 0 = never) the worker is shut down and
+# the next query starts a new one (~15 s). Calls come in bursts within a
+# session, hours apart: 8 of the first 13 logged calls were cold at 600 s. A process, not an in-process
 # unload: dropping the model inside a process gave back only ~0.4 of the
 # 2.2 GB — torch keeps the rest, whatever glibc is told (measured
 # 2026-09-26).
@@ -23,6 +24,9 @@
 #     server restart does not break a client's session.
 #   - stdio: one process per client; for trying it out by hand.
 #
+# Warm-up (http only): POST /warmup starts the worker in the background and
+# returns at once — the SessionStart hook .claude/hooks/samwise-warmup/ calls
+# it, so the model loads while the owner types the first question.#
 # Freshness: B.I.L.B.O. rewrites the index after every brain/ commit. Before
 # each call the worker compares the index's per-file content hashes with the
 # ones it loaded and reloads on any change, so it never answers from a stale
@@ -55,6 +59,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import search as samwise  # noqa: E402  (no torch at import: models load lazily)
 from mcp.server.mcpserver import MCPServer  # noqa: E402
 from mcp_types import ToolAnnotations  # noqa: E402
+from starlette.responses import Response  # noqa: E402
 
 from imladris import search as engine  # noqa: E402
 from imladris.rerank import RERANKER_REGISTRY  # noqa: E402
@@ -64,7 +69,7 @@ Strategy = Literal[samwise.STRATEGIES]
 IndexName = Literal["brain", "personas"]
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
-DEFAULT_IDLE_UNLOAD = 600  # seconds
+DEFAULT_IDLE_UNLOAD = 3600  # seconds
 DEFAULT_PORT = 8765
 
 server = MCPServer(
@@ -215,6 +220,19 @@ def _call(tool: str, params: dict, fn, *args) -> str:
                "latency_ms": round((time.perf_counter() - started) * 1000), "results": _count_results(tool, text),
                "status": status})
     return text
+
+
+def _warm():
+    """Start the worker and load the model and the brain index with one
+    throwaway query; on a warm worker this only resets the idle clock. Logged
+    as tool "warmup", so reviews can tell it from real calls."""
+    _call("warmup", {"index": "brain"}, _run_search, "warmup", "semantic", 1, 0.0, False, None)
+
+
+@server.custom_route("/warmup", methods=["POST"])
+async def warmup(request):
+    threading.Thread(target=_warm, daemon=True, name="warmup").start()
+    return Response(status_code=202)
 
 
 def _watch_idle(seconds: int):
