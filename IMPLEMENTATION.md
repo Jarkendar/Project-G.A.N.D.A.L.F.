@@ -1237,19 +1237,23 @@ Storage and retrieval:
       core `card_version: 1`, validation 24/24 stance vs 20/24 for the bare
       model — the card wins on dated and nuanced stances, ties on canonical
       ones. Phase 2 (partnership letters, annual meetings) later.
-- [ ] Refine the process from what Buffett taught before building the next:
+- [x] Refine the process from what Buffett taught before building the next:
       - [x] `fetch.py` — build `catalog.json` and the text cache from a
             source list (URL → original, `pdftotext`/HTML → text, sha256,
             Wayback lookup). Verified by re-fetching Buffett 1977, 1990,
             1998: identical originals and text.
-      - [ ] `validate.py` — the reusable behaviour test (approach dilemmas
+      - [x] `validate.py` — the reusable behaviour test (approach dilemmas
             × neutral / against / with framings, card vs bare model, blind
             Opus judge) from validations 3–4; dilemmas per persona, judged
-            against that persona's documented stance.
-      - [ ] Validation priority follows the owner: approach, character,
+            against that persona's documented stance. Done 2026-10-05:
+            `.claude/scripts/personas/validate.py`, config in the persona's
+            `validation.json` (brain, git), runs resumable after every
+            call, `--reuse-bare` across card versions; Housel migrated and
+            its v1/v2 totals reproduced.
+      - [x] Validation priority follows the owner: approach, character,
             stable views; factual recall is secondary. Judge fabrication
             flags are checked by hand (the judge misattributes from memory).
-- [ ] **Finance persona queue** (2026-09-29) — ordered by contrast with
+- [x] **Finance persona queue** (2026-09-29) — ordered by contrast with
       Buffett and by free primary sources, one at a time, each through the
       full process and approved batch by batch. Source availability to be
       confirmed in step 2 (catalogue); copyrighted books only as notes.
@@ -1413,6 +1417,16 @@ Storage and retrieval:
       worth it for multidisciplinary thinking once there are 3+ finance
       voices), Jeff Bezos (shareholder letters — category *projects &
       entrepreneurship*, not finance).
+- [ ] **Polish voices** (2026-10-05, from the council smoke test) — every
+      finance persona is American and treats the Polish market as small and
+      weak by default; none knows the local wrappers (IKE/IKZE, PPK,
+      retail treasury bonds, Belka tax), so they answer "outside my
+      circle" exactly where the owner's decisions live. Wanted: 2–3 Polish
+      popularisers of personal finance, contrasting with each other — the
+      owner's loose suggestions: Marcin Iwuć, a dividend-investing voice,
+      Tomasz Jaroszek. Names and sources to be confirmed in the catalogue
+      step (blogs, podcasts with transcripts, free primary texts). Built
+      with the persona-building instruction (below), not by hand.
 - [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
       useful_for / not_for; purpose, how it thinks, style, in a council,
       does not). Next to the skill, not in `.claude/agents/`.
@@ -1446,7 +1460,44 @@ Storage and retrieval:
 - [x] First role cards: critic, devil's advocate.
 - [x] `/council` skill — composition, blind round, critique rounds, synthesis,
       private save of the record (`.claude/skills/council/`, 2026-09-29).
-- [ ] Smoke-test on a real finance question, with a bare-model comparison.
+- [x] Smoke-test on a real finance question, with a bare-model comparison
+      (2026-10-05). Two questions — the owner's own allocation against his
+      goals (Bogle, Dalio, Housel + critic) and a theoretical 100k PLN at
+      medium risk (Bogle, Taleb, Lynch + critic) — each run three ways:
+      council with cards, the same council voiced from the model's memory
+      (no cards, same rounds, role cards kept), and one bare answer; 34
+      calls. Findings:
+      - **Cards win on fidelity, not on the decision.** Carded voices kept
+        documented positions and dated views (Taleb's dropped bitcoin hope,
+        no options for retail; Lynch declining asset allocation as outside
+        his circle, using his own 1966–82 and drawdown figures; Bogle and
+        Taleb refusing made-up probabilities). Card-less voices drifted
+        (Taleb allowing options and crypto) and invented probabilities.
+        Every figure or episode the carded voices gave was found in the
+        digests. On the personal question all three variants reached the
+        same plan.
+      - **The council's value is disagreement and checked assumptions.**
+        The critic was the strongest voice in both questions (the FIRE
+        projection excludes today's IKE balance; "two years of savings"
+        ignores the cushion and IKZE; the partner's share and credit
+        capacity never asked). The owner: some voices irritate him and that
+        is the point — it keeps him out of a bubble.
+      - **The bare answer was the most practical on the personal
+        question** — local specifics (IKZE only at 65, PPK towards a down
+        payment, inheritance tax between unmarried partners, the Coast FIRE
+        threshold not adding up). No persona knows Polish wrappers → the
+        Polish voices item above.
+      - **Framing leaks.** An orchestrator remark stated as fact in the
+        question (a supposed IKE double count) was taken as fact by three
+        voices; only the critic checked it. Step 2 of the skill should pass
+        interpretations as open questions.
+      - **Round inputs via a file** (question + other voices' answers,
+        ~19k characters per critique call) worked and keeps them out of the
+        orchestrator's output; Beorn's read-only rule needs a sanctioned
+        exception for a caller-provided input file before it is codified.
+      - Blind answers on the personal question converged strongly; a
+        devil's advocate in place of the critic would have argued the
+        faster, IKE-funded purchase.
       Mechanics verified 2026-09-29 on a sample question (ETF vs a rented
       flat on a mortgage): Buffett + critic + devil's advocate, blind and
       critique rounds parallel (3 + 3 Beorn calls), no second round, real
@@ -1457,8 +1508,13 @@ Storage and retrieval:
       Windows path" check on reading `.claude/skills/council/roles/`.
 
 **Open:**
-- Persona building: by hand for the first personas; a dedicated skill
-  (catalogue → digests → core → validation) once the process settles.
+- ~~Persona building: by hand for the first personas; a dedicated skill
+  once the process settles~~ — done 2026-10-05 after seven personas:
+  `/persona` (Mírdain, `.claude/skills/persona/`) walks scope → catalogue
+  → digests → card → validation → record, with the owner's approval at
+  scope, catalogue, each digest batch and the card, and every lesson
+  learned so far in the step where it applies. First use: the Polish
+  voices.
 - ~~Where debate records live~~ — decided 2026-09-29: `knowledge/councils/`,
   every file `privacy: private` (folder rule in its `CLAUDE.md`), saved
   only on the owner's yes.

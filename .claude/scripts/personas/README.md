@@ -16,6 +16,8 @@ Every script takes the persona slug first and resolves `brain/` from
 | Source rows (`catalog.json`) | `~/.local/share/gandalf/personas/<slug>/` | no |
 | Originals as fetched | `…/<slug>/originals/` | no |
 | Plain text (`<id>.txt`) | `…/<slug>/text/` | no |
+| Validation config (`validation.json`) | `brain/knowledge/personas/<slug>/` | yes (brain) |
+| Validation runs (answers, scores) | `…/<slug>/validation/<run>/` | no |
 
 `catalog.json` (written by `fetch.py`) holds one row per source: `id`, `url`, `wayback`, `sha256`,
 `words`, and — once the source is digested — `file`, `title`,
@@ -31,6 +33,7 @@ Wayback, then a `sha256` check); it is not backed up.
 | `reflow.py <slug> <id>` | 3 | Prints the source text one paragraph per line, tables squeezed to one `[TABLE]` line — the reading input for a digest. |
 | `assemble.py <slug> <drafts> <id,...> [--write]` | 3 → 3b | Checks draft quotes; with `--write` adds frontmatter from the catalogue row, writes `sources/<file>` and flips `todo` → `esencja` in `sources.md`. |
 | `verify_quotes.py <slug> [id ...]` | 3b | Checks every `> ` quote in finished digests against the source text; exit 1 on a miss. No ids = all digests. |
+| `validate.py <slug> [--run NAME] [--reuse-bare RUN]` | 5 | Behaviour test of the card: dilemmas × three framings × two tries, persona vs bare model (Sonnet), blind Opus judge, tic audit. Reads `validation.json` from the persona folder; writes `<cache>/<slug>/validation/<run>/` after every call, so a rerun with the same `--run` resumes. `--report RUN ...` prints summaries only. |
 
 A draft (`<drafts>/<id>.md`) is the digest body preceded by one line of
 topic tags and a separator:
