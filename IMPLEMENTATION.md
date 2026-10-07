@@ -1727,6 +1727,31 @@ reshuffle it.**
   do not fix spoken English. → `.claude/scripts/arwen/`,
   `.claude/skills/flashcards/SKILL.md`.
 
+- [x] **E13 — Forked skills: research split out (2026-10-07).** `context: fork`
+  runs a skill in its own sub-agent context: no conversation history, no
+  questions to the user mid-run, only the final result comes back. That fits
+  skills with no confirmation gate and a lot of intermediate output, and does
+  not fit the gated writers (privacy gate) or the orchestrators (a sub-agent
+  cannot spawn further agents). Audit of all 19 skills: only `english-prep`
+  and `practice-prep` (read-only, no gate) qualified outright — both now
+  `context: fork`; where they used to ask the user they return `NEED: <what>`
+  and the caller asks. The web-heavy phases of three gated skills were split
+  into forked helpers, leaving every gate and every private read in the
+  caller: `research-offer` (company, product, interview questions →
+  `/analyze-offer` step 5), `research-idea` (prior art → `/develop-idea`
+  step 7), `fetch-finance-reports` (EDGAR / GPW fetch **and** write of the
+  public report files → `/ingest-finance` step 5; EDGAR `companyfacts` JSON is
+  the biggest single payload any skill pulls). **Privacy:** the research
+  helpers are web-only and receive just the offer's or idea's own words — never
+  `core/`, `profile.md` or `goals.md`; `fetch-finance-reports` may write only
+  under `knowledge/finance/<TICKER>/` and gets tickers and first-buy dates,
+  nothing else. The helpers are `user-invocable: false` (no slash entry).
+  Not forked, deliberately: `english-review`, `practice-review` (the
+  transcript lives in the chat, and both gate their writes). Known gap:
+  `english-prep` still creates `english-scenarios.md` when it is missing,
+  against its own "writes nothing". → `.claude/skills/research-offer/`,
+  `.claude/skills/research-idea/`, `.claude/skills/fetch-finance-reports/`.
+
 ---
 
 ## Open decisions / parking lot
