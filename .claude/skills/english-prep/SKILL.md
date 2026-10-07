@@ -10,6 +10,7 @@ description: >-
   a real work call conducted in English, or whenever picking up English
   practice and wanting it targeted at actual recurring mistakes instead of
   generic drilling.
+context: fork
 ---
 
 # english-prep
@@ -20,6 +21,14 @@ errors instead of starting cold each time, plus a paste-ready session prompt for
 whatever conversational assistant is being used (Gemini Live or similar).
 
 **Writes nothing.** No confirmation gate — there's nothing to gate.
+
+**Runs forked** (`context: fork`): this skill executes in its own context with
+no conversation history and cannot ask the user anything mid-run. The long
+history reads and the draft stay out of the caller's context; only the result
+comes back. Wherever a step below says to ask the user, **stop instead and
+return a single line** `NEED: <exactly what is missing>` — the caller asks and
+re-invokes with the answer in the argument. Everything the run needs must
+arrive in the argument.
 
 ## When to use
 

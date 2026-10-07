@@ -9,6 +9,7 @@ description: >-
   interview, an explain-to-a-junior or explain-to-business drill, any role-play
   practice on a topic being learned, or when asked for a practice/starter
   prompt for Gemini or to prepare a sparring session.
+context: fork
 ---
 
 # practice-prep
@@ -24,6 +25,14 @@ what the scenario is). This skill writes **how to evaluate** and **how to
 summarize** — never the role, never the scenario.
 
 **Writes nothing.** No confirmation gate.
+
+**Runs forked** (`context: fork`): this skill executes in its own context with
+no conversation history and cannot ask the user anything mid-run. The long
+history reads and the draft stay out of the caller's context; only the result
+comes back. Wherever a step below says to ask the user, **stop instead and
+return a single line** `NEED: <exactly what is missing>` — the caller asks and
+re-invokes with the answer in the argument. Everything the run needs must
+arrive in the argument.
 
 ## When to use
 

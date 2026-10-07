@@ -92,21 +92,26 @@ If the target file already exists:
 
 ### 5. Web research (default ON)
 
-Perform two targeted searches unless the user explicitly passed `--no-web`:
+Unless the user explicitly passed `--no-web`, delegate the research to the forked
+helper `research-offer` (Skill tool). It runs in its own context, so the search
+results and fetched pages never reach this one — only a compact summary does.
 
-**(a) Company / product research:**
-Search for: `<company name> company product description 2025 OR 2026`
-Goal: understand what the company does, its business model, key products, user scale,
-tech stack publicly known. Use WebSearch + WebFetch on top 1–2 results.
+Pass it only what the offer itself says, one field per line:
 
-**(b) Recruiter questions research:**
-Search for: `<company name> Android interview questions site:glassdoor.com OR teamblind.com OR levels.fyi`
-If company-specific results are sparse, fall back to: `Android Developer mid interview questions <stack keywords>`
-Goal: identify recurring technical and behavioural questions asked at this company
-(or for this stack level).
+```
+company: <name>
+role: <title and seniority>
+stack: <comma-separated keywords from the offer>
+```
 
-Summarise findings; do not quote copyrighted content verbatim — paraphrase and cite
-the source URL.
+Do **not** pass anything from `brain/` — the helper is web-only and holds no
+private context.
+
+It returns `## Company & product`, `## Interview questions` (technical,
+behavioural, architecture; marked company-specific or stack-level fallback) and
+`## Gaps`, each with source URLs. Use them as input to Sections 6 and 4 of the
+dossier. If `## Gaps` says a part is missing, say so in that section — do not
+fill it from memory.
 
 The user can suppress web research for a single run by invoking as
 `/analyze-offer --no-web <offer>`.

@@ -165,24 +165,33 @@ Target path: `$BRAIN/knowledge/projects/<slug>.md`. Three outcomes:
 
 ### 7. Web research — existing solutions / prior art (default ON)
 
-Unless the user passed `--no-web`, run two targeted passes. Paraphrase and cite
-the source URL — never quote verbatim:
+Unless the user passed `--no-web`, delegate the search to the forked helper
+`research-idea` (Skill tool). It runs in its own context, so the search results
+and fetched pages never reach this one — only a compact summary does.
 
-**(a) Direct equivalents:**
-`"<idea keywords>" existing tool OR project OR app 2025 OR 2026`, plus a
-GitHub-flavored pass: `<idea keywords> site:github.com`.
+Pass it the idea's own words, one field per line:
 
-**(b) Adjacent / community discussion:**
-`<idea keywords> site:reddit.com OR site:news.ycombinator.com self-hosted OR homelab OR open source`.
+```
+title: <idea title>
+summary: <2–4 sentences: what it is and what problem it solves>
+keywords: <comma-separated search keywords>
+```
 
-If pass (a) returns nothing close, broaden the query once. If prior art is
-still sparse or clearly unrelated, do **not** stretch tangential hits into a
-fabricated competitive landscape — write plainly: "No close prior art found —
-likely novel, or too niche for indexed search coverage."
+Do **not** pass anything from `profile.md` / `goals.md` — the helper is web-only
+and holds no personal context.
+
+It returns `### Direct equivalents`, `### Adjacent / inspiration`, `### Verdict`
+and the queries used, with source URLs. Use them as Section 3 of the dossier. It
+is already instructed not to stretch tangential hits into a fabricated
+competitive landscape; keep "No close prior art found — likely novel, or too
+niche for indexed search coverage." when that is what it reports.
 
 Suppress web research for a single run with `/develop-idea --no-web <idea>`.
 
 ### 8. brain/ profile + goals cross-reference (personalization)
+
+(Stays in this context — `profile.md` and `goals.md` are private and are never
+handed to the forked helper.)
 
 Read `$BRAIN/core/identity/profile.md` and `$BRAIN/core/identity/goals.md`.
 Extract: known languages/stack, stated working-style preferences, active goals
