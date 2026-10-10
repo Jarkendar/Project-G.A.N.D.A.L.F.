@@ -1,0 +1,33 @@
+{
+  "type": "object",
+  "properties": {
+    "tags": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "3-6 lowercase topic tags, kebab-case, English or Polish without diacritics"
+    },
+    "heading": {
+      "type": "string",
+      "description": "<Surname> — <Title> (<outlet or type>, <year>)"
+    },
+    "kontekst": {"type": "string"},
+    "tezy": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "each item: **bold thesis:** explanation in own words"
+    },
+    "sposob_myslenia": {"type": "array", "items": {"type": "string"}},
+    "decyzje": {"type": "array", "items": {"type": "string"}},
+    "cytaty": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "0-2 verbatim lines from the source, original language, the person's own words"
+    },
+    "zmiana": {"type": "string"},
+    "watpliwosci": {
+      "type": "string",
+      "description": "anything doubtful: approximate date, ASR garbling, sponsored content, missing speakers; empty string if none"
+    }
+  },
+  "required": ["tags", "heading", "kontekst", "tezy", "sposob_myslenia", "decyzje", "cytaty", "zmiana", "watpliwosci"]
+}
