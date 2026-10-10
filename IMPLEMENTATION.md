@@ -1628,17 +1628,23 @@ What the numbers say:
   set (the one EDGAR fetch in the transcripts went through `curl`). Next: a
   narrow fetch script (ticker → filings JSON) so `Bash` can go, and a guard
   on where he may write.
-- [ ] A dedicated digest agent for `/persona`'s Claude engine instead of
-  `general-purpose` (−26 k on each of ~25 turns per run). This is the owner's
-  backlog item "Agenci zadaniowi o minimalnych uprawnieniach" — its first
-  step is this prototype plus a test that a write outside the drafts folder
-  is refused. Proposal: `narvi` (the craftsman who worked beside the
-  Mírdain), `Read` + `Write` only — the orchestrator runs `reflow.py` into
-  the scratchpad first and `assemble.py` afterwards — with a `PreToolUse`
-  hook in the agent's frontmatter that denies a `Write` outside the drafts
-  folder. Needs the owner's yes on the name and one test run.
+- [x] `narvi` — new, `Read` + `Write`, `model: sonnet`: the digest agent for
+  `/persona` step 3 when Claude writes the drafts, instead of
+  `general-purpose` (−26 k on each of ~25 turns per run). This is the first
+  step of the owner's backlog item "Agenci zadaniowi o minimalnych
+  uprawnieniach". No shell: the orchestrator runs `reflow.py` into the
+  scratchpad first (folded to 1,500-character lines) and keeps `assemble.py`.
+  A `PreToolUse` hook in the agent's own frontmatter
+  (`.claude/hooks/narvi/write-guard.py`) refuses a `Write` that is not a
+  `.md` under the system temp directory — the Samołyk digests had agents
+  creating files outside the working folder. The guard itself is tested (ten
+  cases: brain/, the repo, a relative path, `..`, a symlink out of the
+  scratchpad, non-`.md`, unreadable input — all refused). **Not yet tested:**
+  that the harness runs a frontmatter hook for a sub-agent, and one real
+  source end to end through `assemble.py`. `/persona` says to do that single
+  run before fanning out.
 
-README.md § agents does not list `erestor` and `gloin` yet (owner's file).
+README.md § agents does not list `erestor`, `gloin` and `narvi` yet (owner's file).
 
 **Stage 2 — context diet.**
 - [x] `disable-model-invocation: true` on `init-brain`, `ingest-finance`,
@@ -1703,8 +1709,9 @@ stays session length and Opus at ~300 k of context per turn.
 4. Custom sub-agents load CLAUDE.md (decides whether slimming it pays off
    per agent or only per session).
 5. How to hide the claude.ai-synced skills for one project.
-Also worth one look after a restart: `gimli`, `legolas`, `erestor` and
-`gloin` appear with their tools, and `token-usage.py` shows their start.
+Also worth one look after a restart: `gimli`, `legolas`, `erestor`,
+`gloin` and `narvi` appear with their tools, `token-usage.py` shows their
+start, and a `narvi` asked to write outside the scratchpad is refused.
 
 ---
 

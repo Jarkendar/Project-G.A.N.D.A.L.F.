@@ -68,6 +68,7 @@ expansions: README.md § agents, and each agent's file in `.claude/agents/`.
 | L.E.G.O.L.A.S. | web search — runs the forked research helpers; Gandalf route planned (Step 5) | `.claude/agents/legolas.md` |
 | E.R.E.S.T.O.R. | practice briefings from brain/ records (read-only; english-prep, practice-prep) | `.claude/agents/erestor.md` |
 | G.L.O.I.N. | fetches public company reports into `knowledge/finance/` | `.claude/agents/gloin.md` |
+| N.A.R.V.I. | writes persona digest drafts for `/persona` (Read + Write, write-guard hook) | `.claude/agents/narvi.md` |
 | T.R.E.E.B.E.A.R.D. | archivist | planned — Step 10 |
 
 Proposed, not greenlit: G.A.L.A.D.R.I.E.L., L.I.N.D.I.R., H.A.L.D.I.R. — only
@@ -150,7 +151,7 @@ outbound network calls; anything irreversible.
 - Treat `brain/` as a knowledge source in **any** conversation, not only in
   skills — search it proactively when the question touches personal data.
 - **How to search:** open-ended questions → S.A.M.W.I.S.E. (`mcp__samwise__context`);
-  quantitative ones → G.I.M.L.I.; exact names/keywords → `grep` + `Read`.
+  quantitative ones → G.I.M.L.I.; exact names/keywords → `rg` (ripgrep) + `Read`.
 - Each `brain/` folder has its own `CLAUDE.md` with its rules — read it before
   writing there.
 - Ideas and to-dos go to `brain/backlog/` via `/idea`, including inline requests
