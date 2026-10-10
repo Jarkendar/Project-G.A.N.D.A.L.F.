@@ -8,6 +8,7 @@ description: >-
   personę", "kolejna persona", "zbuduj personę <kto>", "dodaj <kogoś> do
   Rady", "/persona", or to rework an existing card ("karta v2", "popraw
   personę", "re-walidacja").
+disable-model-invocation: true
 ---
 
 # persona — Mírdain, the jewel-smiths

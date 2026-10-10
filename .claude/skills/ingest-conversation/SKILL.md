@@ -8,6 +8,7 @@ description: >-
   conversation with the Claude or Gemini bookmarklet and dropping the
   clipboard output into the incoming folder, to process a single named file,
   or to process all pending files in the drop folder.
+disable-model-invocation: true
 ---
 
 # ingest-conversation
