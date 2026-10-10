@@ -10,7 +10,7 @@ description: >-
   practice on a topic being learned, or when asked for a practice/starter
   prompt for Gemini or to prepare a sparring session.
 context: fork
-model: sonnet
+agent: erestor
 ---
 
 # practice-prep
