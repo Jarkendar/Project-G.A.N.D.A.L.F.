@@ -1,0 +1,3 @@
+# The Gimli MCP server's own venv (.claude/scripts/gimli/.venv) — the MCP SDK
+# and nothing else; SQLite comes with Python.
+mcp==2.2.0

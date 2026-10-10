@@ -40,11 +40,11 @@ then chain into Step 2c.
 
 ## Step 2a — route to G.I.M.L.I. (structured query)
 
-Invoke the `gimli` sub-agent with the original query plus the resolved
-`BRAIN_PATH` and `GIMLI_EXTRA_DBS` values as context.
+Invoke the `gimli` sub-agent with the original query. It reaches the
+databases through the `gimli` MCP server, which resolves the registry itself.
 
 Gimli will:
-1. Build the database registry.
+1. List the database registry.
 2. Inspect the schema of the relevant database.
 3. Execute one read-only `SELECT`.
 4. Return formatted results + the SQL used.

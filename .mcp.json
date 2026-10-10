@@ -17,6 +17,13 @@
         "-c",
         "exec .claude/scripts/arwen/.venv/bin/python .claude/scripts/arwen/mcp_server.py"
       ]
+    },
+    "gimli": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "exec .claude/scripts/gimli/.venv/bin/python .claude/scripts/gimli/mcp_server.py"
+      ]
     }
   }
 }
