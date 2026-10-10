@@ -92,7 +92,34 @@ owner as too thin; 250k+ worked.
 
 ## 3. Digests, batch by batch
 
-For each source in the batch:
+**Default engine: Antigravity CLI (Gemini), not a Claude sub-agent.** Drafts
+come from `agy_digest.py`, which runs one headless `agy` call per source in
+parallel and spends the Gemini quota instead of the Claude one:
+
+```
+python3 .claude/scripts/personas/agy_digest.py <slug> <drafts> <id,...> --surname <Surname>
+```
+
+- It replaces steps 1–2 below; step 3 (`assemble.py`) and the quote check
+  are unchanged. Model: `gemini-3.8-flash-low` (medium/high cost 3–6x the
+  time for no measurable gain). `--jobs 4` is safe; a 429 is retried.
+- Only **public** persona sources go to `agy` — it is an external API.
+  Never anything from `brain/core/` or `current/`.
+- It needs `~/.gemini/antigravity-cli/settings.json` with the tool
+  permissions denied (see `agy_digest.py`); if `agy` asks to log in again,
+  the owner runs `! agy` once.
+- Fall back to the manual steps below for a source that comes back
+  `too-large` (> ~110 KB: split it into excerpts first), for an `agy`
+  error, and for any source in a language other than Polish or English.
+- Gemini sees one source at a time, so *"Zmiana względem wcześniejszych
+  lat"* is written as "Brak porównania — źródło digestowane osobno". Leave
+  it, or fill it in from the digests you have actually read; the card step
+  compares digests anyway.
+- Spot-check 2–3 drafts of the batch against their sources before
+  `--write` (a wrong fact passes the quote check). Quote misses: fix the
+  draft, never the checker.
+
+Manual path — for each source in the batch:
 
 1. `reflow.py <slug> <id>` → the text, one paragraph per line. Read the
    **whole** source. Do not filter it with line-based grep — that cuts
