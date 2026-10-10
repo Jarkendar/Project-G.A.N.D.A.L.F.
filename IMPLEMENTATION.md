@@ -4,7 +4,7 @@
 the execution path — *how* and *when*. README is the canon; this file is updated
 as work progresses without touching the canon.
 
-Last updated: 2026-09-22
+Last updated: 2026-10-10
 
 ---
 
@@ -1562,6 +1562,87 @@ Storage and retrieval:
 
 ---
 
+### Least privilege & token diet (cross-cutting, started 2026-10-10)
+
+**Goal:** every agent starts cheap and holds only the tools its job needs;
+the session that plays Gandalf stops being the block that holds everything.
+
+**Baseline** — this project's Claude Code transcripts, 2026-09-13 … 10-10
+(84 main sessions, 107 sub-agent runs), from
+`.claude/hooks/smeagol/token-usage.py` (re-run it after each stage). "Start"
+= context of the first turn.
+
+| Who | Model | Runs | Start | Share of all cache reads |
+|---|---|---|---|---|
+| main session | opus by default | 84 | ~48 k | ~93 % |
+| `general-purpose` (persona digests, validation) | sonnet / opus | 50 | ~36 k | ~7 % |
+| `beorn` | inherited: opus 37×, sonnet 17× | 54 | 11.7 k | ~0.1 % |
+| `gimli`, `radagast` | inherited | 0 | not measured | — |
+
+What the numbers say:
+- **Agent start-up is not where the tokens go.** The main session is: ~300 k
+  of context per turn on average, and its ~48 k start is re-read on every one
+  of ~5,800 turns. Narrowing agents is about permissions; the token lever is
+  the main session's start and length.
+- `/gandalf` was never invoked in those 84 sessions (no frontmatter, so no
+  trigger) — routing is done by the main session from CLAUDE.md § Brain access.
+- No agent pinned a model; forked skills without `agent:` ran as
+  `general-purpose` with every tool (`allowed-tools` pre-approves, it does not
+  restrict).
+- No `deny` rule anywhere: "private folders never reach an external API" holds
+  by prose only — one session has both the private read and
+  WebFetch / Drive / Docs.
+
+**Stage 1 — agents: model pins and minimal tools.** Done 2026-10-10:
+- [x] `beorn` → `model: opus` (fidelity of the voices over ~0.1 % of usage).
+- [x] `radagast` → `model: sonnet`; the Mermaid MCP tool removed (the
+  connector is not authenticated, the tool never existed in a session).
+  `Write` stays — Radagast is the sole writer of `knowledge/reports/`; the
+  save confirmation now comes back to the same Radagast as a follow-up
+  message, since a sub-agent cannot ask the owner itself.
+- [x] `gimli` → `model: haiku`.
+- [x] `legolas` — new, `WebSearch` + `WebFetch` only, `model: sonnet`. No file
+  tools, so "never reads brain/" is structural. `research-offer` and
+  `research-idea` fork into it (`agent: legolas`) instead of
+  `general-purpose`. The Gandalf route stays Step 5.
+- [x] `fetch-finance-reports`, `english-prep`, `practice-prep` →
+  `model: sonnet`. Still forking into `general-purpose`: a narrow agent for
+  each needs a name first.
+- [ ] `gimli` without `Bash`: a read-only MCP server (`databases`, `schema`,
+  `query`, databases opened `mode=ro`), on the Samwise / Arwen pattern.
+  Waiting on the owner — see the parking lot.
+- [ ] A dedicated digest agent for `/persona`'s Claude engine instead of
+  `general-purpose` (−26 k on each of ~25 turns per run). Needs a name.
+
+**Stage 2 — context diet.**
+- [x] `disable-model-invocation: true` on `init-brain`, `ingest-finance`,
+  `ingest-conversation`, `persona` — out of the skill listing, still run by
+  `/name` (2026-10-10).
+- [ ] CLAUDE.md: dev-only rules into `.claude/rules/` with `paths:` — after
+  the `/context` check below.
+- [ ] claude.ai-synced skills (32 of the 54 listed; Android, docx, …) off for
+  this project — mechanism to be verified.
+- Dropped: narrowing `Bash(python3 *)` in `settings.local.json`. The
+  transcripts show ~1,000 inline `python3 -` / `-c` calls a month in dev
+  work; the restriction belongs to the profiles of Stage 3, not to the dev
+  session.
+
+**Stage 3 — split Gandalf into launcher profiles.** Not started.
+`bin/gandalf` already answers to two names that do the same thing:
+- `gandalf` — questions: `--agent gandalf` (router prompt, read tools,
+  `Agent(gimli, radagast, beorn)`, Samwise), no web, no write to `brain/`.
+- `brain` — capture: the writing skills, Arwen, Strava, Calendar; web only
+  through the `legolas` fork.
+- plain `claude` in the repo — dev, everything.
+The `gandalf` skill is replaced by the agent definition then.
+
+**Before Stage 3 — verify with `/context` in a fresh session** (owner):
+the breakdown of the ~48 k start; that `--strict-mcp-config` also drops the
+claude.ai connectors; that `--agent` replaces the default system prompt and
+trims tool schemas; that custom sub-agents load CLAUDE.md.
+
+---
+
 ## Long-term (condensed)
 
 Steps 4–11 from the README roadmap, condensed for orientation. Detailed tasks will
@@ -1572,6 +1653,9 @@ reshuffle it.**
   to `agentic-sdlc-forge` for dev tasks via n8n / HTTP.
 - [ ] **Step 5 — L.E.G.O.L.A.S.** — outbound web search (DuckDuckGo first,
   self-hosted SearXNG later). Only agent with external network access.
+  A first narrow version exists since 2026-10-10 (`.claude/agents/legolas.md`,
+  `WebSearch` + `WebFetch`, target of the forked research helpers) — the
+  Gandalf route and the search backend are still this step.
 - [ ] **Step 6 — First skill: White Council** — multi-perspective deliberation
   over a hard question; validates the agent/skill split in practice.
   Design agreed 2026-09-28 (one card-driven agent, persona and role cards) —
@@ -1767,6 +1851,8 @@ so they don't get lost.
 | ~~**`brain/db/` access contract**~~ | ~~Step 4~~ | **RESOLVED 2026-09-18.** Gimli's "sole reader" monopoly was unworkable for operational databases (Faramir's dispatcher must ask "what is due now" of its own DB). Replaced by an owner model: each DB has one owner that writes (INSERT, idempotent upsert, state-column UPDATE; never DELETE) and runs fixed, pre-defined operational reads on its own DB; G.I.M.L.I. keeps the monopoly on analytical / ad-hoc SQL. External systems (n8n) never write — they notify the owner, which applies the change. → `brain/db/CLAUDE.md`, `.claude/agents/gimli.md`. |
 | ~~**brain/ rules — single source**~~ | ~~Step 0~~ | **RESOLVED 2026-09-18.** Rule files were kept in two places (`.claude/brain-skeleton/` and brain/) and had drifted: 17 of them differed or existed on one side only. Root cause: Claude Code does not load `CLAUDE.md` from brain/ (a sibling directory, not part of the project tree — verified: nothing loads without `--add-dir` + `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1`, and nested folder rules never load; an `@` import of a path outside the project does not load in headless `claude -p`), so skills pointed at the skeleton copy instead. Fix: brain/ is the single source (it describes itself, also for other tools); the skeleton keeps only data templates; `.claude/hooks/brain-instruction-sync/sync.py` injects brain/'s root rules at `SessionStart` and each folder's rules on the first Read/Edit/Glob/Grep there (Write: `PreToolUse`, whose context arrives together with the write result, not before it). Access via Bash does not trigger it. How it works, limits, and what to do when adding folders or debugging: `.claude/hooks/brain-instruction-sync/README.md`. |
 | ~~**brain/ rules — scaffolding a new brain/**~~ | ~~Step 0~~ | **RESOLVED 2026-09-20.** Making brain/ the sole author of its rules broke the second supported setup path: `/init-brain` creation mode built a bare structure with no `CLAUDE.md` at all, so a new brain/ had no privacy levels, no frontmatter schema and no writer rules. Fix: the skeleton carries **bootstrap copies** of all 24 rule files — generic (personal examples and installation-specific databases stripped), copied only when a folder is created (`/init-brain` creation mode; `/daily`, `/idea`, `/english-review` for folders they create later), never read afterwards. Drift between the two copies no longer affects a live brain/ — it only makes a *newly created* brain/ slightly stale, and the hook always serves the brain/ version. Validation mode checks rule files for existence only and never restores them from the skeleton. Rejected alternative: exporting the snapshot from brain/ with a script + gitignored deny-list of private terms (built, then rolled back as premature — see git history of this branch if it is ever wanted). |
+| **Gimli's tools: read-only MCP server vs. a wider role** | Least privilege, Stage 1 | Open since 2026-10-10. Proposal: replace Gimli's unrestricted `Bash` with a read-only MCP server. The owner's question back: wasn't Gimli meant to manage the databases, so writes too? The contract resolved 2026-09-18 (above) says no — each database's owner writes, Gimli holds only analytical reads. Either the contract stands and the server is read-only, or the contract changes first. |
+| **Skill / agent registry in Qdrant** | Step 7 | Owner's idea, 2026-10-10: index skill and agent descriptions as another collection and hand the router only the top 5 instead of the full listing. Under Claude Code the listing of the 22 project skills is ~2.7 k of a ~48 k start, and deferred tool loading already does this for MCP tools — small gain now. It is the right shape for the engine-agnostic router, where no harness builds the listing. |
 | **Phase 2 orchestration framework** | Step 7 | LangGraph vs LlamaIndex vs custom thin wrapper. Decided when the engine abstraction layer is built. |
 | **Log-analysis role** | Step 2+ | **Partially resolved 2026-07-01.** R.A.D.A.G.A.S.T. (Step 2.5) covers the *reporting/analysis* half generically (trends, anomalies, comparisons over any data handed to it) — it could analyze Smeagol's logs like any other input, once something feeds them to it. Still open: whether a dedicated FTS5 retrieval layer over Smeagol's logs (E3) is needed before that's useful, or Radagast + ad-hoc `brain/current/smeagol/` reads suffice. |
 | ~~**`brain/` privacy in MVP**~~ | ~~Step 1–3~~ | **RESOLVED 2026-06-09.** Private content may enter the Claude API context window in MVP. See § "Privacy in the Claude-API MVP". Tightened in Phase 2 (Step 7). |
