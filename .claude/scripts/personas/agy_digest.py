@@ -54,8 +54,11 @@ Hard rules:
 - "decisions": real decisions and stated views of the person (situation -> what
   they weighed -> decision), not general advice that the source merely repeats.
   Skip the section's content rather than invent a decision.
-- Length: ~150-300 words for a short source (under ~3000 words), 400-800 for a
-  long one. A long transcript with a short digest is a lossy digest.
+- Length follows the content, not a quota: usually 250-400 words for a short
+  source, 500-800 for a long one, and a repetitive source may be shorter.
+  Do not pad to reach a range. Do not compress a rich source to fit one:
+  a digest that drops the figures, cases or decisions the argument rests on
+  is lossy, however short it is.
 
 The digest format and its rules (the JSON fields mirror the sections):
 
