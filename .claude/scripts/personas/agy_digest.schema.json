@@ -3,31 +3,64 @@
   "properties": {
     "tags": {
       "type": "array",
-      "items": {"type": "string"},
+      "items": {
+        "type": "string"
+      },
       "description": "3-6 lowercase topic tags, kebab-case, English or Polish without diacritics"
     },
     "heading": {
       "type": "string",
       "description": "<Surname> — <Title> (<outlet or type>, <year>)"
     },
-    "kontekst": {"type": "string"},
-    "tezy": {
+    "context": {
+      "type": "string",
+      "description": "when and where the source was made and what was going on; only as much as the theses need; approximate dates marked as such"
+    },
+    "theses": {
       "type": "array",
-      "items": {"type": "string"},
+      "items": {
+        "type": "string"
+      },
       "description": "each item: **bold thesis:** explanation in own words"
     },
-    "sposob_myslenia": {"type": "array", "items": {"type": "string"}},
-    "decyzje": {"type": "array", "items": {"type": "string"}},
-    "cytaty": {
+    "reasoning": {
       "type": "array",
-      "items": {"type": "string"},
+      "items": {
+        "type": "string"
+      },
+      "description": "how the person gets to the conclusion: analogy, history, inversion, probabilities, arithmetic; what they admit as a mistake or as not knowing"
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "quotes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
       "description": "0-2 verbatim lines from the source, original language, the person's own words"
     },
-    "zmiana": {"type": "string"},
-    "watpliwosci": {
+    "change": {
+      "type": "string",
+      "description": "what is new, dropped or repeated against earlier sources of the same person; only sources actually seen"
+    },
+    "doubts": {
       "type": "string",
       "description": "anything doubtful: approximate date, ASR garbling, sponsored content, missing speakers; empty string if none"
     }
   },
-  "required": ["tags", "heading", "kontekst", "tezy", "sposob_myslenia", "decyzje", "cytaty", "zmiana", "watpliwosci"]
+  "required": [
+    "tags",
+    "heading",
+    "context",
+    "theses",
+    "reasoning",
+    "decisions",
+    "quotes",
+    "change",
+    "doubts"
+  ]
 }

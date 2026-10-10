@@ -40,18 +40,18 @@ Hard rules:
 - Use ONLY the source text below. No web search, no outside knowledge, no tools.
 - Read the whole source; it is an automatic transcript or an article (typos and
   ASR errors are possible, and there may be no speaker labels).
-- "cytaty": 0-2 lines copied VERBATIM from the source, in its language, only
+- "quotes": 0-2 lines copied VERBATIM from the source, in its language, only
   the person's own words and only where the line is the crux of the reasoning.
   Copy character for character; if unsure, return an empty list.
-- "zmiana": you see only this one source. Write "Brak porównania — źródło
+- "change": you see only this one source. Write "Brak porównania — źródło
   digestowane osobno." unless the source itself refers to the person's earlier
   views.
 - Sponsored content, approximate dates, garbled transcript: say so in
-  "watpliwosci".
+  "doubts".
 - Keep what carries the argument: concrete figures, amounts, names, tickers,
   dates and examples, not just the abstract thesis. A reader of the digest
   must be able to see WHAT the person looked at and WHY they concluded it.
-- "decyzje": real decisions and stated views of the person (situation -> what
+- "decisions": real decisions and stated views of the person (situation -> what
   they weighed -> decision), not general advice that the source merely repeats.
   Skip the section's content rather than invent a decision.
 - Length: ~150-300 words for a short source (under ~3000 words), 400-800 for a
@@ -76,7 +76,7 @@ def render(d: dict) -> str:
         return "\n".join(f"- {i}" for i in items) or "- (brak)"
 
     # a blank line between quotes: consecutive `>` lines are one blockquote to the checker
-    quotes = "\n\n".join(f"> {q}" for q in d["cytaty"]) or "> (brak)"
+    quotes = "\n\n".join(f"> {q}" for q in d["quotes"]) or "> (brak)"
     out = [
         f"tags: [{', '.join(d['tags'])}]",
         "---",
@@ -85,19 +85,19 @@ def render(d: dict) -> str:
         "",
         "## Kontekst",
         "",
-        d["kontekst"],
+        d["context"],
         "",
         "## Kluczowe tezy",
         "",
-        bullets(d["tezy"]),
+        bullets(d["theses"]),
         "",
         "## Sposób myślenia",
         "",
-        bullets(d["sposob_myslenia"]),
+        bullets(d["reasoning"]),
         "",
         "## Decyzje i poglądy",
         "",
-        bullets(d["decyzje"]),
+        bullets(d["decisions"]),
         "",
         "## Cytaty",
         "",
@@ -105,10 +105,10 @@ def render(d: dict) -> str:
         "",
         "## Zmiana względem wcześniejszych lat",
         "",
-        d["zmiana"],
+        d["change"],
     ]
-    if d.get("watpliwosci"):
-        out += ["", "<!-- watpliwosci: " + d["watpliwosci"].replace("--", "-") + " -->"]
+    if d.get("doubts"):
+        out += ["", "<!-- doubts: " + d["doubts"].replace("--", "-") + " -->"]
     return "\n".join(out) + "\n"
 
 
