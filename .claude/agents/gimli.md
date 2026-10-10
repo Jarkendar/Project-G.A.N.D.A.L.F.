@@ -10,6 +10,7 @@ description: >
 tools:
   - Bash
   - Read
+model: haiku
 ---
 
 # G.I.M.L.I. — Generative Intelligence Mining Local Information

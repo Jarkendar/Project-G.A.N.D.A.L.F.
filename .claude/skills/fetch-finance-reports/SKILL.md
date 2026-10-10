@@ -8,6 +8,7 @@ description: >-
   failures. Public company data only. Called by ingest-finance step 5, not
   meant to be invoked on its own.
 context: fork
+model: sonnet
 user-invocable: false
 ---
 

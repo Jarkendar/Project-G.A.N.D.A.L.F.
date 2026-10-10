@@ -136,8 +136,10 @@ and/or 2d.
    period comparisons), and appends its own assessment as a distinct section —
    shown directly in the conversation first.
 4. Radagast asks whether to save the report to `$BRAIN_PATH/knowledge/reports/` —
-   relay that prompt to the user. If declined, the report exists only in this
-   conversation; nothing is written.
+   relay that prompt to the user. On a yes, continue the same Radagast with
+   the confirmation (he is the sole writer of that folder — do not write the
+   file yourself). If declined, the report exists only in this conversation;
+   nothing is written.
 5. Proceed to Step 3 with Radagast's full response.
 
 ---

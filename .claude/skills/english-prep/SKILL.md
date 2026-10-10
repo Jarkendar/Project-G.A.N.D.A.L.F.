@@ -11,6 +11,7 @@ description: >-
   practice and wanting it targeted at actual recurring mistakes instead of
   generic drilling.
 context: fork
+model: sonnet
 ---
 
 # english-prep

@@ -15,6 +15,7 @@ tools:
   - Grep
   - Glob
   - mcp__samwise__context
+model: opus
 ---
 
 # B.E.O.R.N. — Bearer of Embodied Opinions, Roles & Natures
