@@ -57,7 +57,7 @@ expansions: README.md § agents, and each agent's file in `.claude/agents/`.
 | Agent | Role | Where |
 |---|---|---|
 | G.A.N.D.A.L.F. | orchestrator / router | `.claude/skills/gandalf/` |
-| G.I.M.L.I. | SQL — analytical queries over `brain/db/` | `.claude/agents/gimli.md` |
+| G.I.M.L.I. | SQL — analytical queries over `brain/db/` (read-only MCP server) | `.claude/agents/gimli.md`, `.claude/scripts/gimli/` |
 | S.A.M.W.I.S.E. | semantic search over Bilbo's index (MCP server) | `.claude/scripts/samwise/` |
 | R.A.D.A.G.A.S.T. | reporting & visualization | `.claude/agents/radagast.md` |
 | B.I.L.B.O. | embedding indexer (script, not reactive) | `.claude/scripts/bilbo/` |
@@ -66,6 +66,8 @@ expansions: README.md § agents, and each agent's file in `.claude/agents/`.
 | B.E.O.R.N. | speaks as a persona card (White Council voice) | `.claude/agents/beorn.md` |
 | F.A.R.A.M.I.R. | calendar, reminders, delegation | planned — Step 4 |
 | L.E.G.O.L.A.S. | web search — runs the forked research helpers; Gandalf route planned (Step 5) | `.claude/agents/legolas.md` |
+| E.R.E.S.T.O.R. | practice briefings from brain/ records (read-only; english-prep, practice-prep) | `.claude/agents/erestor.md` |
+| G.L.O.I.N. | fetches public company reports into `knowledge/finance/` | `.claude/agents/gloin.md` |
 | T.R.E.E.B.E.A.R.D. | archivist | planned — Step 10 |
 
 Proposed, not greenlit: G.A.L.A.D.R.I.E.L., L.I.N.D.I.R., H.A.L.D.I.R. — only
