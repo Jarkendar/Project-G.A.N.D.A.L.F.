@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 # Write guard for agents. A `PreToolUse` hook on `Write` / `Edit`, declared in
-# an agent's own frontmatter, so it binds that agent only. The arguments name
-# the places the agent may write a `.md` file to:
+# an agent's own frontmatter. The first argument is that agent's name; the
+# rest name the places it may write a `.md` file to:
+#
+#   guard.py <agent> tmp brain:knowledge/councils
 #
 #   tmp                  the system temp directory (session scratchpad)
 #   brain:<subfolder>    a folder under BRAIN_PATH, e.g. brain:knowledge/councils
+#
+# The name matters because a hook in the frontmatter of the agent that runs
+# the main thread fires for every sub-agent it spawns as well (seen
+# 2026-10-11: the router's guard refused Radagast's report). A call made by
+# another agent is passed through here — that agent's own guard decides.
 #
 # Anything else is refused (exit 2, reason on stderr). Fails closed: input it
 # cannot read, or a BRAIN_PATH it cannot resolve, is a refusal.
@@ -56,15 +63,21 @@ def main():
         raw = (event.get("tool_input") or {})["file_path"]
     except (ValueError, KeyError, TypeError, AttributeError):
         refuse("could not read the tool input — write refused")
+    if len(sys.argv) < 2:
+        refuse("no agent name configured — write refused")
+    owner, specs = sys.argv[1], sys.argv[2:]
+    caller = event.get("agent_type")
+    if caller and caller != owner:
+        sys.exit(0)
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or event.get("cwd") or os.getcwd()
-    roots = allowed_roots(sys.argv[1:], project_dir)
+    roots = allowed_roots(specs, project_dir)
     if not roots:
         refuse("no allowed location configured — write refused")
     if not os.path.isabs(raw):
         raw = os.path.join(event.get("cwd") or os.getcwd(), raw)
     path = os.path.realpath(raw)
     if not any(path.startswith(root + os.sep) for root in roots):
-        refuse(f"{path} is outside the places this agent may write to ({', '.join(sys.argv[1:])})")
+        refuse(f"{path} is outside the places {owner} may write to ({', '.join(specs)})")
     if not path.endswith(".md"):
         refuse(f"{path} is not a .md file")
     sys.exit(0)

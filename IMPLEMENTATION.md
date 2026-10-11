@@ -1747,7 +1747,7 @@ Phases — each ends with a measurement from `token-usage.py`:
   default with `--full` as the way back**: a typed `/daily` runs in the main
   thread with the router's tools and could not write, so the default flips
   only once the writing domains have agents. And `Write` is bounded by a
-  hook rather than by prose: `.claude/hooks/write-guard/guard.py tmp
+  hook rather than by prose: `.claude/hooks/write-guard/guard.py gandalf tmp
   brain:knowledge/councils` (generic — allowed places are its arguments;
   thirteen cases tested, symlink and `..` included) — the Council saves its
   record to `knowledge/councils/`, so "outside brain/ only" was wrong.
@@ -1757,6 +1757,15 @@ Phases — each ends with a measurement from `token-usage.py`:
   the repo and to `brain/knowledge/` were refused by the hook. The frontmatter
   hook question is closed with it: `narvi`'s guard refuses too, as main
   agent and as sub-agent, even with permissions skipped.
+  First real session (2026-10-11): interactive start 18.5 k by `/context`
+  against 35.4 k for the full session (skills listing gone, tools 13 k →
+  7.9 k). The report route worked end to end — `gimli` → `radagast` → the
+  save question relayed → the answer sent to the same Radagast — and then
+  the save was refused: **a hook in the main-thread agent's frontmatter
+  fires for its sub-agents too**, so the router's guard judged Radagast's
+  write. Fixed: `guard.py` takes the agent's name first and passes calls
+  whose `agent_type` is another agent; `radagast` got his own guard
+  (`brain:knowledge/reports`). Every agent that writes needs its own.
   **Left for the owner, in a real session:** `gandalf --router` — the
   interactive start (`/context`), one report through `radagast` with the
   save question relayed, and one Council.

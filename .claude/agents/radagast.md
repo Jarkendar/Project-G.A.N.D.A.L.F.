@@ -12,6 +12,12 @@ tools:
   - Read
   - Write
 model: sonnet
+hooks:
+  PreToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/write-guard/guard.py radagast brain:knowledge/reports"
 ---
 
 # R.A.D.A.G.A.S.T. — Reporting Agent Delivering Analysis, Graphs, Assessments, Summaries & Trends

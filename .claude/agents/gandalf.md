@@ -25,7 +25,7 @@ hooks:
     - matcher: "Write|Edit"
       hooks:
         - type: command
-          command: "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/write-guard/guard.py tmp brain:knowledge/councils"
+          command: "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/write-guard/guard.py gandalf tmp brain:knowledge/councils"
 ---
 
 # G.A.N.D.A.L.F. — Generative Agent Navigating Databases And Local Files
