@@ -1920,18 +1920,18 @@ Phases — each ends with a measurement from `token-usage.py`:
   **The sub-team, as it really works.** `legolas` has both research skills
   preloaded (`skills:` works for a `user-invocable: false` skill) and takes
   `brief: research-offer | research-idea | fetch-offer` from the domain
-  agent; only the offer's or the idea's own words go to him. Three things
+  agent; only the offer's or the idea's own words go to him. Two things
   the harness does, found in the tests:
   - a nested agent can be started only if it is on the **main-thread**
     agent's `Agent(...)` list as well — `legolas` is on the router's list
     for that reason alone;
-  - a nested call is asynchronous: the launch returns at once, and the
-    domain agent has no way to wait — it ends its turn with `CZEKAM:
-    legolas`;
-  - the helper's result is then delivered to the **router**, not to the
-    agent that started it. The router passes it on unchanged
-    (`SendMessage`, headed `WYNIK legolas:`), and the agent goes on. Cost:
-    the research summary (~1.5 k) crosses the router's conversation twice.
+  - a nested `Agent` call made **without** `run_in_background` starts the
+    helper in the background: the launch returns at once and the helper's
+    result is delivered to the router, not to the agent that started it.
+    With `run_in_background: false` the call is synchronous and the result
+    comes back to the caller — Balin, Círdan and Frodo are told to call
+    their helpers that way. (The first version worked around it with a
+    `CZEKAM` line and the router passing the result on; removed.)
   Tested through the router on a copy of the project with a throwaway
   brain and the real web: a new offer dossier with research → `y` → commit;
   "not applying" → compact update → commit; a mock-interview review with

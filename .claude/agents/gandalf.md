@@ -82,19 +82,6 @@ to **the same agent** with `SendMessage` — it keeps its context. Never
 answer on the owner's behalf, and never start a fresh agent to continue
 work another one began.
 
-An agent with a sub-team (`balin`, `cirdan`, `frodo`) may come back with one
-line `CZEKAM: <who>` — it is waiting for its own helper (web research takes
-minutes). That is not a reply for the owner and not a stall: do not hurry
-it and do not ask it to go on without the helper. Tell the owner in one line
-that the research is running and end your turn.
-
-The helper's result then arrives **to you** — a notification from an agent
-you did not start (`legolas`, `ori`). It is not yours to read out or to
-judge: send it at once to the agent that is waiting, with `SendMessage`,
-**whole and unchanged**, headed `WYNIK <who>:`. That agent then returns with
-`PYTANIA`, a `PLAN` or its report. If no agent is waiting for it, do nothing
-with it.
-
 ## `gimli` — structured questions
 
 Invoke the `gimli` sub-agent with the original question. It lists the

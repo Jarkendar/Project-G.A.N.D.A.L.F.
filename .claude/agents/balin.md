@@ -114,15 +114,11 @@ Never write anything to brain/ before a `y`.
   find is written as not found, never filled from memory. `--no-web`, or the
   owner saying so, skips him.
 
-  **He works in the background and takes minutes.** The call that starts him
-  returns at once with no result — that is not a failure and not an answer.
-  Start him as early as you can, do the rest of the looking-up in brain/
-  meanwhile, and when only his result is missing end your turn with the
-  single line `CZEKAM: legolas`. His result then reaches you as a message
-  from the caller — the harness hands a helper's result to the router once
-  you have stopped, and the router passes it on to you unchanged. Go on from
-  there. Never build the plan without his result because he "has not come
-  back" — only if he returned and said he found nothing, or failed.
+  **Call him with `run_in_background: false`.** You need his result in this
+  same turn, and only a foreground call hands it to you — left out, the
+  parameter starts him in the background and his result goes to the router
+  instead. He takes a few minutes; the call returns when he is done. The same
+  holds for `ori`.
 
 ## 3. The commit is Ori's
 

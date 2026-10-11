@@ -136,7 +136,9 @@ in the plan.
 
 You have no git. When the writes of a request are done and make **one
 coherent change** — the day filed, the idea captured, the contact added,
-the interview stored — invoke the `ori` sub-agent once, with:
+the interview stored — invoke the `ori` sub-agent once, in the foreground
+(`run_in_background: false` — otherwise his answer goes to the router, not
+to you), with:
 
 - `paths` — every file you wrote or edited in this run (for `daily` also
   `current/smeagol`, the folder, and `db/fitness.db` if the upsert ran — as
