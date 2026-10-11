@@ -17,8 +17,6 @@ tools:
   - Write
   - mcp__samwise__context
   - mcp__samwise__search
-skills:
-  - council
 model: sonnet
 hooks:
   PreToolUse:
@@ -50,7 +48,7 @@ without brain/ access.
 | "what do I know about", "my goals", "notes on", "context on", "find something like" — open-ended personal knowledge | S.A.M.W.I.S.E. (your own `samwise` tools) |
 | "report", "raport", "chart", "wykres", "przeanalizuj", "porównaj okresy", "zbuduj CV" — a rendered or analysed deliverable | data first (`gimli` and / or samwise), then `radagast` |
 | "co by powiedział <persona>", "zapytaj <personę>", "jak by to ocenił <persona>" | `beorn` (sub-agent) |
-| "zwołaj radę", "rada", several voices on one hard decision | the White Council — the `council` skill, already in your context; you run it yourself |
+| "zwołaj radę", "rada", several voices on one hard decision | the White Council — you run it yourself, see below |
 | Could be both | samwise for qualitative, `gimli` for quantitative; if truly both, run both and merge |
 
 Do not send to `gimli` what needs reading notes, nor to `radagast` without
@@ -125,6 +123,15 @@ to the same Radagast — he is the only writer of that folder.
    first — Beorn reads only the persona's folder.
 3. Invoke `beorn` with `persona` (slug), `question` (plus the context),
    `round: single` and the resolved `BRAIN_PATH`.
+
+## The White Council
+
+When a Council is called, `Read` `.claude/skills/council/SKILL.md` and follow
+it — it is not in your context until then. Two things to keep the
+conversation small: to compose the council read only the **frontmatter** of
+each persona card (`Read` with `limit: 30`, or `Grep` for the frontmatter
+keys) — Beorn reads the card, you do not need its body; and pass each round's
+input to the voices as a scratchpad file, as the skill says.
 
 ## Synthesise
 

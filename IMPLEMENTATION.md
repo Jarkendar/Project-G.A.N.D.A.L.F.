@@ -1741,7 +1741,7 @@ Phases — each ends with a measurement from `token-usage.py`:
 - [ ] **Phase 1 — the router.** Built 2026-10-11, opt-in:
   `.claude/agents/gandalf.md` (the old skill's Steps 1–3 as its prompt;
   `Read`, `Grep`, `Glob`, `Agent(gimli, radagast, beorn)`, `SendMessage`,
-  `AskUserQuestion`, `Write`, samwise; `skills: [council]`; `model: sonnet`)
+  `AskUserQuestion`, `Write`, samwise; `model: sonnet`)
   and `gandalf --router` in `bin/gandalf`. The `gandalf` skill is deleted.
   Two deviations from the plan above. The router is **opt-in, not the
   default with `--full` as the way back**: a typed `/daily` runs in the main
@@ -1766,9 +1766,19 @@ Phases — each ends with a measurement from `token-usage.py`:
   write. Fixed: `guard.py` takes the agent's name first and passes calls
   whose `agent_type` is another agent; `radagast` got his own guard
   (`brain:knowledge/reports`). Every agent that writes needs its own.
-  **Left for the owner, in a real session:** `gandalf --router` — the
-  interactive start (`/context`), one report through `radagast` with the
-  save question relayed, and one Council.
+  The Council ran in a second session (five voices, blind + one critique
+  round, ten `beorn` runs on Opus at a 12–13 k start each). Start by the API:
+  19.2 k, against ~50.6 k for a full session. What it showed: `skills:`
+  does **not** preload a skill into an agent that runs the main thread (it
+  does for a sub-agent) — the router found and read `SKILL.md` itself, which
+  also pulled in `.claude/rules/dev.md`; it read seven persona cards whole
+  to pick the voices; and the conversation grew from 19 k to 109 k, because
+  every voice's full answer comes back into the router. Fixed after it: the
+  router's prompt points at the skill file and at frontmatter-only reads,
+  `skills:` is gone from `gandalf.md`, and `SKILL.md` files no longer
+  trigger the dev rules. **Open:** the ~90 k a Council leaves in the main
+  conversation — voices writing their answers to files, or the Council as an
+  agent of its own, would keep it out.
 - [ ] **Phase 2 — pilot domain: personal records, starting with `daily`.**
   The most used skill (21 invocations in 15 of 87 sessions, with `idea` at
   20) and the heaviest: invoking it adds ~14 k to the main conversation,

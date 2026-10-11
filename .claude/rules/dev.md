@@ -9,7 +9,6 @@ paths:
   - ".claude/scripts/**"
   - ".claude/rules/**"
   - ".claude/settings*.json"
-  - ".claude/skills/**/SKILL.md"
 ---
 
 # Developing G.A.N.D.A.L.F. — rules for work on this repo
