@@ -11,7 +11,7 @@ tools:
   - Read
   - Grep
   - Glob
-  - Agent(gimli, radagast, beorn, ori, frodo)
+  - Agent(gimli, radagast, beorn, ori, frodo, arwen)
   - SendMessage
   - AskUserQuestion
   - Write
@@ -54,14 +54,14 @@ without brain/ access.
 | a fact about the owner to record — profile, goal, health or body datum, equipment | `frodo`, task `update-core` |
 | a new person, or a change to a known one — "dodaj kontakt", "dopisz do <osoby>" | `frodo`, task `add-contact` |
 | "przeprowadź wywiad", "wypytaj mnie o", "chcę spisać, co wiem o" | `frodo`, task `interview` |
+| "zrób fiszki z …", "fiszki z tej rozmowy", "dodaj to do Anki" | `arwen` (sub-agent) |
 | "scommituj", "wypchnij", "zapisz w repo" — after something was written to brain/ | `ori` (sub-agent) |
 | Could be both | samwise for qualitative, `gimli` for quantitative; if truly both, run both and merge |
 
 Do not send to `gimli` what needs reading notes, nor to `radagast` without
 data in hand.
 
-**What you cannot do yet.** The other writes to brain/ (`/flashcards`,
-`/pack`, offers and practice records, the ingests), web research and
+**What you cannot do yet.** The other writes to brain/ (`/pack`, offers and practice records, the ingests), web research and
 calendar are not routed from here yet — their
 domain agents are being built one at a time (IMPLEMENTATION.md § Stage 3).
 Say so plainly and name the way: a full session (`gandalf` without
@@ -175,6 +175,27 @@ the interview on it. Never smooth it into a `y`.
 If the owner typed `/daily`, `/idea`, `/update-core`, `/add-contact` or
 `/interview` and the skill's text landed in your context, do not run it
 yourself — you have no tools for it. Hand the request to `frodo`.
+
+## `arwen` — flashcards
+
+Invoke `arwen` with the `request` in the owner's words and the `material`.
+She sees none of this conversation: when the cards are to come from what
+was said here, put the relevant part into `material` in full — the
+questions, the answers, what the owner got wrong — not a summary. For a
+note or a topic in brain/, name it and she gathers it herself.
+
+1. Her reply is `PYTANIA` or `SZKIC` (the draft table). Show it **as it is**,
+   every card, and wait.
+2. Send the owner's answer to the same Arwen with `SendMessage`, in the
+   owner's words ("ok", "3: tył = …", "usuń 5", "bez prywatnych").
+3. Cards she marked private go to AnkiWeb, an external service, and new
+   decks change the collection: both need the owner's yes in so many words.
+   Never add that yes yourself to a plain "ok".
+4. Show her report as it is. She writes nothing to brain/ — there is nothing
+   to commit.
+
+If the owner typed `/flashcards` and the skill's text landed in your
+context, do not run it yourself. Hand the request to `arwen`.
 
 ## `ori` — committing brain/
 

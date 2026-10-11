@@ -52,7 +52,7 @@ expansions: README.md § agents, and each agent's file in `.claude/agents/`.
 | R.A.D.A.G.A.S.T. | reporting & visualization | `.claude/agents/radagast.md` |
 | B.I.L.B.O. | embedding indexer (script, not reactive) | `.claude/scripts/bilbo/` |
 | S.M.E.A.G.O.L. | query logger (Stop hook) | `.claude/hooks/smeagol/` |
-| A.R.W.E.N. | Anki flashcards via AnkiWeb (MCP server) | `.claude/scripts/arwen/` |
+| A.R.W.E.N. | Anki flashcards via AnkiWeb — sub-agent that drafts and adds cards (owns the `flashcards` skill), over its MCP server | `.claude/agents/arwen.md`, `.claude/scripts/arwen/` |
 | B.E.O.R.N. | speaks as a persona card (White Council voice) | `.claude/agents/beorn.md` |
 | F.A.R.A.M.I.R. | calendar, reminders, delegation | planned — Step 4 |
 | L.E.G.O.L.A.S. | web search — runs the forked research helpers; Gandalf route planned (Step 5) | `.claude/agents/legolas.md` |

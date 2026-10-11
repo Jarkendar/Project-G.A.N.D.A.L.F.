@@ -1713,7 +1713,7 @@ names are the owner's call; skill sizes are chars / 4):
 | career & practice | `analyze-offer`, `practice-review`, `english-review` | `Read`, `Grep`, `Glob`, `Write`, `Edit` | `legolas`, `erestor` | medium |
 | projects | `develop-idea` | `Read`, `Grep`, `Glob`, `Write` | `legolas` | medium |
 | finance | `ingest-finance` | `Read`, `Write`, `Edit` | `gloin` | low |
-| learning | `flashcards` | `Read`, `Grep`, arwen | — | one approval |
+| learning — **`arwen`** | `flashcards` | `Read`, `Grep`, `Glob`, samwise, arwen | — | one approval |
 | travel | `pack` | `Read`, `Grep`, `Glob`, `Write`, `Edit` | — | medium |
 | personas | `persona` (typed by hand only) | `Read`, `Write`, `Bash` for `reflow.py` / `assemble.py` | `narvi` | low |
 | calendar | — (Step 4, F.A.R.A.M.I.R.) | Google Calendar | — | — |
@@ -1857,8 +1857,26 @@ Phases — each ends with a measurement from `token-usage.py`:
   **Not yet run:** any of it on the real brain in a live router session; a
   promotion to `knowledge/projects/`; an interview into an existing `core/`
   or `knowledge/` document.
-- [ ] **Phase 3 — learning (`flashcards`).** One approval gate; the first
-  copy of the pattern.
+- [x] **Phase 3 — learning (`flashcards`), 2026-10-11.** `arwen`
+  (`.claude/agents/arwen.md`, sonnet) — the agent takes the name of the MCP
+  server it works over, as Gimli and Ori do. The skill is unchanged and
+  preloaded. Tools: `Read`, `Grep`, `Glob`, samwise, and three of Arwen's
+  four tools (`list_decks`, `find_notes`, `add_notes` — no `sync`); no
+  `Write`, nothing to commit. Overrides in the prompt: "this chat" is the
+  `material` the router hands over in full (she sees none of the
+  conversation); she returns `PYTANIA` or `SZKIC` and is resumed; a plain
+  "ok" approves public cards in existing decks only — private cards
+  (AnkiWeb is external) and new decks need a yes in so many words.
+  `mcp__arwen__add_notes` stays off the allow list, so a live session asks
+  once more before anything reaches AnkiWeb.
+  Tested through the router on a copy of the project with the real
+  collection, read side only: draft of three cards from pasted text (deck
+  placed, a near-duplicate found and reported) → corrections → "ok" → the
+  `add_notes` call made with exactly the two approved cards, and blocked
+  there on purpose. **Not yet run:** an actual add, cards from brain/
+  material, a private card.
+  Radagast got the same sentence as Frodo and Arwen: a yes the router
+  passes on is the owner's yes.
 - [ ] **Phase 4 — career & practice, projects.** First use of a sub-team
   (`legolas`, `erestor`) under a domain agent.
 - [ ] **Phase 5 — finance, travel, personas.** Low frequency; only if the

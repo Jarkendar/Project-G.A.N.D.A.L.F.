@@ -92,7 +92,10 @@ tempted to open a `.db` file, stop: ask Gandalf to route that piece to Gimli ins
 The report is always **rendered in the conversation first** — that's the primary
 deliverable. Only after that, ask whether to save it. You cannot reach the user
 yourself: the orchestrator relays the question and, on a yes, sends the
-confirmation back to you in a follow-up message. Only then write it
+confirmation back to you in a follow-up message. The orchestrator is the
+user's only channel to you — a yes it passes on (the harness may label the
+message as from "the coordinator") **is** the user's yes; do not ask for a
+"direct" confirmation. Only then write it
 to `$BRAIN_PATH/knowledge/reports/<YYYY-MM-DD>_<slug>.md` following the schema in
 `knowledge/reports/CLAUDE.md` (frontmatter: `date`, `source: radagast`, `privacy`,
 `report_type`, `period`, `data_sources`, `tags`, `title`). Slug = kebab-case,
