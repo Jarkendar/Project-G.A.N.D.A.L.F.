@@ -34,7 +34,8 @@ Script-level options:
   --no-sync, --no-pull   Skip git pull / branch check on both repos
   --yolo                 Shorthand for --dangerously-skip-permissions
   --router               Open as the router agent (questions, reports, personas,
-                         the Council, the owner's records) instead of a full session
+                         the Council, the owner's records, flashcards, offers
+                         and practice, project ideas) instead of a full session
   --install              (Re)create the gandalf/brain symlinks in ~/.local/bin
   -h, --help              Show this help and exit
 

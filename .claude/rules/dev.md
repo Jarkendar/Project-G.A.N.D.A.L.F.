@@ -56,11 +56,13 @@ expansions: README.md § agents, and each agent's file in `.claude/agents/`.
 | B.E.O.R.N. | speaks as a persona card (White Council voice; in a council writes its answer to a scratchpad file — write-guard hook) | `.claude/agents/beorn.md` |
 | E.L.R.O.N.D. | closes a White Council — writes the synthesis from the voices' answer files and has the record assembled into `knowledge/councils/` (write-guard hook, `record` MCP tool) | `.claude/agents/elrond.md`, `.claude/scripts/elrond/` |
 | F.A.R.A.M.I.R. | calendar, reminders, delegation | planned — Step 4 |
-| L.E.G.O.L.A.S. | web search — runs the forked research helpers; Gandalf route planned (Step 5) | `.claude/agents/legolas.md` |
-| E.R.E.S.T.O.R. | practice briefings from brain/ records (read-only; english-prep, practice-prep) | `.claude/agents/erestor.md` |
+| L.E.G.O.L.A.S. | web search — the research helpers (`research-offer`, `research-idea`, preloaded) for Balin and Círdan, or forked from a full session; a route of its own from Gandalf is planned (Step 5) | `.claude/agents/legolas.md` |
+| E.R.E.S.T.O.R. | practice briefings from brain/ records (read-only; english-prep, practice-prep) — routed from Gandalf, or forked | `.claude/agents/erestor.md` |
 | G.L.O.I.N. | fetches public company reports into `knowledge/finance/` | `.claude/agents/gloin.md` |
 | N.A.R.V.I. | writes persona digest drafts for `/persona` (Read + Write, write-guard hook) | `.claude/agents/narvi.md` |
 | F.R.O.D.O. | the owner's records — files into brain/ what the owner tells about their days, themselves and people (runs `daily`, `idea`, `update-core`, `add-contact`, `interview`; write-guard hook, `fitness_upsert` and `now` MCP tools, commits through Ori) | `.claude/agents/frodo.md`, `.claude/scripts/frodo/` |
+| B.A.L.I.N. | career & practice records — offer dossiers, practice and English reviews (runs `analyze-offer`, `practice-review`, `english-review`; write-guard hook, research through Legolas, commits through Ori) | `.claude/agents/balin.md` |
+| C.I.R.D.A.N. | project ideas — researched dossiers in `knowledge/projects/` (runs `develop-idea`; write-guard hook, research through Legolas, commits through Ori) | `.claude/agents/cirdan.md` |
 | O.R.I. | commits and pushes brain/ — the only one that may (MCP server, two tools) | `.claude/agents/ori.md`, `.claude/scripts/ori/` |
 | T.R.E.E.B.E.A.R.D. | archivist | planned — Step 10 |
 

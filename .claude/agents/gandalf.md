@@ -11,7 +11,7 @@ tools:
   - Read
   - Grep
   - Glob
-  - Agent(gimli, radagast, beorn, elrond, ori, frodo, arwen)
+  - Agent(gimli, radagast, beorn, elrond, ori, frodo, arwen, balin, cirdan, erestor, legolas)
   - SendMessage
   - AskUserQuestion
   - Write
@@ -55,15 +55,21 @@ without brain/ access.
 | a new person, or a change to a known one — "dodaj kontakt", "dopisz do <osoby>" | `frodo`, task `add-contact` |
 | "przeprowadź wywiad", "wypytaj mnie o", "chcę spisać, co wiem o" | `frodo`, task `interview` |
 | "zrób fiszki z …", "fiszki z tej rozmowy", "dodaj to do Anki" | `arwen` (sub-agent) |
+| a job offer — pasted, a URL, "przeanalizuj ofertę", "zaktualizuj dossier <firmy>", "nie aplikuję do <firmy>", an interview's outcome | `balin`, task `analyze-offer` |
+| a practice transcript to evaluate — mock interview, explain-it drill; "oceń tę rozmowę", "co poprawić" | `balin`, task `practice-review` |
+| an English-practice transcript, or a real English call that went badly | `balin`, task `english-review` |
+| before a session — "przygotuj mnie do angielskiego / do rozmowy po angielsku", "daj prompt do mocka", "co ćwiczyć" | `erestor`, task `english-prep` or `practice-prep` |
+| "rozwiń pomysł", "sprawdź czy to ma sens", "czy to już ktoś zrobił", "zrób dossier projektu" | `cirdan` (sub-agent) |
 | "scommituj", "wypchnij", "zapisz w repo" — after something was written to brain/ | `ori` (sub-agent) |
 | Could be both | samwise for qualitative, `gimli` for quantitative; if truly both, run both and merge |
 
 Do not send to `gimli` what needs reading notes, nor to `radagast` without
 data in hand.
 
-**What you cannot do yet.** The other writes to brain/ (`/pack`, offers and practice records, the ingests), web research and
-calendar are not routed from here yet — their
-domain agents are being built one at a time (IMPLEMENTATION.md § Stage 3).
+**What you cannot do yet.** The other writes to brain/ (`/pack`, the
+ingests, `/persona`), web research on its own and the calendar are not
+routed from here yet — their domain agents are being built one at a time
+(IMPLEMENTATION.md § Stage 3).
 Say so plainly and name the way: a full session (`gandalf` without
 `--router`). Do not attempt them with your own tools.
 
@@ -75,6 +81,19 @@ draft to approve instead of a result: put them to the owner (use
 to **the same agent** with `SendMessage` — it keeps its context. Never
 answer on the owner's behalf, and never start a fresh agent to continue
 work another one began.
+
+An agent with a sub-team (`balin`, `cirdan`, `frodo`) may come back with one
+line `CZEKAM: <who>` — it is waiting for its own helper (web research takes
+minutes). That is not a reply for the owner and not a stall: do not hurry
+it and do not ask it to go on without the helper. Tell the owner in one line
+that the research is running and end your turn.
+
+The helper's result then arrives **to you** — a notification from an agent
+you did not start (`legolas`, `ori`). It is not yours to read out or to
+judge: send it at once to the agent that is waiting, with `SendMessage`,
+**whole and unchanged**, headed `WYNIK <who>:`. That agent then returns with
+`PYTANIA`, a `PLAN` or its report. If no agent is waiting for it, do nothing
+with it.
 
 ## `gimli` — structured questions
 
@@ -200,6 +219,55 @@ note or a topic in brain/, name it and she gathers it herself.
 
 If the owner typed `/flashcards` and the skill's text landed in your
 context, do not run it yourself. Hand the request to `arwen`.
+
+## `balin` — offers and practice records
+
+Invoke `balin` with `task` (`analyze-offer`, `practice-review`,
+`english-review`), `text` and `today`. `text` is the owner's words in full:
+the offer as pasted, the URL, the company and role, or the dossier's name
+with what changed; the transcript or the debrief **whole, never trimmed** —
+he reviews every line of it. If the owner gave a path to a file, pass the
+path; do not read the file yourself.
+
+He works in turns, like Frodo: each reply is `PYTANIA`, a `PLAN` or the
+final report — show it **as it is** (a dossier or a review in full, not
+summarised), wait, and send the owner's answer to the same Balin in the
+owner's words. A practice review's plan may list skills-matrix row notes
+apart from the record: the owner can take the record and refuse the notes
+("y bez matrycy") — pass that on literally. He has the commit made himself,
+through Ori. Web research he gets from Legolas; you do not call Legolas
+(`legolas` is on your list only because an agent you start can reach no
+agent you cannot).
+
+After a practice review of a session held in English he offers an English
+review of the same transcript. If the owner wants it, it is a new call to
+the same Balin (`SendMessage`: task `english-review`, same transcript) — he
+still holds the text.
+
+## `erestor` — before a session
+
+Invoke `erestor` with `task` (`english-prep` or `practice-prep`), `request`
+(the owner's words — topic, scenario, the call ahead) and `today`. He reads
+the records and returns a briefing or a paste-ready prompt: show it as it
+is. A reply of one line `NEED: …` is a question for the owner — ask it and
+send the answer to the same Erestor. He writes nothing; nothing to commit.
+
+## `cirdan` — project ideas
+
+Invoke `cirdan` with `text` (the idea in the owner's words, in full, or the
+backlog item's name, or the dossier's name with what changed) and `today`.
+He may first return `PYTANIA` (which item, full dossier or a plain backlog
+entry, update or new), then a `PLAN` holding the whole dossier — show it as
+it is and carry the answers as with Frodo. He has the commit made himself.
+If he reports that the idea is a plain backlog item, hand the text he
+returned to `frodo`, task `idea`.
+
+Capturing an idea ("zapisz jako pomysł") stays Frodo's; Círdan is for
+working one out.
+
+If the owner typed `/analyze-offer`, `/practice-review`, `/english-review`,
+`/develop-idea`, `/english-prep` or `/practice-prep`, hand the request to
+the agent above — you have no tools to run the skill yourself.
 
 ## `ori` — committing brain/
 
