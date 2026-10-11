@@ -1710,8 +1710,9 @@ names are the owner's call; skill sizes are chars / 4):
 | questions | — | the router with `gimli`, `radagast`, samwise | — | — |
 | council | `council` (1.8 k, preloaded in the router) | `beorn` × N | — | in the router |
 | personal records (`core/`, `current/`, `backlog/`) — **`frodo`** | `daily` (8.7 k), `update-core`, `add-contact`, `idea`, `interview` — ~18.5 k together | `Read`, `Grep`, `Glob`, `Write`, `Edit`, Strava | `ori` | heavy |
-| career & practice | `analyze-offer`, `practice-review`, `english-review` | `Read`, `Grep`, `Glob`, `Write`, `Edit` | `legolas`, `erestor` | medium |
-| projects | `develop-idea` | `Read`, `Grep`, `Glob`, `Write` | `legolas` | medium |
+| career & practice — **`balin`** | `analyze-offer`, `practice-review`, `english-review` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `legolas`, `ori` | medium |
+| practice briefings — **`erestor`** | `english-prep`, `practice-prep` (read on demand) | `Read`, `Grep`, `Glob` | — | a `NEED:` line at most |
+| projects — **`cirdan`** | `develop-idea` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `legolas`, `ori` | medium |
 | finance | `ingest-finance` | `Read`, `Write`, `Edit` | `gloin` | low |
 | learning — **`arwen`** | `flashcards` | `Read`, `Grep`, `Glob`, samwise, arwen | — | one approval |
 | travel | `pack` | `Read`, `Grep`, `Glob`, `Write`, `Edit` | — | medium |
@@ -1904,8 +1905,45 @@ Phases — each ends with a measurement from `token-usage.py`:
   the scratchpad; not confirmed either way for a live session.
   **Not yet run:** with persona cards on the real brain, a second critique
   round, a correction of the synthesis.
-- [ ] **Phase 4 — career & practice, projects.** First use of a sub-team
-  (`legolas`, `erestor`) under a domain agent.
+- [x] **Phase 4 — career & practice, projects, 2026-10-11.** Two domain
+  agents, skills unchanged and read on demand: `balin` (B.A.L.I.N. —
+  `analyze-offer`, `practice-review`, `english-review`; guard
+  `brain:knowledge/career brain:knowledge/language`) and `cirdan`
+  (C.I.R.D.A.N. — `develop-idea`; guard `brain:knowledge/projects
+  brain:backlog/projects`). Both return `PYTANIA` / `PLAN` like Frodo — a
+  new dossier is shown in full in the plan — take the clock from
+  `mcp__frodo__now` and commit through Ori. Frodo's guard is unchanged (an
+  idea's promotion and an interview may still land in those folders).
+  `erestor` is routed straight from the router with a `task`
+  (`english-prep`, `practice-prep`) and reads the skill himself; a `NEED:`
+  line is his question.
+  **The sub-team, as it really works.** `legolas` has both research skills
+  preloaded (`skills:` works for a `user-invocable: false` skill) and takes
+  `brief: research-offer | research-idea | fetch-offer` from the domain
+  agent; only the offer's or the idea's own words go to him. Three things
+  the harness does, found in the tests:
+  - a nested agent can be started only if it is on the **main-thread**
+    agent's `Agent(...)` list as well — `legolas` is on the router's list
+    for that reason alone;
+  - a nested call is asynchronous: the launch returns at once, and the
+    domain agent has no way to wait — it ends its turn with `CZEKAM:
+    legolas`;
+  - the helper's result is then delivered to the **router**, not to the
+    agent that started it. The router passes it on unchanged
+    (`SendMessage`, headed `WYNIK legolas:`), and the agent goes on. Cost:
+    the research summary (~1.5 k) crosses the router's conversation twice.
+  Tested through the router on a copy of the project with a throwaway
+  brain and the real web: a new offer dossier with research → `y` → commit;
+  "not applying" → compact update → commit; a mock-interview review with
+  two skills-matrix notes, one accepted → commit; an English review
+  creating `english.md` → commit; a backlog idea developed into a dossier
+  with the promotion edit → commit; an English briefing from Erestor. The
+  router's conversation ended between 25 k and 42 k. **Not yet run:** an
+  offer from a URL or a bare company name (`fetch-offer`), the early
+  questions of `develop-idea` (scale check, several matches),
+  `practice-prep`, a `NEED:` round, a non-career practice topic, anything
+  on the real brain. Seen once: the router paraphrased a plan block instead
+  of showing it as returned.
 - [ ] **Phase 5 — finance, travel, personas.** Low frequency; only if the
   logs show them used from the router.
 - [ ] **Phase 6 — clean-up.** `Bash(python3 *)` out of the shared allow-list;
