@@ -1650,8 +1650,8 @@ README.md § agents does not list `erestor`, `gloin` and `narvi` yet (owner's fi
 - [x] `disable-model-invocation: true` on `init-brain`, `ingest-finance`,
   `ingest-conversation`, `persona` — out of the skill listing, still run by
   `/name` (2026-10-10).
-- [ ] CLAUDE.md: dev-only rules into `.claude/rules/` with `paths:` —
-  confirmed worth doing (check 4 below).
+- [x] CLAUDE.md: dev-only rules into `.claude/rules/dev.md` with `paths:`
+  (2026-10-11; Stage 3, Phase 0).
 - [ ] claude.ai-synced skills (32; Android, docx, …) off for this project —
   mechanism found: `--setting-sources project,local` in the launcher
   (check 5 below). Not needed for the router of Stage 3, which has no
@@ -1720,19 +1720,24 @@ names are the owner's call; skill sizes are chars / 4):
 
 Open in the map: whether `daily` gets an agent of its own (it is half of the
 records domain's preload and delegates to the other four skills), and which
-domains are worth an agent at all rather than staying a skill typed in the
-dev session.
+order the rest follow in. The owner's target is an agent for every domain,
+reached gradually.
 
 Phases — each ends with a measurement from `token-usage.py`:
 
-- [ ] **Phase 0 — ground.** (a) The rule change of point 4 in CLAUDE.md.
-  (b) Dev-only CLAUDE.md sections (git agreement, naming, ecosystem, design
-  principles) into `.claude/rules/dev.md` with `paths:` — every agent run
-  loads CLAUDE.md, so this now pays once per agent. (c) Checks that need an
-  interactive session: a typed `/name` still runs when the main agent has no
-  `Skill` tool; `SendMessage` continues a sub-agent from an `--agent` main
-  thread; a frontmatter hook runs under the harness (`narvi` writing outside
-  the scratchpad is refused).
+- [x] **Phase 0 — ground.** Done 2026-10-11. (a) CLAUDE.md § Architecture
+  now states this shape, sub-teams included. (b) Dev-only sections (git
+  agreement, naming and the agent table, ecosystem, design principles, "can
+  / not without approval") moved to `.claude/rules/dev.md` with `paths:`;
+  CLAUDE.md went from 7.4 k to 3.4 k characters. Measured headless: the
+  rules are absent at start and after reading `.claude/gandalf.env.example`,
+  present after reading `bin/gandalf`; start −1.7 k for the session
+  (33.8 k → 32.1 k) and for every agent run (`beorn` 13.5 k → 11.8 k).
+  (c) Checked headless with a router-shaped test agent: a typed `/idea list`
+  runs although the main agent has no `Skill` tool; `SendMessage` resumes a
+  sub-agent from an `--agent` main thread with its context intact (it needs
+  session persistence — with `--no-session-persistence` there is no
+  transcript to resume). Still open: a frontmatter hook under the harness.
 - [ ] **Phase 1 — the router.** `.claude/agents/gandalf.md`: Steps 1–3 of
   `.claude/skills/gandalf/SKILL.md` shortened into its prompt, tools as in
   rule 1, `skills: [council]`, `model: sonnet`. `bin/gandalf` adds `--agent
@@ -1740,13 +1745,17 @@ Phases — each ends with a measurement from `token-usage.py`:
   `gandalf` skill (never invoked). Dev stays plain `claude` in the repo.
   Done when: a question goes through samwise / `gimli` / `radagast`, a
   Council runs, and the interactive start is measured.
-- [ ] **Phase 2 — pilot domain: learning (`flashcards`).** The smallest skill
-  with exactly one approval gate — it proves rule 3 end to end (draft →
-  owner approves in the main conversation → the same agent adds the cards).
-  Done when: the protocol is written down once, as the pattern the other
-  domains copy.
-- [ ] **Phase 3 — personal records.** The domain used daily and the largest
-  writer of brain/. Decide the `daily` question first.
+- [ ] **Phase 2 — pilot domain: personal records, starting with `daily`.**
+  The most used skill (21 invocations in 15 of 87 sessions, with `idea` at
+  20) and the heaviest: invoking it adds ~14 k to the main conversation,
+  re-read on every later turn, before anything it reads. It delegates to
+  `update-core`, `add-contact`, `idea` and `ingest-finance`, so its agent is
+  the records agent from the start. It is also the hardest test of rule 3
+  (many questions). Done when: a day's note goes through the agent with the
+  questions asked in the main conversation, and the protocol is written
+  down once, as the pattern the other domains copy.
+- [ ] **Phase 3 — learning (`flashcards`).** One approval gate; the first
+  copy of the pattern.
 - [ ] **Phase 4 — career & practice, projects.** First use of a sub-team
   (`legolas`, `erestor`) under a domain agent.
 - [ ] **Phase 5 — finance, travel, personas.** Low frequency; only if the
