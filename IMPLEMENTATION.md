@@ -1627,7 +1627,8 @@ What the numbers say:
   because SEC EDGAR wants a descriptive `User-Agent` that `WebFetch` cannot
   set (the one EDGAR fetch in the transcripts went through `curl`). Next: a
   narrow fetch script (ticker → filings JSON) so `Bash` can go, and a guard
-  on where he may write.
+  on where he may write. *Done in Stage 3, Phase 5: `edgar_reports` MCP tool,
+  write-guard hook, no `Bash`.*
 - [x] `narvi` — new, `Read` + `Write`, `model: sonnet`: the digest agent for
   `/persona` step 3 when Claude writes the drafts, instead of
   `general-purpose` (−26 k on each of ~25 turns per run). This is the first
@@ -1713,10 +1714,10 @@ names are the owner's call; skill sizes are chars / 4):
 | career & practice — **`balin`** | `analyze-offer`, `practice-review`, `english-review` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `legolas`, `ori` | medium |
 | practice briefings — **`erestor`** | `english-prep`, `practice-prep` (read on demand) | `Read`, `Grep`, `Glob` | — | a `NEED:` line at most |
 | projects — **`cirdan`** | `develop-idea` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `legolas`, `ori` | medium |
-| finance | `ingest-finance` | `Read`, `Write`, `Edit` | `gloin` | low |
+| finance — **`thorin`** | `ingest-finance` (read on demand; on the owner's explicit word only) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now`, `read_export`, `archive_export` | `gloin`, `ori` | one plan |
 | learning — **`arwen`** | `flashcards` | `Read`, `Grep`, `Glob`, samwise, arwen | — | one approval |
-| travel | `pack` | `Read`, `Grep`, `Glob`, `Write`, `Edit` | — | medium |
-| personas | `persona` (typed by hand only) | `Read`, `Write`, `Bash` for `reflow.py` / `assemble.py` | `narvi` | low |
+| travel — **`strider`** | `pack` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `ori` | medium |
+| personas — stays in a full session | `persona` (typed by hand only) | `Read`, `Write`, `Bash` for the persona scripts | `narvi` | heavy |
 | calendar | — (Step 4, F.A.R.A.M.I.R.) | Google Calendar | — | — |
 
 Open in the map: whether `daily` gets an agent of its own (it is half of the
@@ -1944,11 +1945,61 @@ Phases — each ends with a measurement from `token-usage.py`:
   `practice-prep`, a `NEED:` round, a non-career practice topic, anything
   on the real brain. Seen once: the router paraphrased a plan block instead
   of showing it as returned.
-- [ ] **Phase 5 — finance, travel, personas.** Low frequency; only if the
-  logs show them used from the router.
-- [ ] **Phase 6 — clean-up.** `Bash(python3 *)` out of the shared allow-list;
-  `gloin` loses `Bash` to a narrow fetch script; compare against the
-  baseline table at the top of this section.
+- [x] **Phase 5 — travel and finance.** Done 2026-10-11; personas stay in
+  a full session (owner's decision).
+  - **`strider`** (S.T.R.I.D.E.R. — Supplies, Trips & Route Inventory,
+    Drafted for Every Road) runs `pack`: a trip list, the post-trip review,
+    catalogue and profile edits. Guard: `current/trips`,
+    `core/travel/packing`, `knowledge/travel/packing`. The trip's missing
+    parameters are one `PYTANIA`; the plan is the whole pre-filled list.
+  - **`thorin`** (T.H.O.R.I.N. — Treasury Holdings & Official Reports
+    INgest) runs `ingest-finance`, only on the owner's explicit word (the
+    skill is `disable-model-invocation`). Guard: `core/finance`. The skill's
+    two gates are one plan: parsed positions, what goes out (symbols and
+    first-buy dates), the change to `finance.md` line by line, the archive
+    step; `y bez finance.md` is the skill's `n` at its second gate. He works
+    inside the export's account subsection of `finance.md`, keeps every
+    line's notes, and marks a line sold only when the export lists the
+    ticker as closed.
+  - **MCP server `thorin`** (`.claude/scripts/thorin/`): `read_export`
+    computes the net positions from the myFund XML (the skill's step-3
+    arithmetic — no model adds up transactions, and the XML never enters a
+    context; checked against the four exports converted by hand, every open
+    position identical); `archive_export` writes the readable `.md` copy and
+    moves the source to `_processed/` — the skill's `mv`; `edgar_reports`
+    gives Gloin a ticker's 10-K / 10-Q since a date with the figures
+    extracted.
+  - **`gloin` lost `Bash`**: `WebFetch`, `Glob`, `Write`, `edgar_reports`,
+    `now`; `fetch-finance-reports` preloaded and its US steps rewritten
+    around the tool; write-guard on `knowledge/finance`. A filing whose
+    figures EDGAR has not published yet gets no file. `SEC_USER_AGENT`
+    (`.claude/gandalf.env`) should carry a contact address — without it the
+    ticker lookup falls back to EDGAR's full-text search.
+  - Router: `strider`, `thorin` and `gloin` on the `Agent(...)` list
+    (`gloin` for the same reason as `legolas`), two routes, two sections.
+  - **Personas stay out** of the router: `/persona` is a multi-session
+    build that needs a shell in six places (fetch, reflow, assemble, quote
+    check, validation, the branch in this repo) and a lot of direct talk
+    about the card. Open option: a narrow orchestrator of its own
+    (`gandalf --persona`) — the only way `Bash(python3 *)` leaves the shared
+    allow-list.
+  Tested through the router on a copy with a throwaway brain: a made-up
+  export (one US, one GPW, one ETF, one closed position) → plan → `y` →
+  ten AMD reports from the real EDGAR, `finance.md` edited in its account
+  subsection, export archived, one commit; a trip list for two travellers
+  (questions → plan → edit and `y` → commit); a post-trip review writing
+  the catalogue, two new profiles and the trip file → commit. The router's
+  conversation ended at 30–37 k. **Seen:** the GPW fetch failed for a
+  myFund ticker name (`CDPROJEKT` — biznesradar files it under `CDR`) and
+  Gloin wrote neither reports nor stubs; the skill's GPW source needs a
+  symbol mapping. **Not yet run:** several exports in the inbox at once, a
+  `.md` export, `y bez finance.md`, a reclassified ticker, Gloin forked from
+  a full session after the rewrite, catalogue / profile edits (mode C),
+  merging into a list that has ticks, anything on the real brain.
+- [ ] **Phase 6 — clean-up.** `Bash(python3 *)` out of the shared allow-list
+  (blocked by `/persona` while it runs in a full session); compare against
+  the baseline table at the top of this section; the router as the default
+  `gandalf`.
 
 Expected: a router start near the 16 k measured below for the router-shaped
 agent without `Skill` (headless; interactive will be higher), and a main
