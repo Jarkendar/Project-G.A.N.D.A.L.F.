@@ -62,7 +62,9 @@
       "mcp__arwen__find_notes",
       "mcp__gimli__databases",
       "mcp__gimli__schema",
-      "mcp__gimli__query"
+      "mcp__gimli__query",
+      "mcp__ori__status",
+      "mcp__ori__commit"
     ]
   }
 }

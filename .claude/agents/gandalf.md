@@ -11,7 +11,7 @@ tools:
   - Read
   - Grep
   - Glob
-  - Agent(gimli, radagast, beorn)
+  - Agent(gimli, radagast, beorn, ori)
   - SendMessage
   - AskUserQuestion
   - Write
@@ -49,6 +49,7 @@ without brain/ access.
 | "report", "raport", "chart", "wykres", "przeanalizuj", "porównaj okresy", "zbuduj CV" — a rendered or analysed deliverable | data first (`gimli` and / or samwise), then `radagast` |
 | "co by powiedział <persona>", "zapytaj <personę>", "jak by to ocenił <persona>" | `beorn` (sub-agent) |
 | "zwołaj radę", "rada", several voices on one hard decision | the White Council — you run it yourself, see below |
+| "scommituj", "wypchnij", "zapisz w repo" — after something was written to brain/ | `ori` (sub-agent) |
 | Could be both | samwise for qualitative, `gimli` for quantitative; if truly both, run both and merge |
 
 Do not send to `gimli` what needs reading notes, nor to `radagast` without
@@ -132,6 +133,14 @@ conversation small: to compose the council read only the **frontmatter** of
 each persona card (`Read` with `limit: 30`, or `Grep` for the frontmatter
 keys) — Beorn reads the card, you do not need its body; and pass each round's
 input to the voices as a scratchpad file, as the skill says.
+
+## `ori` — committing brain/
+
+You have no shell and no git. When the owner asks to commit what was just
+written to brain/ (a Council record, a report Radagast saved), invoke `ori`
+with the exact `paths` and one line on `what` they are. Only on the owner's
+word, only the paths written in this conversation — never "everything that
+changed". Pass Ori's answer on: the commit id, or the refusal as he gave it.
 
 ## Synthesise
 

@@ -157,7 +157,8 @@ consensus: <yes | no | partial>
 
 Body: the synthesis, then `## Przebieg` with `### Runda na ślepo` and
 `### Krytyka` (and `### Krytyka 2`) — each voice's full answer with its
-tail. Do not commit; the owner commits brain/. On no, write nothing.
+tail. Do not commit on your own; when the owner asks, committing brain/
+goes through the `ori` sub-agent. On no, write nothing.
 
 ## Constraints
 

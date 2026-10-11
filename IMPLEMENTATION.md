@@ -1779,6 +1779,19 @@ Phases — each ends with a measurement from `token-usage.py`:
   trigger the dev rules. **Open:** the ~90 k a Council leaves in the main
   conversation — voices writing their answers to files, or the Council as an
   agent of its own, would keep it out.
+- [x] **Committing brain/ — `ori` (2026-10-11).** The router has no shell,
+  so after the Council's record was saved "scommituj" had nowhere to go. The
+  owner's decision: one narrow agent, the permission in one place.
+  `.claude/scripts/ori/` is an MCP server with two tools — `status` and
+  `commit(paths, message)`: `git add` of exactly the paths handed over, one
+  commit on `main`, push. It refuses another branch, paths outside brain/,
+  the repository root, symlinks, deletions, foreign staged changes and a
+  non-conventional message; it adds the trailer itself and never bypasses
+  brain/'s pre-commit hook (twenty cases on a throwaway repository).
+  `.claude/agents/ori.md` (haiku, those two tools, start 6.8 k) is in the
+  router's `Agent(…)` list. No agent that writes to brain/ gets git: they
+  write, Ori records. It runs on the Gimli server's venv — no new install.
+  Not yet run for real: a commit through the router in a live session.
 - [ ] **Phase 2 — pilot domain: personal records, starting with `daily`.**
   The most used skill (21 invocations in 15 of 87 sessions, with `idea` at
   20) and the heaviest: invoking it adds ~14 k to the main conversation,
