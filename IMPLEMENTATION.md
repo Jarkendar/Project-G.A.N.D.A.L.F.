@@ -1654,49 +1654,112 @@ README.md § agents does not list `erestor`, `gloin` and `narvi` yet (owner's fi
   confirmed worth doing (check 4 below).
 - [ ] claude.ai-synced skills (32; Android, docx, …) off for this project —
   mechanism found: `--setting-sources project,local` in the launcher
-  (check 5 below); to be wired in with the Stage 3 profiles.
+  (check 5 below). Not needed for the router of Stage 3, which has no
+  `Skill` tool and so no listing; still open for the dev session.
 - Dropped: narrowing `Bash(python3 *)` in `settings.local.json`. The
   transcripts show ~1,000 inline `python3 -` / `-c` calls a month in dev
-  work; the restriction belongs to the profiles of Stage 3, not to the dev
+  work; the restriction belongs to Stage 3 (Phase 6), not to the dev
   session.
 
-**Stage 3 — split Gandalf into launcher profiles.** Not started; written
-out here so it can be picked up cold.
+**Stage 3 — Gandalf as a router, the work in domain agents.** Direction set
+by the owner 2026-10-11. It replaces the launcher-profile plan (questions /
+capture / dev — in git history, commit 0ec5562). This is the plan only;
+nothing below is built, and it is built one domain at a time.
 
-`bin/gandalf` already answers to two names that do the same thing
-(`SCRIPT_NAME` is computed, both end in the same `exec claude --add-dir`):
+```
+owner ↔ Gandalf — router, main thread: holds the conversation, asks, confirms
+          ├─ domain agent — owns its domain's skills, reads / writes its folders
+          │     └─ task agents — its own sub-team (legolas, gloin, narvi, …)
+          ├─ gimli, radagast, samwise — questions
+          └─ beorn × N — the White Council, called by the router itself
+```
 
-| Profile | Command | For | Tools | MCP servers | Model |
-|---|---|---|---|---|---|
-| questions | `gandalf` | the router over brain/ | `Read`, `Grep`, `Glob`, `Skill`, `AskUserQuestion`, `Agent(gimli, radagast, beorn)`, `SendMessage`, `Write` outside brain/ only (council round files) | samwise, gimli | sonnet |
-| capture | `brain` | `/daily`, `/idea`, `/update-core`, `/add-contact`, `/interview`, `/flashcards`, the ingests | the above + `Write`, `Edit`, `Bash`; web only through the forks (`legolas`, `gloin`) | samwise, gimli, arwen, strava, Google Calendar | sonnet |
-| dev | `claude` in the repo | work on this repo | everything | all | opus |
+Rules of the shape:
+1. **The router routes.** Tools: `Read`, `Grep`, `Glob`, `Agent(…)`,
+   `SendMessage`, `AskUserQuestion`, samwise, `Write` outside brain/ only
+   (council round files). No `Skill`, `Edit`, `Bash`, web or connectors:
+   nothing in its context can leave the machine or change brain/.
+2. **Agents own the skills.** A skill is preloaded into its agent with
+   `skills:` in the agent's frontmatter; the agent needs no `Skill` tool and
+   carries no skill listing. The router drops `Skill` (11 k) and keeps one
+   preloaded skill, `council`.
+3. **Dialogue stays in the main conversation.** A domain agent cannot ask the
+   owner. It returns either a result or a block of questions / a draft to
+   approve; the router asks, then sends the answer to the same agent with
+   `SendMessage`, context intact. The owner accepts this ping-pong as the
+   price; it also keeps every question and answer in the one conversation
+   that is logged.
+4. **An agent may have a sub-team**, one level deep, when its task has real
+   smaller tasks (research, fetch, digest). Not for the Council — the router
+   calls `beorn` directly. This changes the rule "agents do not call other
+   agents directly" (CLAUDE.md § Architecture, and the parking-lot note
+   above); README is the owner's.
+5. **Privacy by structure.** An agent that reads `core/` or `current/` holds
+   no outbound tool; outbound work goes to a task agent with a brief that
+   contains only what may leave (the `legolas` pattern).
+6. **MCP servers are per session, tools are per agent.** A sub-agent uses the
+   session's servers, so the router session must load every server any agent
+   needs — `--strict-mcp-config` is out. The boundary is each agent's
+   `tools:` list.
 
-What to build:
-1. `.claude/agents/gandalf.md` — the router as a main-thread agent: Steps
-   1–3 of `.claude/skills/gandalf/SKILL.md` shortened into its prompt,
-   `tools:` as in the table, `model: sonnet`. Then delete the `gandalf`
-   skill (never invoked; no frontmatter).
-2. `.claude/mcp/questions.json`, `.claude/mcp/capture.json` — the server
-   lists per profile, cut from `.mcp.json`.
-3. `bin/gandalf` — branch on `SCRIPT_NAME`: `gandalf` adds `--agent gandalf
-   --strict-mcp-config --mcp-config .claude/mcp/questions.json` and a
-   `--settings` JSON denying `Edit(//<BRAIN_PATH>/**)`; `brain` adds its own
-   `--mcp-config`. A `--full` flag keeps today's behaviour as the way back.
-4. Move `Bash(python3 *)` out of the shared allow-list into the dev profile
-   only.
-5. CLAUDE.md: dev-only sections (git agreement, naming, ecosystem, design
-   principles) into `.claude/rules/dev.md` with `paths:` — check 4 below
-   holds.
+Candidate domains (a proposal to cut from — the owner does the splitting;
+names are the owner's call; skill sizes are chars / 4):
 
-The point beyond tokens: in the questions profile no context holds both a
-PRIVATE read and an outbound tool, so design principle 2 becomes structure
-instead of prose.
+| Domain | Skills it would own | Tools | Sub-team | Dialogue |
+|---|---|---|---|---|
+| questions | — | the router with `gimli`, `radagast`, samwise | — | — |
+| council | `council` (1.8 k, preloaded in the router) | `beorn` × N | — | in the router |
+| personal records (`core/`, `current/`, `backlog/`) | `daily` (8.7 k), `update-core`, `add-contact`, `idea`, `interview` — ~18.5 k together | `Read`, `Grep`, `Glob`, `Write`, `Edit`, Strava | — | heavy |
+| career & practice | `analyze-offer`, `practice-review`, `english-review` | `Read`, `Grep`, `Glob`, `Write`, `Edit` | `legolas`, `erestor` | medium |
+| projects | `develop-idea` | `Read`, `Grep`, `Glob`, `Write` | `legolas` | medium |
+| finance | `ingest-finance` | `Read`, `Write`, `Edit` | `gloin` | low |
+| learning | `flashcards` | `Read`, `Grep`, arwen | — | one approval |
+| travel | `pack` | `Read`, `Grep`, `Glob`, `Write`, `Edit` | — | medium |
+| personas | `persona` (typed by hand only) | `Read`, `Write`, `Bash` for `reflow.py` / `assemble.py` | `narvi` | low |
+| calendar | — (Step 4, F.A.R.A.M.I.R.) | Google Calendar | — | — |
 
-Expected start: see the measurements below — ~22 k for the questions profile
-with `Skill` (not the ~12–15 k first estimated by analogy with `beorn`),
-re-read on every turn. The larger lever stays session length and Opus at
-~300 k of context per turn.
+Open in the map: whether `daily` gets an agent of its own (it is half of the
+records domain's preload and delegates to the other four skills), and which
+domains are worth an agent at all rather than staying a skill typed in the
+dev session.
+
+Phases — each ends with a measurement from `token-usage.py`:
+
+- [ ] **Phase 0 — ground.** (a) The rule change of point 4 in CLAUDE.md.
+  (b) Dev-only CLAUDE.md sections (git agreement, naming, ecosystem, design
+  principles) into `.claude/rules/dev.md` with `paths:` — every agent run
+  loads CLAUDE.md, so this now pays once per agent. (c) Checks that need an
+  interactive session: a typed `/name` still runs when the main agent has no
+  `Skill` tool; `SendMessage` continues a sub-agent from an `--agent` main
+  thread; a frontmatter hook runs under the harness (`narvi` writing outside
+  the scratchpad is refused).
+- [ ] **Phase 1 — the router.** `.claude/agents/gandalf.md`: Steps 1–3 of
+  `.claude/skills/gandalf/SKILL.md` shortened into its prompt, tools as in
+  rule 1, `skills: [council]`, `model: sonnet`. `bin/gandalf` adds `--agent
+  gandalf`; `--full` keeps today's behaviour as the way back. Delete the
+  `gandalf` skill (never invoked). Dev stays plain `claude` in the repo.
+  Done when: a question goes through samwise / `gimli` / `radagast`, a
+  Council runs, and the interactive start is measured.
+- [ ] **Phase 2 — pilot domain: learning (`flashcards`).** The smallest skill
+  with exactly one approval gate — it proves rule 3 end to end (draft →
+  owner approves in the main conversation → the same agent adds the cards).
+  Done when: the protocol is written down once, as the pattern the other
+  domains copy.
+- [ ] **Phase 3 — personal records.** The domain used daily and the largest
+  writer of brain/. Decide the `daily` question first.
+- [ ] **Phase 4 — career & practice, projects.** First use of a sub-team
+  (`legolas`, `erestor`) under a domain agent.
+- [ ] **Phase 5 — finance, travel, personas.** Low frequency; only if the
+  logs show them used from the router.
+- [ ] **Phase 6 — clean-up.** `Bash(python3 *)` out of the shared allow-list;
+  `gloin` loses `Bash` to a narrow fetch script; compare against the
+  baseline table at the top of this section.
+
+Expected: a router start near the 16 k measured below for the router-shaped
+agent without `Skill` (headless; interactive will be higher), and a main
+conversation that grows by results instead of by every file read. Each
+domain-agent run costs CLAUDE.md + memory (4.9 k today) plus its preloaded
+skills.
 
 **Checks before Stage 3 — done 2026-10-11.**
 
@@ -1714,7 +1777,7 @@ Headless runs (`claude -p … --model haiku --output-format stream-json`, one
 turn each, session not persisted). Headless loads fewer built-in tools than
 an interactive session (27; no `AskUserQuestion`, `Artifact`, …), so its
 baseline is 33.8 k against the interactive ~50.6 k: read the rows as
-differences, not as what a profile will cost interactively.
+differences, not as what the router will cost interactively.
 
 | Run | First call | vs baseline |
 |---|---|---|
@@ -1724,16 +1787,15 @@ differences, not as what a profile will cost interactively.
 | `--setting-sources project,local` | 28.7 k | −5.1 k |
 | `--agent beorn` (3 tools + samwise) | 13.5 k | −20.3 k |
 | `--agent beorn` + strict | 12.6 k | −21.2 k |
-| router-shaped agent (tools of the questions row) + strict | 27.0 k | −6.8 k |
+| router-shaped agent (`Read`, `Grep`, `Glob`, `Skill`, `Agent`, `SendMessage`, `Write`, samwise, gimli) + strict | 27.0 k | −6.8 k |
 | the same + `--setting-sources project,local` | 21.9 k | −11.9 k |
 | the same without `Skill` | 16.0 k | −17.8 k |
 
 1. Breakdown of the start — above.
 2. `--strict-mcp-config` drops the claude.ai connectors too: only the servers
    from `--mcp-config` remain. They are account connectors, not entries a
-   JSON file can list, so the capture profile cannot be strict and keep
-   Calendar — it has to stay non-strict and deny the connectors it should
-   not have (Drive, Docs) in `--settings`. Token effect is small (−2.6 k):
+   JSON file can list, so a session that needs Calendar cannot be strict.
+   Token effect is small (−2.6 k):
    strict is a privacy boundary, not a saving.
 3. `--agent <name>` limits the tools to the agent's `tools:` (3 built-in +
    samwise for `beorn`; `Agent(gimli, radagast, beorn)` is accepted and
@@ -1746,23 +1808,29 @@ differences, not as what a profile will cost interactively.
 5. `--setting-sources project,local` hides the 32 claude.ai-synced skills
    (67 → 35 listed, −5.1 k); memory still loads. It also drops
    `~/.claude/settings.json` (`model`, `remoteControlAtStartup`, `tui`, …),
-   so a profile using it must pass what it needs on the command line. No
+   so a launcher using it must pass what it needs on the command line. No
    per-project switch for the synced skills alone was found.
 
-What this changes in the plan:
+6. A sub-agent can spawn its own sub-agent: a test agent with
+   `Agent(inner)` in its `tools:`, itself spawned by the main session,
+   called `inner` and got its reply.
+7. `skills:` in an agent definition preloads the full skill body (a test
+   agent with only `Read` quoted a heading of `idea`); a sub-agent given the
+   `Skill` tool instead sees the whole listing (62 entries).
+
+What this means for Stage 3:
 - `Skill` is the expensive tool of the router: 11 k with every skill listed,
-  ~5.9 k with the synced ones hidden. A questions profile that keeps `Skill`
-  needs `--setting-sources project,local` to reach ~22 k.
-- The capture profile's MCP list is a deny-list, not `--strict-mcp-config`.
-- Step 5 (dev-only CLAUDE.md sections into `.claude/rules/`) is confirmed
-  worth doing.
+  ~5.9 k with the synced ones hidden — hence rule 2.
+- `--strict-mcp-config` cannot be used in a session whose agents need the
+  connectors — hence rule 6.
+- Slimming CLAUDE.md pays per agent run — hence Phase 0 (b).
 
 Seen after the restart: `gimli`, `legolas`, `erestor`, `gloin`, `narvi` are
 listed with their narrowed tools, the `gimli` server connects, and the four
 `disable-model-invocation` skills are out of the model's listing. Still
 open: a `narvi` asked to write outside the scratchpad is refused (the
-frontmatter hook running under the harness), and the interactive start of a
-profile, which only a real `gandalf` session shows.
+frontmatter hook running under the harness), and the interactive start of
+the router, which only a real `gandalf` session shows.
 
 ---
 
