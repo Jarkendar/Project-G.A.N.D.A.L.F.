@@ -1832,7 +1832,9 @@ Phases — each ends with a measurement from `token-usage.py`:
   included: that reopens the interview (the correction is kept beside the
   old answer, the addition as `Dopowiedzenie:`) and a new text comes back.
   The write guard now covers all of
-  `knowledge/` (owner's call) and `archive/` (the opt-in pre-revision copy
+  `knowledge/` (owner's call) except `personas/`, `councils/` and
+  `reports/`, carved out with `!brain:<folder>` — they have their own
+  writers — and `archive/` (the opt-in pre-revision copy
   of `update-core` / `interview`); what in `knowledge/` is his to write is
   a rule in his prompt, not the hook's. The router routes all five and no
   longer lists them under "cannot do yet".

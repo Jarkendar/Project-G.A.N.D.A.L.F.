@@ -7,6 +7,9 @@
 #
 #   tmp                  the system temp directory (session scratchpad)
 #   brain:<subfolder>    a folder under BRAIN_PATH, e.g. brain:knowledge/councils
+#   !brain:<subfolder>   a folder carved out of the places above — refused even
+#                        though a wider place contains it, e.g.
+#                        brain:knowledge !brain:knowledge/personas
 #
 # The name matters because a hook in the frontmatter of the agent that runs
 # the main thread fires for every sub-agent it spawns as well (seen
@@ -70,7 +73,8 @@ def main():
     if caller and caller != owner:
         sys.exit(0)
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or event.get("cwd") or os.getcwd()
-    roots = allowed_roots(specs, project_dir)
+    roots = allowed_roots([s for s in specs if not s.startswith("!")], project_dir)
+    carved = allowed_roots([s[1:] for s in specs if s.startswith("!")], project_dir)
     if not roots:
         refuse("no allowed location configured — write refused")
     if not os.path.isabs(raw):
@@ -78,6 +82,8 @@ def main():
     path = os.path.realpath(raw)
     if not any(path.startswith(root + os.sep) for root in roots):
         refuse(f"{path} is outside the places {owner} may write to ({', '.join(specs)})")
+    if any(path == root or path.startswith(root + os.sep) for root in carved):
+        refuse(f"{path} is in a folder {owner} does not write to — it belongs to another agent or skill")
     if not path.endswith(".md"):
         refuse(f"{path} is not a .md file")
     sys.exit(0)

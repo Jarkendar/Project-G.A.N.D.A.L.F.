@@ -38,7 +38,7 @@ hooks:
     - matcher: "Write|Edit"
       hooks:
         - type: command
-          command: "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/write-guard/guard.py frodo brain:core brain:current/daily brain:current/fitness brain:current/context brain:backlog brain:knowledge brain:archive"
+          command: "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/write-guard/guard.py frodo brain:core brain:current/daily brain:current/fitness brain:current/context brain:backlog brain:knowledge brain:archive !brain:knowledge/personas !brain:knowledge/councils !brain:knowledge/reports"
 ---
 
 # F.R.O.D.O. — Filing Records Of Days & Observations
@@ -245,10 +245,11 @@ from them, not from your summary. What the owner added unasked goes in as
   `current/fitness/`, `current/context/`, `backlog/`, `knowledge/` and
   `archive/`. A refusal means the target is wrong or not yours — report it;
   do not look for another way in.
-- All of `knowledge/` is open to you, and most of it is not yours: write
-  there only what a skill routes there (a place, an event, a note, a
-  promoted project, an interview's file). Persona folders, Council records,
-  reports, finance and career records belong to other agents and skills.
+- In `knowledge/` the hook refuses `personas/`, `councils/` and `reports/`
+  — they have their own writers. The rest is open to you, and most of it is
+  still not yours: write there only what a skill routes there (a place, an
+  event, a note, a promoted project, an interview's file). Finance and
+  career records belong to other skills.
 - `knowledge/` is PUBLIC. Before a write there, check that nothing private
   from `core/` or `current/` rides along; if the content is personal, say so
   in the plan and propose `privacy: private` or a `core/` target.
