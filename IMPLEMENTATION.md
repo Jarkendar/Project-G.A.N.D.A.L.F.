@@ -1650,10 +1650,11 @@ README.md § agents does not list `erestor`, `gloin` and `narvi` yet (owner's fi
 - [x] `disable-model-invocation: true` on `init-brain`, `ingest-finance`,
   `ingest-conversation`, `persona` — out of the skill listing, still run by
   `/name` (2026-10-10).
-- [ ] CLAUDE.md: dev-only rules into `.claude/rules/` with `paths:` — after
-  the `/context` check below.
-- [ ] claude.ai-synced skills (32 of the 54 listed; Android, docx, …) off for
-  this project — mechanism to be verified.
+- [ ] CLAUDE.md: dev-only rules into `.claude/rules/` with `paths:` —
+  confirmed worth doing (check 4 below).
+- [ ] claude.ai-synced skills (32; Android, docx, …) off for this project —
+  mechanism found: `--setting-sources project,local` in the launcher
+  (check 5 below); to be wired in with the Stage 3 profiles.
 - Dropped: narrowing `Bash(python3 *)` in `settings.local.json`. The
   transcripts show ~1,000 inline `python3 -` / `-c` calls a month in dev
   work; the restriction belongs to the profiles of Stage 3, not to the dev
@@ -1685,33 +1686,83 @@ What to build:
 4. Move `Bash(python3 *)` out of the shared allow-list into the dev profile
    only.
 5. CLAUDE.md: dev-only sections (git agreement, naming, ecosystem, design
-   principles) into `.claude/rules/dev.md` with `paths:` — if check 4 below
+   principles) into `.claude/rules/dev.md` with `paths:` — check 4 below
    holds.
 
 The point beyond tokens: in the questions profile no context holds both a
 PRIVATE read and an outbound tool, so design principle 2 becomes structure
 instead of prose.
 
-Expected: a start of ~12–15 k instead of ~48 k in the two assistant profiles
-(by analogy with `beorn`: four tools + CLAUDE.md = 11.7 k), re-read on every
-turn — at most ~11 % of all usage if every turn ran there. The larger lever
-stays session length and Opus at ~300 k of context per turn.
+Expected start: see the measurements below — ~22 k for the questions profile
+with `Skill` (not the ~12–15 k first estimated by analogy with `beorn`),
+re-read on every turn. The larger lever stays session length and Opus at
+~300 k of context per turn.
 
-**Before Stage 3 — verify with `/context` in a fresh `gandalf` session**
-(owner; nothing above is built on these until checked):
-1. The breakdown of the ~48 k start (system prompt, tool schemas, skills
-   listing, CLAUDE.md, memory) — the estimates above are chars / 4.
-2. `--strict-mcp-config` also drops the claude.ai connectors (Calendar,
-   Drive, Docs, Strava, …), not only `.mcp.json` servers. The capture
-   profile needs Calendar back, so this decides how its list is written.
-3. `--agent <name>` replaces the default system prompt and limits the tool
-   schemas to the agent's `tools:`.
-4. Custom sub-agents load CLAUDE.md (decides whether slimming it pays off
-   per agent or only per session).
-5. How to hide the claude.ai-synced skills for one project.
-Also worth one look after a restart: `gimli`, `legolas`, `erestor`,
-`gloin` and `narvi` appear with their tools, `token-usage.py` shows their
-start, and a `narvi` asked to write outside the scratchpad is refused.
+**Checks before Stage 3 — done 2026-10-11.**
+
+`/context` in a fresh session (twice, identical): 35.4 k — system tools 13 k,
+skills 10 k (project ~3.0 k, built-in ~2.5 k, claude.ai sync ~4.5 k),
+CLAUDE.md + MEMORY.md 4.9 k, system prompt 3.5 k, custom agents 1.4 k, MCP
+instructions 1.1 k, MCP tools 0.6 k. MCP tool schemas are deferred (32.1 k
+outside the context). The API counts ~50.6 k on the first call of the same
+kind of session, so `/context` under-reports by ~15 k; the prefix read from
+cache on every fresh start is ~24.2 k where `/context` shows 16.5 k for
+prompt + tools, so about half of the gap is probably there (inferred from
+the cache numbers, not measured directly).
+
+Headless runs (`claude -p … --model haiku --output-format stream-json`, one
+turn each, session not persisted). Headless loads fewer built-in tools than
+an interactive session (27; no `AskUserQuestion`, `Artifact`, …), so its
+baseline is 33.8 k against the interactive ~50.6 k: read the rows as
+differences, not as what a profile will cost interactively.
+
+| Run | First call | vs baseline |
+|---|---|---|
+| baseline (`--add-dir brain`) | 33.8 k | — |
+| `--strict-mcp-config` + samwise, gimli | 31.2 k | −2.6 k |
+| `--disable-slash-commands` (no skills, no `Skill` tool) | 22.8 k | −11.0 k |
+| `--setting-sources project,local` | 28.7 k | −5.1 k |
+| `--agent beorn` (3 tools + samwise) | 13.5 k | −20.3 k |
+| `--agent beorn` + strict | 12.6 k | −21.2 k |
+| router-shaped agent (tools of the questions row) + strict | 27.0 k | −6.8 k |
+| the same + `--setting-sources project,local` | 21.9 k | −11.9 k |
+| the same without `Skill` | 16.0 k | −17.8 k |
+
+1. Breakdown of the start — above.
+2. `--strict-mcp-config` drops the claude.ai connectors too: only the servers
+   from `--mcp-config` remain. They are account connectors, not entries a
+   JSON file can list, so the capture profile cannot be strict and keep
+   Calendar — it has to stay non-strict and deny the connectors it should
+   not have (Drive, Docs) in `--settings`. Token effect is small (−2.6 k):
+   strict is a privacy boundary, not a saving.
+3. `--agent <name>` limits the tools to the agent's `tools:` (3 built-in +
+   samwise for `beorn`; `Agent(gimli, radagast, beorn)` is accepted and
+   shows up as the agent tool) and cuts the start to 13.5 k. The session
+   still loads CLAUDE.md and memory.
+4. Custom sub-agents do load CLAUDE.md and MEMORY.md: `erestor`, told to use
+   no tools, quoted the commit trailer, the chat language and the first
+   memory entry. Its start is 9.6 k, about half of it those two files — so
+   slimming CLAUDE.md pays off per agent run as well as per session.
+5. `--setting-sources project,local` hides the 32 claude.ai-synced skills
+   (67 → 35 listed, −5.1 k); memory still loads. It also drops
+   `~/.claude/settings.json` (`model`, `remoteControlAtStartup`, `tui`, …),
+   so a profile using it must pass what it needs on the command line. No
+   per-project switch for the synced skills alone was found.
+
+What this changes in the plan:
+- `Skill` is the expensive tool of the router: 11 k with every skill listed,
+  ~5.9 k with the synced ones hidden. A questions profile that keeps `Skill`
+  needs `--setting-sources project,local` to reach ~22 k.
+- The capture profile's MCP list is a deny-list, not `--strict-mcp-config`.
+- Step 5 (dev-only CLAUDE.md sections into `.claude/rules/`) is confirmed
+  worth doing.
+
+Seen after the restart: `gimli`, `legolas`, `erestor`, `gloin`, `narvi` are
+listed with their narrowed tools, the `gimli` server connects, and the four
+`disable-model-invocation` skills are out of the model's listing. Still
+open: a `narvi` asked to write outside the scratchpad is refused (the
+frontmatter hook running under the harness), and the interactive start of a
+profile, which only a real `gandalf` session shows.
 
 ---
 
