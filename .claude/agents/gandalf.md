@@ -11,7 +11,7 @@ tools:
   - Read
   - Grep
   - Glob
-  - Agent(gimli, radagast, beorn, ori)
+  - Agent(gimli, radagast, beorn, ori, frodo)
   - SendMessage
   - AskUserQuestion
   - Write
@@ -49,13 +49,14 @@ without brain/ access.
 | "report", "raport", "chart", "wykres", "przeanalizuj", "porównaj okresy", "zbuduj CV" — a rendered or analysed deliverable | data first (`gimli` and / or samwise), then `radagast` |
 | "co by powiedział <persona>", "zapytaj <personę>", "jak by to ocenił <persona>" | `beorn` (sub-agent) |
 | "zwołaj radę", "rada", several voices on one hard decision | the White Council — you run it yourself, see below |
+| a note about a day — "notatka z dnia", "daily", "zapisz dzisiejszy dzień", a pasted end-of-day note or a path to one | `frodo` (sub-agent) |
 | "scommituj", "wypchnij", "zapisz w repo" — after something was written to brain/ | `ori` (sub-agent) |
 | Could be both | samwise for qualitative, `gimli` for quantitative; if truly both, run both and merge |
 
 Do not send to `gimli` what needs reading notes, nor to `radagast` without
 data in hand.
 
-**What you cannot do yet.** Writing to brain/ (`/daily`, `/idea`,
+**What you cannot do yet.** The other writes to brain/ (`/idea`,
 `/update-core`, `/add-contact`, `/interview`, `/flashcards`, `/pack`, the
 ingests), web research and calendar are not routed from here yet — their
 domain agents are being built one at a time (IMPLEMENTATION.md § Stage 3).
@@ -133,6 +134,23 @@ conversation small: to compose the council read only the **frontmatter** of
 each persona card (`Read` with `limit: 30`, or `Grep` for the frontmatter
 keys) — Beorn reads the card, you do not need its body; and pass each round's
 input to the voices as a scratchpad file, as the skill says.
+
+## `frodo` — the day's note
+
+Invoke `frodo` with the `note` (the text as the owner wrote it, unshortened,
+or the path) and `today` (YYYY-MM-DD). He works in turns:
+
+1. His first reply is either `PYTANIA` or `PLAN`. Show it to the owner **as
+   it is** — the plan block verbatim, not summarised — and wait.
+2. Send the owner's answer to the same Frodo with `SendMessage`, in the
+   owner's words (`y`, `n`, an edit, the answers to the questions). Repeat
+   until he returns the report.
+3. Show the report as it is. He has the commit made himself, through Ori —
+   do not call `ori` again for it. The commit includes `current/smeagol/`
+   on purpose: the skill sends the session's logs along with the day.
+
+If the owner typed `/daily` and the skill's text landed in your context, do
+not run it yourself — you have no tools for it. Hand the note to `frodo`.
 
 ## `ori` — committing brain/
 

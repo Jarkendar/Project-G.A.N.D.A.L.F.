@@ -59,6 +59,7 @@ expansions: README.md § agents, and each agent's file in `.claude/agents/`.
 | E.R.E.S.T.O.R. | practice briefings from brain/ records (read-only; english-prep, practice-prep) | `.claude/agents/erestor.md` |
 | G.L.O.I.N. | fetches public company reports into `knowledge/finance/` | `.claude/agents/gloin.md` |
 | N.A.R.V.I. | writes persona digest drafts for `/persona` (Read + Write, write-guard hook) | `.claude/agents/narvi.md` |
+| F.R.O.D.O. | the day's note — files each item into brain/ (owns the `daily` skill; write-guard hook, `fitness_upsert` MCP tool, commits through Ori) | `.claude/agents/frodo.md`, `.claude/scripts/frodo/` |
 | O.R.I. | commits and pushes brain/ — the only one that may (MCP server, two tools) | `.claude/agents/ori.md`, `.claude/scripts/ori/` |
 | T.R.E.E.B.E.A.R.D. | archivist | planned — Step 10 |
 

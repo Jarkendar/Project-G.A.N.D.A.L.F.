@@ -1795,12 +1795,28 @@ Phases — each ends with a measurement from `token-usage.py`:
 - [ ] **Phase 2 — pilot domain: personal records, starting with `daily`.**
   The most used skill (21 invocations in 15 of 87 sessions, with `idea` at
   20) and the heaviest: invoking it adds ~14 k to the main conversation,
-  re-read on every later turn, before anything it reads. It delegates to
-  `update-core`, `add-contact`, `idea` and `ingest-finance`, so its agent is
-  the records agent from the start. It is also the hardest test of rule 3
-  (many questions). Done when: a day's note goes through the agent with the
-  questions asked in the main conversation, and the protocol is written
-  down once, as the pattern the other domains copy.
+  re-read on every later turn, before anything it reads.
+  **`daily` built 2026-10-11 — `frodo`** (F.R.O.D.O., Filing Records Of
+  Daily Occurrences; `.claude/agents/frodo.md`, sonnet). The skill is
+  unchanged and preloaded with `skills: [daily]`; the agent's prompt
+  overrides four things only — it returns `PYTANIA` / `PLAN` instead of
+  asking and is resumed with the answer; it reads the sibling skills'
+  templates (`update-core`, `add-contact`, `idea`) on demand; the `sqlite3`
+  block is the tool `mcp__frodo__fitness_upsert` (`.claude/scripts/frodo/`,
+  one row by named fields, no SQL); the commit goes to `ori`, his one-agent
+  sub-team. Tools: `Read`, `Grep`, `Glob`, `Write`, `Edit`, six Strava
+  tools, the upsert, `Agent(ori)`; a write guard for `core/`,
+  `current/daily|fitness|context/`, `backlog/`, `knowledge/places|events|notes/`.
+  A full session still runs `/daily` as before.
+  Tested end to end on a copy of the project with a throwaway brain and the
+  real Strava: turn one — the router handed the note to Frodo and showed
+  his plan (two rides that day, the evening one matched), nothing written;
+  turn two — `y` sent to the same Frodo, nine files written, the database
+  row upserted with NULLs where Strava had nothing, one commit by Ori with
+  the trailer. **Not yet run:** on the real brain, in a live router session;
+  a note with questions (step 5c) and an `edit` round.
+  Still to move into this domain: `update-core`, `add-contact`, `idea`,
+  `interview` as requests of their own.
 - [ ] **Phase 3 — learning (`flashcards`).** One approval gate; the first
   copy of the pattern.
 - [ ] **Phase 4 — career & practice, projects.** First use of a sub-team
