@@ -5,10 +5,11 @@
 # same thing: sync the Gandalf + brain repos on git, then open a `claude`
 # session rooted in this repo with the brain/ sibling directory tool-accessible.
 #
-# `--router` opens the session as the router agent (.claude/agents/gandalf.md)
-# instead of a full session: it routes and reads; writes to brain/ are made by
-# the domain agents it routes to. Opt-in until every writing domain has one — IMPLEMENTATION.md
-# § "Least privilege & token diet", Stage 3.
+# The session opens as the router agent (.claude/agents/gandalf.md): it routes
+# and reads; writes to brain/ are made by the domain agents it routes to.
+# `--full` opens a full session instead — every tool and skill, for work on
+# this repo and for what is not routed yet (/persona, /ingest-conversation,
+# /init-brain). IMPLEMENTATION.md § "Least privilege & token diet", Stage 3.
 #
 # See: .claude/plans (design doc) / IMPLEMENTATION.md for background.
 
@@ -30,13 +31,18 @@ Launches a Claude Code session rooted in the G.A.N.D.A.L.F. repo, with the
 brain/ sibling repo tool-accessible. Invokable as 'gandalf' or 'brain' —
 identical behaviour either way.
 
+By default the session is the router: it routes each request to the agent
+that owns it (questions, reports, personas, the Council, the owner's records,
+flashcards, offers and practice, project ideas, packing, the portfolio
+export). It has no shell and writes nothing itself.
+
 Script-level options:
   --no-sync, --no-pull   Skip git pull / branch check on both repos
   --yolo                 Shorthand for --dangerously-skip-permissions
-  --router               Open as the router agent (questions, reports, personas,
-                         the Council, the owner's records, flashcards, offers
-                         and practice, project ideas, packing, the portfolio
-                         export) instead of a full session
+  --full                 Open a full session instead of the router: every tool
+                         and skill — work on this repo, /persona,
+                         /ingest-conversation, /init-brain
+  --router               The default; accepted for older habits
   --install              (Re)create the gandalf/brain symlinks in ~/.local/bin
   -h, --help              Show this help and exit
 
@@ -44,12 +50,12 @@ All other options (incl. -c, -r/--resume, --model, --effort, and a free-text
 prompt) are forwarded to 'claude' as-is. See 'claude --help' for the full set.
 
 Examples:
-  ${SCRIPT_NAME}                         # sync + open a fresh session
+  ${SCRIPT_NAME}                         # sync + open the router
   ${SCRIPT_NAME} -c                      # continue the last conversation
   ${SCRIPT_NAME} -r                      # pick a previous session to resume
   ${SCRIPT_NAME} "summarize today"       # start with an initial prompt
   ${SCRIPT_NAME} --no-sync --yolo        # fast start, skip permission prompts
-  ${SCRIPT_NAME} --router                # the router: routes each request to its agent
+  ${SCRIPT_NAME} --full                  # a full session (dev work, /persona)
 EOF
 }
 
@@ -162,6 +168,8 @@ sync_repo() {
 # Argument parsing: consume script-level flags, forward everything else.
 # ---------------------------------------------------------------------------
 NO_SYNC=""
+FULL=""
+OWN_AGENT=""
 CLAUDE_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -174,8 +182,17 @@ while [[ $# -gt 0 ]]; do
       CLAUDE_ARGS+=("--dangerously-skip-permissions")
       shift
       ;;
+    --full)
+      FULL="1"
+      shift
+      ;;
     --router)
-      CLAUDE_ARGS+=("--agent" "gandalf")
+      shift
+      ;;
+    --agent|--agent=*)
+      # An agent named by hand wins over the router.
+      OWN_AGENT="1"
+      CLAUDE_ARGS+=("$1")
       shift
       ;;
     --install)
@@ -210,8 +227,21 @@ if ! command -v claude >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ -n "$BRAIN_PATH" ]]; then
-  exec claude --add-dir "$BRAIN_PATH" "${CLAUDE_ARGS[@]}"
+# The router gets its agent; a full session gets the permissions only it
+# needs (.claude/settings.full.json — the shell rule for the persona scripts
+# and dev work), so they are not granted to every session of the project.
+if [[ -n "$OWN_AGENT" ]]; then
+  MODE_ARGS=()
+elif [[ -z "$FULL" ]]; then
+  MODE_ARGS=("--agent" "gandalf")
+elif [[ -f "$GANDALF_DIR/.claude/settings.full.json" ]]; then
+  MODE_ARGS=("--settings" "$GANDALF_DIR/.claude/settings.full.json")
 else
-  exec claude "${CLAUDE_ARGS[@]}"
+  MODE_ARGS=()
+fi
+
+if [[ -n "$BRAIN_PATH" ]]; then
+  exec claude --add-dir "$BRAIN_PATH" "${MODE_ARGS[@]}" "${CLAUDE_ARGS[@]}"
+else
+  exec claude "${MODE_ARGS[@]}" "${CLAUDE_ARGS[@]}"
 fi

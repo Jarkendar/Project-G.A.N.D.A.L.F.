@@ -7,7 +7,8 @@
 # kept ~30 days) and prints, per agent type and model: how many runs, the
 # context size of the first turn ("start" — what it costs to launch), the
 # context at the last turn, and the totals. The main session is one row per
-# model. Read-only, no LLM call, nothing leaves the machine.
+# model — a session opened as an agent (`--agent`, the router) is its own row,
+# "main: <agent>". Read-only, no LLM call, nothing leaves the machine.
 #
 # Start = input + cache write + cache read of the first assistant turn, so it
 # includes the caller's prompt. Compare runs before and after a change to an
@@ -30,15 +31,16 @@ TRANSCRIPTS = os.path.join(
 
 
 def scan(path):
-    """One transcript -> (model, date, [context per turn], totals)."""
+    """One transcript -> (model, date, [context per turn], totals, agent)."""
     turns = {}  # message id -> usage of its last streamed chunk
-    model = date = None
+    model = date = agent = None
     with open(path, errors="ignore") as f:
         for line in f:
             try:
                 d = json.loads(line)
             except ValueError:
                 continue
+            agent = agent or d.get("agentSetting")
             if d.get("type") != "assistant":
                 continue
             msg = d.get("message", {})
@@ -55,7 +57,7 @@ def scan(path):
             )
     contexts = [u[0] + u[1] + u[2] for u in turns.values()]
     totals = [sum(u[i] for u in turns.values()) for i in range(4)]
-    return model, date, contexts, totals
+    return model, date, contexts, totals, agent
 
 
 def main():
@@ -64,9 +66,10 @@ def main():
 
     runs = collections.defaultdict(list)
     for path in glob.glob(os.path.join(TRANSCRIPTS, "*.jsonl")):
-        model, date, contexts, totals = scan(path)
+        model, date, contexts, totals, main_agent = scan(path)
         if contexts:
-            runs[("main session", model)].append((date, contexts, totals))
+            who = f"main: {main_agent}" if main_agent else "main session"
+            runs[(who, model)].append((date, contexts, totals))
     for meta in glob.glob(os.path.join(TRANSCRIPTS, "*", "subagents", "*.meta.json")):
         path = meta[: -len(".meta.json")] + ".jsonl"
         if not os.path.exists(path):
@@ -76,7 +79,7 @@ def main():
                 agent = json.load(f).get("agentType", "?")
         except ValueError:
             continue
-        model, date, contexts, totals = scan(path)
+        model, date, contexts, totals, _ = scan(path)
         if contexts:
             runs[(agent, model)].append((date, contexts, totals))
 

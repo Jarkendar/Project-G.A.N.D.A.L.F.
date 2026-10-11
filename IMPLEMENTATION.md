@@ -1740,7 +1740,8 @@ Phases — each ends with a measurement from `token-usage.py`:
   sub-agent from an `--agent` main thread with its context intact (it needs
   session persistence — with `--no-session-persistence` there is no
   transcript to resume).
-- [ ] **Phase 1 — the router.** Built 2026-10-11, opt-in:
+- [x] **Phase 1 — the router.** Built 2026-10-11, opt-in (the default since
+  Phase 6):
   `.claude/agents/gandalf.md` (the old skill's Steps 1–3 as its prompt;
   `Read`, `Grep`, `Glob`, `Agent(gimli, radagast, beorn)`, `SendMessage`,
   `AskUserQuestion`, `Write`, samwise; `model: sonnet`)
@@ -1996,10 +1997,40 @@ Phases — each ends with a measurement from `token-usage.py`:
   `.md` export, `y bez finance.md`, a reclassified ticker, Gloin forked from
   a full session after the rewrite, catalogue / profile edits (mode C),
   merging into a list that has ticks, anything on the real brain.
-- [ ] **Phase 6 — clean-up.** `Bash(python3 *)` out of the shared allow-list
-  (blocked by `/persona` while it runs in a full session); compare against
-  the baseline table at the top of this section; the router as the default
-  `gandalf`.
+- [x] **Phase 6 — clean-up.** Done 2026-10-11.
+  **The router is the default.** Plain `gandalf` (and `brain`) opens the
+  router; `gandalf --full` opens a full session — work on this repo,
+  `/persona`, `/ingest-conversation`, `/init-brain`. `--router` is still
+  accepted and does nothing; an `--agent` named by hand wins over both. The
+  channel service (`gandalf.service`, through `cc-channel`) does not use the
+  launcher and stays a full session.
+  **`Bash(python3 *)` left the shared allow-list.** It was in
+  `.claude/settings.local.json`, granted to every session of the project. It
+  now sits in `.claude/settings.full.json`, which the launcher passes with
+  `--settings` for `--full` only. Checked headless: without the file the
+  `python3` call is denied, with it it runs, and the router has no `Bash`
+  either way. A session started as bare `claude` in this directory now asks
+  before running `python3`.
+  **Measured against the baseline** (start = context of the first call):
+
+  | | Full session | Router | Difference |
+  |---|---|---|---|
+  | headless, one turn, haiku | 36.3 k (107 tools) | 24.9 k (8 tools) | −11.4 k |
+  | interactive, from the transcripts | 47.4 k (median, 56 sessions) | 20.3 k (median, 2 sessions) | −27 k |
+
+  The headless router start grew from 16.9 k (Phase 1, three agents) to
+  24.9 k: the router's prompt is now ~16 k characters and the fourteen agent
+  descriptions ~11 k. The full session grew too (33.8 k → 36.3 k), from the
+  same descriptions. A routed task ended the router's conversation at
+  25–42 k in the tests of Phases 4 and 5, where a full session ends at a
+  median of 181 k (opus) — the length, not the start, is where the saving
+  is. The two interactive router sessions predate Phases 2–5; the number to
+  watch is the `main: gandalf` row that `token-usage.py` now prints apart
+  from `main session`.
+  **Left open:** nothing of the new agents has run on the real brain yet
+  (the lists under each phase above); the GPW report fetch (Phase 5); the
+  claude.ai-synced skills in a full session (Stage 2); trimming the router's
+  prompt and the agent descriptions if the start matters.
 
 Expected: a router start near the 16 k measured below for the router-shaped
 agent without `Skill` (headless; interactive will be higher), and a main

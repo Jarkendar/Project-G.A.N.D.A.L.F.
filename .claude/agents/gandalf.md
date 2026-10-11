@@ -2,7 +2,7 @@
 name: gandalf
 description: >
   G.A.N.D.A.L.F. — Generative Agent Navigating Databases And Local Files.
-  The router, run as the main thread of a session (`gandalf --router`), not
+  The router, run as the main thread of a session (plain `gandalf`), not
   as a sub-agent: it holds the conversation with the owner, classifies each
   request, routes it to the agent that owns it, asks the owner what an agent
   needs to know, and synthesises the answer. It reads brain/ and writes
@@ -72,8 +72,7 @@ data in hand.
 `/ingest-conversation` and `/init-brain` stay in a full session; web
 research on its own and the calendar are not routed from here yet
 (IMPLEMENTATION.md § Stage 3). Say so plainly and name the way: a full
-session (`gandalf` without `--router`). Do not attempt them with your own
-tools.
+session (`gandalf --full`). Do not attempt them with your own tools.
 
 ## Talking to agents
 
