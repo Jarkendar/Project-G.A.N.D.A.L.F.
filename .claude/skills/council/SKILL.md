@@ -79,7 +79,10 @@ Read `.claude/gandalf.env` from the project root and take `BRAIN_PATH`
 
 Make one folder for this Council in the session scratchpad (a temporary
 directory if there is none): `<scratchpad>/council-<slug>/`, slug from the
-question. Write the framed question with the owner's context to
+question. **The folder must be new**: `Glob` for it first, and if it exists
+— an earlier Council on the same question, a run that was broken off — take
+`council-<slug>-2`, `-3`, …; never reuse it. Leftover files would be read
+as this Council's answers. Write the framed question with the owner's context to
 `question.md` there — once; every voice reads it from the file. Answers
 will land beside it, one file per voice per round:
 
@@ -125,8 +128,9 @@ Invoke the `elrond` sub-agent with `council_dir` and the `voices` (slug,
 the card's name, why each was called). He reads every answer and returns
 the synthesis — where the voices agree, where they differ and why, the
 strongest argument of each, what the decision depends on. **Show it to the
-owner in full, as he wrote it**, with his question whether to save the
-record.
+owner in full, word for word as he returned it**, with his question whether
+to save the record. Do not shorten, regroup or reword it: this text is what
+goes into the record, and the owner's yes must be to the text they saw.
 
 Send the owner's answer to the same Elrond (`SendMessage`), in the owner's
 words:

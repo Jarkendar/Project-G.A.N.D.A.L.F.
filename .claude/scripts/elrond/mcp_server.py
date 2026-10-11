@@ -83,6 +83,14 @@ def _read(path: Path) -> str:
     return text
 
 
+def _nest(text: str) -> str:
+    """question.md under a `###` heading: push its own headings down to `####`
+    and below, so they do not break the record's outline."""
+    levels = [len(m.group(1)) for m in re.finditer(r"^(#{1,6}) ", text, re.M)]
+    shift = 4 - min(levels) if levels and min(levels) < 4 else 0
+    return re.sub(r"^(#{1,6}) ", lambda m: "#" * min(6, len(m.group(1)) + shift) + " ", text, flags=re.M)
+
+
 def _yaml_str(value: str) -> str:
     return json.dumps(" ".join(value.split()), ensure_ascii=False)
 
@@ -181,7 +189,7 @@ def record(
         ])
         parts = [front, synthesis, "## Przebieg"]
         if framed:
-            parts.append("### Pytanie (kontekst przekazany głosom)\n\n" + framed)
+            parts.append("### Pytanie (kontekst przekazany głosom)\n\n" + _nest(framed))
         parts += sections
         text = "\n\n".join(parts) + "\n"
         with open(target, "x", encoding="utf-8") as fh:

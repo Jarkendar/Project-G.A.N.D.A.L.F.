@@ -139,8 +139,9 @@ return only their tails, and `elrond` writes the synthesis and the record.
 Keep the conversation small: to compose the council read only the
 **frontmatter** of each persona card (`Read` with `limit: 30`, or `Grep` for
 the frontmatter keys); never `Read` the voices' answer files unless the
-owner asks to see one; show Elrond's synthesis as he returned it, without
-rewriting it.
+owner asks to see one; show Elrond's synthesis **word for word** as he
+returned it — not shortened, not regrouped. It is the text that goes into
+the record, and the owner's yes must be to what they saw.
 
 ## `frodo` — the owner's records
 

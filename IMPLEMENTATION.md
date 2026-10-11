@@ -1877,9 +1877,9 @@ Phases — each ends with a measurement from `token-usage.py`:
   material, a private card.
   Radagast got the same sentence as Frodo and Arwen: a yes the router
   passes on is the owner's yes.
-- [ ] **The Council through files, 2026-10-11 — built, half tested.** A
-  Council left ~90 k in the router's conversation. Now each voice (`beorn`,
-  `Write` + a `tmp` write guard) writes its answer to
+- [x] **The Council through files, 2026-10-11.** A Council left ~90 k in
+  the router's conversation. Now each voice (`beorn`, `Write` + a `tmp`
+  write guard) writes its answer to
   `<scratchpad>/council-<slug>/<round>-<voice>.md` and returns only its
   tail; the critique round is handed the other voices' files; `elrond`
   (E.L.R.O.N.D., `.claude/agents/elrond.md`, sonnet) reads the folder,
@@ -1888,13 +1888,22 @@ Phases — each ends with a measurement from `token-usage.py`:
   copies every answer instead of retyping it. The router's guard is `tmp`
   only: it writes `question.md` and nothing in brain/. The skill
   (`council/SKILL.md` §4–7) describes this flow for a full session too.
-  Tested: the `record` tool directly (a record, six refusals); through the
-  router on a test copy — composition, `question.md`, the blind round with
-  three role voices (files written, tails returned). **Not run:** the
-  critique round, Elrond's synthesis and the record — the test stopped on
-  the usage limit; no measurement of the router's conversation yet. In a
-  headless test copy the voices need `Read`, `Glob` and `Write` in
-  `--allowedTools` to reach the scratchpad.
+  Tested through the router on a test copy, three role voices, one
+  critique round: blind → critique → synthesis → yes → a 41 k-character
+  record → commit by Ori. **The router's conversation went 19.2 k → 49.1 k
+  at the synthesis** (54.4 k after the record and the commit): the skill
+  5.8 k, ~1.3 k per voice call (launch notice + tail), the synthesis 5.4 k
+  in and 2.7 k out. The 2026-10-11 Council of five voices (ten calls) had
+  ended at 109 k; the same Council would now land near 60 k.
+  Found on the way: a Council folder left by a broken-off run was reused
+  and its files read as answers — the folder must be new (`-2`, `-3`); the
+  router shortened Elrond's synthesis by half when showing it — the prompt
+  now says word for word (not re-tested); `question.md`'s headings are
+  nested under the record's outline by the tool. In a headless test copy
+  the agents need `Read`, `Glob` and `Write` in `--allowedTools` to reach
+  the scratchpad; not confirmed either way for a live session.
+  **Not yet run:** with persona cards on the real brain, a second critique
+  round, a correction of the synthesis.
 - [ ] **Phase 4 — career & practice, projects.** First use of a sub-team
   (`legolas`, `erestor`) under a domain agent.
 - [ ] **Phase 5 — finance, travel, personas.** Low frequency; only if the
