@@ -59,7 +59,18 @@
       "mcp__samwise__context",
       "mcp__samwise__search",
       "mcp__arwen__list_decks",
-      "mcp__arwen__find_notes"
+      "mcp__arwen__find_notes",
+      "mcp__gimli__databases",
+      "mcp__gimli__schema",
+      "mcp__gimli__query",
+      "mcp__ori__status",
+      "mcp__ori__commit",
+      "mcp__frodo__fitness_upsert",
+      "mcp__frodo__now",
+      "mcp__elrond__record",
+      "mcp__thorin__read_export",
+      "mcp__thorin__archive_export",
+      "mcp__thorin__edgar_reports"
     ]
   }
 }

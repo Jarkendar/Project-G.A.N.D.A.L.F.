@@ -7,6 +7,7 @@ description: >-
   reads brain/. Called by develop-idea step 7, not meant to be invoked on its
   own.
 context: fork
+agent: legolas
 user-invocable: false
 allowed-tools: WebSearch WebFetch
 ---

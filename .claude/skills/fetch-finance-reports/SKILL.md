@@ -8,6 +8,7 @@ description: >-
   failures. Public company data only. Called by ingest-finance step 5, not
   meant to be invoked on its own.
 context: fork
+agent: gloin
 user-invocable: false
 ---
 
@@ -42,59 +43,43 @@ exist, or a line is malformed, stop and say so.
 - The only data that leaves the machine is the ticker and the first-buy date
   (as a search window) in EDGAR / broker queries.
 - Never overwrite an existing report file.
-- Process tickers **sequentially**. SEC EDGAR allows 10 req/s; with more than 5
-  US tickers pause ~200 ms between EDGAR requests.
+- Process tickers **sequentially**.
+- You have no shell. Existing files are listed with `Glob`, US filings come
+  from the `mcp__thorin__edgar_reports` tool, GPW pages from `WebFetch`, and
+  the time for `date:` from `mcp__frodo__now` (call it once).
 
 ## Steps
 
 For each ticker, fetch reports published **on or after** its `FIRST_BUY_DATE`.
 
-First check what exists:
-
-```bash
-ls "<brain>/knowledge/finance/$TICKER/" 2>/dev/null
-```
+First check what exists: `Glob` for `<brain>/knowledge/finance/<TICKER>/*.md`.
 
 A report file that already exists (`YYYY-QQ.md` or `YYYY-annual.md`) is
 **skipped**. Only fetch what is missing.
 
 ### US tickers — SEC EDGAR
 
-**1. Look up the CIK.** Query
-`https://efts.sec.gov/LATEST/search-index?q=%22<TICKER>%22&dateRange=custom&startdt=<FIRST_BUY_DATE>&forms=10-K,10-Q`
-or
-`https://www.sec.gov/cgi-bin/browse-edgar?company=&CIK=<TICKER>&type=10-K&dateb=&owner=include&count=10&search_text=&action=getcompany`.
-Extract the CIK zero-padded to 10 digits (`$CIK`). No CIK found → reclassify
-the ticker as `GPW`, note the reclassification for the output, and continue
-with the GPW flow.
+**1. Call `mcp__thorin__edgar_reports(ticker, since)`** with the ticker and
+its `FIRST_BUY_DATE`. It looks up the company, lists every 10-K and 10-Q filed
+on or after that date and returns, per filing: the file name it belongs in
+(`YYYY-QQ.md` for a 10-Q, by the quarter of its period end; `YYYY-annual.md`
+for a 10-K), the form, period end, filing date, accession number and the key
+figures — each with a short form (`$6.11B`), the exact value and the period it
+covers. The company name is on the `company name:` line.
 
-**2. Fetch the submissions list:** `https://data.sec.gov/submissions/CIK<$CIK>.json`.
-From `filings.recent` take every 10-K and 10-Q with `filingDate >=
-FIRST_BUY_DATE`; keep `form`, `filingDate`, `reportDate` (period end),
-`accessionNumber`.
+- `NO MATCH` → EDGAR does not list the ticker: reclassify it as `GPW`, note
+  the reclassification for the output, and continue with the GPW flow.
+- `refused` → log it as a failure for this ticker and go on to the next.
+- A filing marked `NO FIGURES YET` gets **no file** — a later run picks it up.
 
-**3. Name the file from `reportDate`:**
-- 10-Q → `YYYY-QQ.md`, QQ = `Q1` (Jan–Mar), `Q2` (Apr–Jun), `Q3` (Jul–Sep),
-  `Q4` (Oct–Dec) by quarter-end month.
-- 10-K → `YYYY-annual.md`.
+**2. Skip a filing whose file already exists.**
 
-Skip the filing if that file already exists.
-
-**4. Fetch key financials:** `https://data.sec.gov/api/xbrl/companyfacts/CIK<$CIK>.json`.
-For the entry whose `end` equals `reportDate` and whose `form` matches (latest
-`filed` if duplicated), `USD` unit:
-- Revenue: `us-gaap/Revenues` or
-  `us-gaap/RevenueFromContractWithCustomerExcludingAssessedTax`
-- Net income: `us-gaap/NetIncomeLoss`
-- EPS: `us-gaap/EarningsPerShareBasic`
-- Total assets: `us-gaap/Assets`
-- Total debt: `us-gaap/LongTermDebt` + `us-gaap/ShortTermBorrowings`
-- Operating cash flow: `us-gaap/NetCashProvidedByUsedInOperatingActivities`
-
-`entityName` from the JSON root is the company name. A metric missing from
-XBRL is `n/a`.
-
-**5. Write `<brain>/knowledge/finance/$TICKER/<key>.md`:**
+**3. Write `<brain>/knowledge/finance/$TICKER/<file>`** for each of the rest.
+Copy the figures as the tool gave them — the short form in the table, never
+recomputed. `Total debt` is long-term debt plus short-term borrowings when the
+tool gives both; one of them alone is written with its name
+(`$874.00M (short-term borrowings only)`); neither → `n/a`. A figure the tool
+marks as year to date keeps that mark: `$1.04B (YTD 2025-01-01 → 2025-06-30)`.
 
 ```markdown
 ---

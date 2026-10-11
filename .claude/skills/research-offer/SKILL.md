@@ -7,6 +7,7 @@ description: >-
   Writes nothing, never reads brain/. Called by analyze-offer step 5, not
   meant to be invoked on its own.
 context: fork
+agent: legolas
 user-invocable: false
 allowed-tools: WebSearch WebFetch
 ---

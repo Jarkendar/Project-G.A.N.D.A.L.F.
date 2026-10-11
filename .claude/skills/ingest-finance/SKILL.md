@@ -8,6 +8,7 @@ description: >-
   GPW). Use this skill after placing a myFund XML or CSV export in the inbox
   (monthly cycle), to process a specific file, or to process all pending
   finance exports in the inbox.
+disable-model-invocation: true
 ---
 
 # ingest-finance

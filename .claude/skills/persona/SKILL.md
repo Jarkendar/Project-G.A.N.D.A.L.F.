@@ -8,6 +8,7 @@ description: >-
   personę", "kolejna persona", "zbuduj personę <kto>", "dodaj <kogoś> do
   Rady", "/persona", or to rework an existing card ("karta v2", "popraw
   personę", "re-walidacja").
+disable-model-invocation: true
 ---
 
 # persona — Mírdain, the jewel-smiths
@@ -134,6 +135,25 @@ Manual path — for each source in the batch:
 4. After the batch: `verify_quotes.py <slug>`, commit and push in brain
    (`feat(personas): <slug> digests P<n>`). The post-commit hook reindexes
    the persona RAG on its own.
+
+**Handing steps 1–2 to a sub-agent: `narvi`, never `general-purpose`.**
+Narvi (`.claude/agents/narvi.md`) holds `Read` and `Write` only, and a hook
+refuses any write outside the scratchpad — `general-purpose` carries every
+tool and ~36k tokens before it reads a line. It has no shell, so prepare
+the text first:
+
+```
+python3 .claude/scripts/personas/reflow.py <slug> <id> | fold -s -w 1500 > <work>/<id>.txt
+```
+
+Call it with `persona`, `surname`, and per source `source_id`, `title`,
+`source_type`, `source_date` (the catalogue row), `source_file`
+(`<work>/<id>.txt`) and `draft_file` (`<drafts>/<id>.md`). One to three
+sources per call — with more, every source is dragged through all later
+turns (the `general-purpose` runs ended at ~280k of context); several
+calls in one message run in parallel. Steps 3–4 stay with you, and so
+does the spot-check of 2–3 drafts against their sources. After any change
+to the agent, run one source through `assemble.py` before fanning out.
 
 Rules that each cost a rework once:
 - **Quotes: 0–2, the person's own words, and only when the line is the

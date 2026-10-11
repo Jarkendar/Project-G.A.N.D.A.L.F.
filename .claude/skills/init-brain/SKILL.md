@@ -8,6 +8,7 @@ description: >-
   when brain/ does not exist yet, after cloning this repo on a new machine, to
   validate that an existing brain/ has the expected structure, or to recover
   missing core/ templates or _meta files.
+disable-model-invocation: true
 ---
 
 # init-brain

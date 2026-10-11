@@ -4,7 +4,7 @@
 the execution path — *how* and *when*. README is the canon; this file is updated
 as work progresses without touching the canon.
 
-Last updated: 2026-09-22
+Last updated: 2026-10-10
 
 ---
 
@@ -1562,6 +1562,552 @@ Storage and retrieval:
 
 ---
 
+### Least privilege & token diet (cross-cutting, started 2026-10-10)
+
+**Goal:** every agent starts cheap and holds only the tools its job needs;
+the session that plays Gandalf stops being the block that holds everything.
+
+**Baseline** — this project's Claude Code transcripts, 2026-09-13 … 10-10
+(84 main sessions, 107 sub-agent runs), from
+`.claude/hooks/smeagol/token-usage.py` (re-run it after each stage). "Start"
+= context of the first turn.
+
+| Who | Model | Runs | Start | Share of all cache reads |
+|---|---|---|---|---|
+| main session | opus by default | 84 | ~48 k | ~93 % |
+| `general-purpose` (persona digests, validation) | sonnet / opus | 50 | ~36 k | ~7 % |
+| `beorn` | inherited: opus 37×, sonnet 17× | 54 | 11.7 k | ~0.1 % |
+| `gimli`, `radagast` | inherited | 0 | not measured | — |
+
+What the numbers say:
+- **Agent start-up is not where the tokens go.** The main session is: ~300 k
+  of context per turn on average, and its ~48 k start is re-read on every one
+  of ~5,800 turns. Narrowing agents is about permissions; the token lever is
+  the main session's start and length.
+- `/gandalf` was never invoked in those 84 sessions (no frontmatter, so no
+  trigger) — routing is done by the main session from CLAUDE.md § Brain access.
+- No agent pinned a model; forked skills without `agent:` ran as
+  `general-purpose` with every tool (`allowed-tools` pre-approves, it does not
+  restrict).
+- No `deny` rule anywhere: "private folders never reach an external API" holds
+  by prose only — one session has both the private read and
+  WebFetch / Drive / Docs.
+
+**Stage 1 — agents: model pins and minimal tools.** Done 2026-10-10:
+- [x] `beorn` → `model: opus` (fidelity of the voices over ~0.1 % of usage).
+- [x] `radagast` → `model: sonnet`; the Mermaid MCP tool removed (the
+  connector is not authenticated, the tool never existed in a session).
+  `Write` stays — Radagast is the sole writer of `knowledge/reports/`; the
+  save confirmation now comes back to the same Radagast as a follow-up
+  message, since a sub-agent cannot ask the owner itself.
+- [x] `gimli` → `model: haiku`, and no `Bash`: his three tools come from a
+  read-only MCP server, `.claude/scripts/gimli/` (`databases`, `schema`,
+  `query`). Databases are opened `mode=ro`, an SQLite authorizer lets only
+  SELECT through, one statement per call, 20 s limit; every result is headed
+  with the database's privacy label from `brain/db/CLAUDE.md`. Tested on
+  throwaway databases (ten write / DDL / ATTACH attempts refused, files
+  byte-identical afterwards) and over a real MCP handshake. Two things it
+  fixed on the way: the `sqlite3` command-line tool is not installed on the
+  Pi, so the `Bash` version could not have run here at all; and `gimli.md`
+  told him to withhold PRIVATE results while `brain/db/CLAUDE.md` (the source
+  for its own rules) says to return them under the MVP exception — the only
+  database in the registry today, `fitness.db`, is PRIVATE. `gimli.md` now
+  follows brain/. Known gap: `GIMLI_EXTRA_DBS` still points at a
+  `dev_tracker.db` path that does not exist on this machine (reported as a
+  note by `databases()`).
+- [x] `legolas` — new, `WebSearch` + `WebFetch` only, `model: sonnet`. No file
+  tools, so "never reads brain/" is structural. `research-offer` and
+  `research-idea` fork into it (`agent: legolas`) instead of
+  `general-purpose`. The Gandalf route stays Step 5.
+- [x] `erestor` — new, `Read` + `Grep` + `Glob`, `model: sonnet`: the
+  read-only briefing before a practice session. `english-prep` and
+  `practice-prep` fork into it.
+- [x] `gloin` — new, `WebFetch` + `Bash` + `Write`, `model: sonnet`:
+  `fetch-finance-reports` forks into it. **Not minimal yet:** `Bash` stays
+  because SEC EDGAR wants a descriptive `User-Agent` that `WebFetch` cannot
+  set (the one EDGAR fetch in the transcripts went through `curl`). Next: a
+  narrow fetch script (ticker → filings JSON) so `Bash` can go, and a guard
+  on where he may write. *Done in Stage 3, Phase 5: `edgar_reports` MCP tool,
+  write-guard hook, no `Bash`.*
+- [x] `narvi` — new, `Read` + `Write`, `model: sonnet`: the digest agent for
+  `/persona` step 3 when Claude writes the drafts, instead of
+  `general-purpose` (−26 k on each of ~25 turns per run). This is the first
+  step of the owner's backlog item "Agenci zadaniowi o minimalnych
+  uprawnieniach". No shell: the orchestrator runs `reflow.py` into the
+  scratchpad first (folded to 1,500-character lines) and keeps `assemble.py`.
+  A `PreToolUse` hook in the agent's own frontmatter
+  (`.claude/hooks/narvi/write-guard.py`) refuses a `Write` that is not a
+  `.md` under the system temp directory — the Samołyk digests had agents
+  creating files outside the working folder. The guard itself is tested (ten
+  cases: brain/, the repo, a relative path, `..`, a symlink out of the
+  scratchpad, non-`.md`, unreadable input — all refused). **Not yet tested:**
+  that the harness runs a frontmatter hook for a sub-agent, and one real
+  source end to end through `assemble.py`. `/persona` says to do that single
+  run before fanning out.
+
+README.md § agents does not list `erestor`, `gloin` and `narvi` yet (owner's file).
+
+**Stage 2 — context diet.**
+- [x] `disable-model-invocation: true` on `init-brain`, `ingest-finance`,
+  `ingest-conversation`, `persona` — out of the skill listing, still run by
+  `/name` (2026-10-10).
+- [x] CLAUDE.md: dev-only rules into `.claude/rules/dev.md` with `paths:`
+  (2026-10-11; Stage 3, Phase 0).
+- [ ] claude.ai-synced skills (32; Android, docx, …) off for this project —
+  mechanism found: `--setting-sources project,local` in the launcher
+  (check 5 below). Not needed for the router of Stage 3, which has no
+  `Skill` tool and so no listing; still open for the dev session.
+- Dropped: narrowing `Bash(python3 *)` in `settings.local.json`. The
+  transcripts show ~1,000 inline `python3 -` / `-c` calls a month in dev
+  work; the restriction belongs to Stage 3 (Phase 6), not to the dev
+  session.
+
+**Stage 3 — Gandalf as a router, the work in domain agents.** Direction set
+by the owner 2026-10-11. It replaces the launcher-profile plan (questions /
+capture / dev — in git history, commit 0ec5562). This is the plan only;
+nothing below is built, and it is built one domain at a time.
+
+```
+owner ↔ Gandalf — router, main thread: holds the conversation, asks, confirms
+          ├─ domain agent — owns its domain's skills, reads / writes its folders
+          │     └─ task agents — its own sub-team (legolas, gloin, narvi, …)
+          ├─ gimli, radagast, samwise — questions
+          └─ beorn × N — the White Council, called by the router itself
+```
+
+Rules of the shape:
+1. **The router routes.** Tools: `Read`, `Grep`, `Glob`, `Agent(…)`,
+   `SendMessage`, `AskUserQuestion`, samwise, `Write` outside brain/ only
+   (council round files). No `Skill`, `Edit`, `Bash`, web or connectors:
+   nothing in its context can leave the machine or change brain/.
+2. **Agents own the skills.** A skill is preloaded into its agent with
+   `skills:` in the agent's frontmatter; the agent needs no `Skill` tool and
+   carries no skill listing. The router drops `Skill` (11 k) and keeps one
+   preloaded skill, `council`.
+3. **Dialogue stays in the main conversation.** A domain agent cannot ask the
+   owner. It returns either a result or a block of questions / a draft to
+   approve; the router asks, then sends the answer to the same agent with
+   `SendMessage`, context intact. The owner accepts this ping-pong as the
+   price; it also keeps every question and answer in the one conversation
+   that is logged.
+4. **An agent may have a sub-team**, one level deep, when its task has real
+   smaller tasks (research, fetch, digest). Not for the Council — the router
+   calls `beorn` directly. This changes the rule "agents do not call other
+   agents directly" (CLAUDE.md § Architecture, and the parking-lot note
+   above); README is the owner's.
+5. **Privacy by structure.** An agent that reads `core/` or `current/` holds
+   no outbound tool; outbound work goes to a task agent with a brief that
+   contains only what may leave (the `legolas` pattern).
+6. **MCP servers are per session, tools are per agent.** A sub-agent uses the
+   session's servers, so the router session must load every server any agent
+   needs — `--strict-mcp-config` is out. The boundary is each agent's
+   `tools:` list.
+
+Candidate domains (a proposal to cut from — the owner does the splitting;
+names are the owner's call; skill sizes are chars / 4):
+
+| Domain | Skills it would own | Tools | Sub-team | Dialogue |
+|---|---|---|---|---|
+| questions | — | the router with `gimli`, `radagast`, samwise | — | — |
+| council | `council` (1.8 k, preloaded in the router) | `beorn` × N | — | in the router |
+| personal records (`core/`, `current/`, `backlog/`) — **`frodo`** | `daily` (8.7 k), `update-core`, `add-contact`, `idea`, `interview` — ~18.5 k together | `Read`, `Grep`, `Glob`, `Write`, `Edit`, Strava | `ori` | heavy |
+| career & practice — **`balin`** | `analyze-offer`, `practice-review`, `english-review` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `legolas`, `ori` | medium |
+| practice briefings — **`erestor`** | `english-prep`, `practice-prep` (read on demand) | `Read`, `Grep`, `Glob` | — | a `NEED:` line at most |
+| projects — **`cirdan`** | `develop-idea` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `legolas`, `ori` | medium |
+| finance — **`thorin`** | `ingest-finance` (read on demand; on the owner's explicit word only) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now`, `read_export`, `archive_export` | `gloin`, `ori` | one plan |
+| learning — **`arwen`** | `flashcards` | `Read`, `Grep`, `Glob`, samwise, arwen | — | one approval |
+| travel — **`strider`** | `pack` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `ori` | medium |
+| personas — stays in a full session | `persona` (typed by hand only) | `Read`, `Write`, `Bash` for the persona scripts | `narvi` | heavy |
+| calendar | — (Step 4, F.A.R.A.M.I.R.) | Google Calendar | — | — |
+
+Open in the map: whether `daily` gets an agent of its own (it is half of the
+records domain's preload and delegates to the other four skills), and which
+order the rest follow in. The owner's target is an agent for every domain,
+reached gradually.
+
+Phases — each ends with a measurement from `token-usage.py`:
+
+- [x] **Phase 0 — ground.** Done 2026-10-11. (a) CLAUDE.md § Architecture
+  now states this shape, sub-teams included. (b) Dev-only sections (git
+  agreement, naming and the agent table, ecosystem, design principles, "can
+  / not without approval") moved to `.claude/rules/dev.md` with `paths:`;
+  CLAUDE.md went from 7.4 k to 3.4 k characters. Measured headless: the
+  rules are absent at start and after reading `.claude/gandalf.env.example`,
+  present after reading `bin/gandalf`; start −1.7 k for the session
+  (33.8 k → 32.1 k) and for every agent run (`beorn` 13.5 k → 11.8 k).
+  (c) Checked headless with a router-shaped test agent: a typed `/idea list`
+  runs although the main agent has no `Skill` tool; `SendMessage` resumes a
+  sub-agent from an `--agent` main thread with its context intact (it needs
+  session persistence — with `--no-session-persistence` there is no
+  transcript to resume).
+- [x] **Phase 1 — the router.** Built 2026-10-11, opt-in (the default since
+  Phase 6):
+  `.claude/agents/gandalf.md` (the old skill's Steps 1–3 as its prompt;
+  `Read`, `Grep`, `Glob`, `Agent(gimli, radagast, beorn)`, `SendMessage`,
+  `AskUserQuestion`, `Write`, samwise; `model: sonnet`)
+  and `gandalf --router` in `bin/gandalf`. The `gandalf` skill is deleted.
+  Two deviations from the plan above. The router is **opt-in, not the
+  default with `--full` as the way back**: a typed `/daily` runs in the main
+  thread with the router's tools and could not write, so the default flips
+  only once the writing domains have agents. And `Write` is bounded by a
+  hook rather than by prose: `.claude/hooks/write-guard/guard.py gandalf tmp
+  brain:knowledge/councils` (generic — allowed places are its arguments;
+  thirteen cases tested, symlink and `..` included) — the Council saves its
+  record to `knowledge/councils/`, so "outside brain/ only" was wrong.
+  Measured headless: start 16.9 k against the 33.8 k baseline; a
+  quantitative question went to `gimli` and came back with numbers and
+  source, an open one through samwise `context` + `search(wide)`; writes to
+  the repo and to `brain/knowledge/` were refused by the hook. The frontmatter
+  hook question is closed with it: `narvi`'s guard refuses too, as main
+  agent and as sub-agent, even with permissions skipped.
+  First real session (2026-10-11): interactive start 18.5 k by `/context`
+  against 35.4 k for the full session (skills listing gone, tools 13 k →
+  7.9 k). The report route worked end to end — `gimli` → `radagast` → the
+  save question relayed → the answer sent to the same Radagast — and then
+  the save was refused: **a hook in the main-thread agent's frontmatter
+  fires for its sub-agents too**, so the router's guard judged Radagast's
+  write. Fixed: `guard.py` takes the agent's name first and passes calls
+  whose `agent_type` is another agent; `radagast` got his own guard
+  (`brain:knowledge/reports`). Every agent that writes needs its own.
+  The Council ran in a second session (five voices, blind + one critique
+  round, ten `beorn` runs on Opus at a 12–13 k start each). Start by the API:
+  19.2 k, against ~50.6 k for a full session. What it showed: `skills:`
+  does **not** preload a skill into an agent that runs the main thread (it
+  does for a sub-agent) — the router found and read `SKILL.md` itself, which
+  also pulled in `.claude/rules/dev.md`; it read seven persona cards whole
+  to pick the voices; and the conversation grew from 19 k to 109 k, because
+  every voice's full answer comes back into the router. Fixed after it: the
+  router's prompt points at the skill file and at frontmatter-only reads,
+  `skills:` is gone from `gandalf.md`, and `SKILL.md` files no longer
+  trigger the dev rules. **Open:** the ~90 k a Council leaves in the main
+  conversation — voices writing their answers to files, or the Council as an
+  agent of its own, would keep it out.
+- [x] **Committing brain/ — `ori` (2026-10-11).** The router has no shell,
+  so after the Council's record was saved "scommituj" had nowhere to go. The
+  owner's decision: one narrow agent, the permission in one place.
+  `.claude/scripts/ori/` is an MCP server with two tools — `status` and
+  `commit(paths, message)`: `git add` of exactly the paths handed over, one
+  commit on `main`, push. It refuses another branch, paths outside brain/,
+  the repository root, symlinks, deletions, foreign staged changes and a
+  non-conventional message; it adds the trailer itself and never bypasses
+  brain/'s pre-commit hook (twenty cases on a throwaway repository).
+  `.claude/agents/ori.md` (haiku, those two tools, start 6.8 k) is in the
+  router's `Agent(…)` list. No agent that writes to brain/ gets git: they
+  write, Ori records. It runs on the Gimli server's venv — no new install.
+  Not yet run for real: a commit through the router in a live session.
+- [ ] **Phase 2 — pilot domain: personal records, starting with `daily`.**
+  The most used skill (21 invocations in 15 of 87 sessions, with `idea` at
+  20) and the heaviest: invoking it adds ~14 k to the main conversation,
+  re-read on every later turn, before anything it reads.
+  **`daily` built 2026-10-11 — `frodo`** (F.R.O.D.O., Filing Records Of
+  Daily Occurrences; `.claude/agents/frodo.md`, sonnet). The skill is
+  unchanged and preloaded with `skills: [daily]`; the agent's prompt
+  overrides four things only — it returns `PYTANIA` / `PLAN` instead of
+  asking and is resumed with the answer; it reads the sibling skills'
+  templates (`update-core`, `add-contact`, `idea`) on demand; the `sqlite3`
+  block is the tool `mcp__frodo__fitness_upsert` (`.claude/scripts/frodo/`,
+  one row by named fields, no SQL); the commit goes to `ori`, his one-agent
+  sub-team. Tools: `Read`, `Grep`, `Glob`, `Write`, `Edit`, six Strava
+  tools, the upsert, `Agent(ori)`; a write guard for `core/`,
+  `current/daily|fitness|context/`, `backlog/`, `knowledge/places|events|notes/`.
+  A full session still runs `/daily` as before.
+  Tested end to end on a copy of the project with a throwaway brain and the
+  real Strava: turn one — the router handed the note to Frodo and showed
+  his plan (two rides that day, the evening one matched), nothing written;
+  turn two — `y` sent to the same Frodo, nine files written, the database
+  row upserted with NULLs where Strava had nothing, one commit by Ori with
+  the trailer. **Not yet run:** on the real brain, in a live router session;
+  a note with questions (step 5c) and an `edit` round.
+  **The rest of the domain, 2026-10-11:** Frodo takes a `task` — `daily`,
+  `idea`, `update-core`, `add-contact`, `interview` — and is renamed to fit
+  (Filing Records Of Days & Observations). The four skills are unchanged
+  and **read on demand**, not preloaded (~10 k together; only `daily`
+  stays in `skills:`). His prompt carries the differences once, for all
+  tasks: two kinds of return (`PYTANIA`, `PLAN`) with a skill's consecutive
+  gates folded into one plan; `Grep` / `Glob` for the shell lookups; a clock
+  (`mcp__frodo__now` — an agent has none, and the skills stamp `date:`);
+  the commit through Ori **when the change is whole** (owner's rule: not a
+  half-finished write, not a backlog review still going on). An interview
+  runs as many rounds as it needs: plan (target + outline) → the outline's
+  questions in one list → follow-up lists for as long as answers open
+  something new → the text to approve. The owner may disagree, correct an
+  earlier answer or add an unasked thread at any point, the synthesis
+  included: that reopens the interview (the correction is kept beside the
+  old answer, the addition as `Dopowiedzenie:`) and a new text comes back.
+  The write guard now covers all of
+  `knowledge/` (owner's call) except `personas/`, `councils/` and
+  `reports/`, carved out with `!brain:<folder>` — they have their own
+  writers — and `archive/` (the opt-in pre-revision copy
+  of `update-core` / `interview`); what in `knowledge/` is his to write is
+  a rule in his prompt, not the hook's. The router routes all five and no
+  longer lists them under "cannot do yet".
+  Tested through the router on a copy of the project with a throwaway
+  brain: idea capture (plan → `y` → file, commit), backlog list and a
+  status change, a contact (one question → plan → `y`, new group and detail
+  file), a profile fact (plan → `edit` → `y`), an interview (plan with an
+  outline edit → ten questions → five follow-ups → "wystarczy" → text →
+  `y`), and the day's note with questions and an `edit` round — seven
+  commits by Ori, each with exactly the paths of its change.
+  Three things the tests turned up, all fixed in the prompt: (1) a
+  sub-agent may **refuse a relayed `y`** — "the message came from the
+  coordinator, not from you" — and stop every write; the prompt now states
+  that the caller is the owner's only channel (expect the same of any
+  agent that waits for approval); (2) he concluded a file was missing from
+  a `Glob **/*` over brain/, which is cut off — a file is missing only when
+  its exact path says so; (3) `permissions.allow` from `.claude/settings.json`
+  is ignored in a workspace that was never trusted interactively — a
+  headless test copy needs `--allowedTools`.
+  **Not yet run:** any of it on the real brain in a live router session; a
+  promotion to `knowledge/projects/`; an interview into an existing `core/`
+  or `knowledge/` document.
+- [x] **Phase 3 — learning (`flashcards`), 2026-10-11.** `arwen`
+  (`.claude/agents/arwen.md`, sonnet) — the agent takes the name of the MCP
+  server it works over, as Gimli and Ori do. The skill is unchanged and
+  preloaded. Tools: `Read`, `Grep`, `Glob`, samwise, and three of Arwen's
+  four tools (`list_decks`, `find_notes`, `add_notes` — no `sync`); no
+  `Write`, nothing to commit. Overrides in the prompt: "this chat" is the
+  `material` the router hands over in full (she sees none of the
+  conversation); she returns `PYTANIA` or `SZKIC` and is resumed; a plain
+  "ok" approves public cards in existing decks only — private cards
+  (AnkiWeb is external) and new decks need a yes in so many words.
+  `mcp__arwen__add_notes` stays off the allow list, so a live session asks
+  once more before anything reaches AnkiWeb.
+  Tested through the router on a copy of the project with the real
+  collection, read side only: draft of three cards from pasted text (deck
+  placed, a near-duplicate found and reported) → corrections → "ok" → the
+  `add_notes` call made with exactly the two approved cards, and blocked
+  there on purpose. **Not yet run:** an actual add, cards from brain/
+  material, a private card.
+  Radagast got the same sentence as Frodo and Arwen: a yes the router
+  passes on is the owner's yes.
+- [x] **The Council through files, 2026-10-11.** A Council left ~90 k in
+  the router's conversation. Now each voice (`beorn`, `Write` + a `tmp`
+  write guard) writes its answer to
+  `<scratchpad>/council-<slug>/<round>-<voice>.md` and returns only its
+  tail; the critique round is handed the other voices' files; `elrond`
+  (E.L.R.O.N.D., `.claude/agents/elrond.md`, sonnet) reads the folder,
+  writes the synthesis and — after the owner's yes — has the record
+  assembled by `mcp__elrond__record` (`.claude/scripts/elrond/`), which
+  copies every answer instead of retyping it. The router's guard is `tmp`
+  only: it writes `question.md` and nothing in brain/. The skill
+  (`council/SKILL.md` §4–7) describes this flow for a full session too.
+  Tested through the router on a test copy, three role voices, one
+  critique round: blind → critique → synthesis → yes → a 41 k-character
+  record → commit by Ori. **The router's conversation went 19.2 k → 49.1 k
+  at the synthesis** (54.4 k after the record and the commit): the skill
+  5.8 k, ~1.3 k per voice call (launch notice + tail), the synthesis 5.4 k
+  in and 2.7 k out. The 2026-10-11 Council of five voices (ten calls) had
+  ended at 109 k; the same Council would now land near 60 k.
+  Found on the way: a Council folder left by a broken-off run was reused
+  and its files read as answers — the folder must be new (`-2`, `-3`); the
+  router shortened Elrond's synthesis by half when showing it — the prompt
+  now says word for word (not re-tested); `question.md`'s headings are
+  nested under the record's outline by the tool. In a headless test copy
+  the agents need `Read`, `Glob` and `Write` in `--allowedTools` to reach
+  the scratchpad; not confirmed either way for a live session.
+  **Not yet run:** with persona cards on the real brain, a second critique
+  round, a correction of the synthesis.
+- [x] **Phase 4 — career & practice, projects, 2026-10-11.** Two domain
+  agents, skills unchanged and read on demand: `balin` (B.A.L.I.N. —
+  `analyze-offer`, `practice-review`, `english-review`; guard
+  `brain:knowledge/career brain:knowledge/language`) and `cirdan`
+  (C.I.R.D.A.N. — `develop-idea`; guard `brain:knowledge/projects
+  brain:backlog/projects`). Both return `PYTANIA` / `PLAN` like Frodo — a
+  new dossier is shown in full in the plan — take the clock from
+  `mcp__frodo__now` and commit through Ori. Frodo's guard is unchanged (an
+  idea's promotion and an interview may still land in those folders).
+  `erestor` is routed straight from the router with a `task`
+  (`english-prep`, `practice-prep`) and reads the skill himself; a `NEED:`
+  line is his question.
+  **The sub-team, as it really works.** `legolas` has both research skills
+  preloaded (`skills:` works for a `user-invocable: false` skill) and takes
+  `brief: research-offer | research-idea | fetch-offer` from the domain
+  agent; only the offer's or the idea's own words go to him. Two things
+  the harness does, found in the tests:
+  - a nested agent can be started only if it is on the **main-thread**
+    agent's `Agent(...)` list as well — `legolas` is on the router's list
+    for that reason alone;
+  - a nested `Agent` call made **without** `run_in_background` starts the
+    helper in the background: the launch returns at once and the helper's
+    result is delivered to the router, not to the agent that started it.
+    With `run_in_background: false` the call is synchronous and the result
+    comes back to the caller — Balin, Círdan and Frodo are told to call
+    their helpers that way. (The first version worked around it with a
+    `CZEKAM` line and the router passing the result on; removed.)
+  Tested through the router on a copy of the project with a throwaway
+  brain and the real web: a new offer dossier with research → `y` → commit;
+  "not applying" → compact update → commit; a mock-interview review with
+  two skills-matrix notes, one accepted → commit; an English review
+  creating `english.md` → commit; a backlog idea developed into a dossier
+  with the promotion edit → commit; an English briefing from Erestor. The
+  router's conversation ended between 25 k and 42 k. **Not yet run:** an
+  offer from a URL or a bare company name (`fetch-offer`), the early
+  questions of `develop-idea` (scale check, several matches),
+  `practice-prep`, a `NEED:` round, a non-career practice topic, anything
+  on the real brain. Seen once: the router paraphrased a plan block instead
+  of showing it as returned.
+- [x] **Phase 5 — travel and finance.** Done 2026-10-11; personas stay in
+  a full session (owner's decision).
+  - **`strider`** (S.T.R.I.D.E.R. — Supplies, Trips & Route Inventory,
+    Drafted for Every Road) runs `pack`: a trip list, the post-trip review,
+    catalogue and profile edits. Guard: `current/trips`,
+    `core/travel/packing`, `knowledge/travel/packing`. The trip's missing
+    parameters are one `PYTANIA`; the plan is the whole pre-filled list.
+  - **`thorin`** (T.H.O.R.I.N. — Treasury Holdings & Official Reports
+    INgest) runs `ingest-finance`, only on the owner's explicit word (the
+    skill is `disable-model-invocation`). Guard: `core/finance`. The skill's
+    two gates are one plan: parsed positions, what goes out (symbols and
+    first-buy dates), the change to `finance.md` line by line, the archive
+    step; `y bez finance.md` is the skill's `n` at its second gate. He works
+    inside the export's account subsection of `finance.md`, keeps every
+    line's notes, and marks a line sold only when the export lists the
+    ticker as closed.
+  - **MCP server `thorin`** (`.claude/scripts/thorin/`): `read_export`
+    computes the net positions from the myFund XML (the skill's step-3
+    arithmetic — no model adds up transactions, and the XML never enters a
+    context; checked against the four exports converted by hand, every open
+    position identical); `archive_export` writes the readable `.md` copy and
+    moves the source to `_processed/` — the skill's `mv`; `edgar_reports`
+    gives Gloin a ticker's 10-K / 10-Q since a date with the figures
+    extracted.
+  - **`gloin` lost `Bash`**: `WebFetch`, `Glob`, `Write`, `edgar_reports`,
+    `now`; `fetch-finance-reports` preloaded and its US steps rewritten
+    around the tool; write-guard on `knowledge/finance`. A filing whose
+    figures EDGAR has not published yet gets no file. `SEC_USER_AGENT`
+    (`.claude/gandalf.env`) should carry a contact address — without it the
+    ticker lookup falls back to EDGAR's full-text search.
+  - Router: `strider`, `thorin` and `gloin` on the `Agent(...)` list
+    (`gloin` for the same reason as `legolas`), two routes, two sections.
+  - **Personas stay out** of the router: `/persona` is a multi-session
+    build that needs a shell in six places (fetch, reflow, assemble, quote
+    check, validation, the branch in this repo) and a lot of direct talk
+    about the card. Open option: a narrow orchestrator of its own
+    (`gandalf --persona`) — the only way `Bash(python3 *)` leaves the shared
+    allow-list.
+  Tested through the router on a copy with a throwaway brain: a made-up
+  export (one US, one GPW, one ETF, one closed position) → plan → `y` →
+  ten AMD reports from the real EDGAR, `finance.md` edited in its account
+  subsection, export archived, one commit; a trip list for two travellers
+  (questions → plan → edit and `y` → commit); a post-trip review writing
+  the catalogue, two new profiles and the trip file → commit. The router's
+  conversation ended at 30–37 k. **Seen:** the GPW fetch failed for a
+  myFund ticker name (`CDPROJEKT` — biznesradar files it under `CDR`) and
+  Gloin wrote neither reports nor stubs; the skill's GPW source needs a
+  symbol mapping. **Not yet run:** several exports in the inbox at once, a
+  `.md` export, `y bez finance.md`, a reclassified ticker, Gloin forked from
+  a full session after the rewrite, catalogue / profile edits (mode C),
+  merging into a list that has ticks, anything on the real brain.
+- [x] **Phase 6 — clean-up.** Done 2026-10-11.
+  **The router is the default.** Plain `gandalf` (and `brain`) opens the
+  router; `gandalf --full` opens a full session — work on this repo,
+  `/persona`, `/ingest-conversation`, `/init-brain`. `--router` is still
+  accepted and does nothing; an `--agent` named by hand wins over both. The
+  channel service (`gandalf.service`, through `cc-channel`) does not use the
+  launcher and stays a full session.
+  **`Bash(python3 *)` left the shared allow-list.** It was in
+  `.claude/settings.local.json`, granted to every session of the project. It
+  now sits in `.claude/settings.full.json`, which the launcher passes with
+  `--settings` for `--full` only. Checked headless: without the file the
+  `python3` call is denied, with it it runs, and the router has no `Bash`
+  either way. A session started as bare `claude` in this directory now asks
+  before running `python3`.
+  **Measured against the baseline** (start = context of the first call):
+
+  | | Full session | Router | Difference |
+  |---|---|---|---|
+  | headless, one turn, haiku | 36.3 k (107 tools) | 24.9 k (8 tools) | −11.4 k |
+  | interactive, from the transcripts | 47.4 k (median, 56 sessions) | 20.3 k (median, 2 sessions) | −27 k |
+
+  The headless router start grew from 16.9 k (Phase 1, three agents) to
+  24.9 k: the router's prompt is now ~16 k characters and the fourteen agent
+  descriptions ~11 k. The full session grew too (33.8 k → 36.3 k), from the
+  same descriptions. A routed task ended the router's conversation at
+  25–42 k in the tests of Phases 4 and 5, where a full session ends at a
+  median of 181 k (opus) — the length, not the start, is where the saving
+  is. The two interactive router sessions predate Phases 2–5; the number to
+  watch is the `main: gandalf` row that `token-usage.py` now prints apart
+  from `main session`.
+  **Left open:** nothing of the new agents has run on the real brain yet
+  (the lists under each phase above); the GPW report fetch (Phase 5); the
+  claude.ai-synced skills in a full session (Stage 2); trimming the router's
+  prompt and the agent descriptions if the start matters.
+
+Expected: a router start near the 16 k measured below for the router-shaped
+agent without `Skill` (headless; interactive will be higher), and a main
+conversation that grows by results instead of by every file read. Each
+domain-agent run costs CLAUDE.md + memory (4.9 k today) plus its preloaded
+skills.
+
+**Checks before Stage 3 — done 2026-10-11.**
+
+`/context` in a fresh session (twice, identical): 35.4 k — system tools 13 k,
+skills 10 k (project ~3.0 k, built-in ~2.5 k, claude.ai sync ~4.5 k),
+CLAUDE.md + MEMORY.md 4.9 k, system prompt 3.5 k, custom agents 1.4 k, MCP
+instructions 1.1 k, MCP tools 0.6 k. MCP tool schemas are deferred (32.1 k
+outside the context). The API counts ~50.6 k on the first call of the same
+kind of session, so `/context` under-reports by ~15 k; the prefix read from
+cache on every fresh start is ~24.2 k where `/context` shows 16.5 k for
+prompt + tools, so about half of the gap is probably there (inferred from
+the cache numbers, not measured directly).
+
+Headless runs (`claude -p … --model haiku --output-format stream-json`, one
+turn each, session not persisted). Headless loads fewer built-in tools than
+an interactive session (27; no `AskUserQuestion`, `Artifact`, …), so its
+baseline is 33.8 k against the interactive ~50.6 k: read the rows as
+differences, not as what the router will cost interactively.
+
+| Run | First call | vs baseline |
+|---|---|---|
+| baseline (`--add-dir brain`) | 33.8 k | — |
+| `--strict-mcp-config` + samwise, gimli | 31.2 k | −2.6 k |
+| `--disable-slash-commands` (no skills, no `Skill` tool) | 22.8 k | −11.0 k |
+| `--setting-sources project,local` | 28.7 k | −5.1 k |
+| `--agent beorn` (3 tools + samwise) | 13.5 k | −20.3 k |
+| `--agent beorn` + strict | 12.6 k | −21.2 k |
+| router-shaped agent (`Read`, `Grep`, `Glob`, `Skill`, `Agent`, `SendMessage`, `Write`, samwise, gimli) + strict | 27.0 k | −6.8 k |
+| the same + `--setting-sources project,local` | 21.9 k | −11.9 k |
+| the same without `Skill` | 16.0 k | −17.8 k |
+
+1. Breakdown of the start — above.
+2. `--strict-mcp-config` drops the claude.ai connectors too: only the servers
+   from `--mcp-config` remain. They are account connectors, not entries a
+   JSON file can list, so a session that needs Calendar cannot be strict.
+   Token effect is small (−2.6 k):
+   strict is a privacy boundary, not a saving.
+3. `--agent <name>` limits the tools to the agent's `tools:` (3 built-in +
+   samwise for `beorn`; `Agent(gimli, radagast, beorn)` is accepted and
+   shows up as the agent tool) and cuts the start to 13.5 k. The session
+   still loads CLAUDE.md and memory.
+4. Custom sub-agents do load CLAUDE.md and MEMORY.md: `erestor`, told to use
+   no tools, quoted the commit trailer, the chat language and the first
+   memory entry. Its start is 9.6 k, about half of it those two files — so
+   slimming CLAUDE.md pays off per agent run as well as per session.
+5. `--setting-sources project,local` hides the 32 claude.ai-synced skills
+   (67 → 35 listed, −5.1 k); memory still loads. It also drops
+   `~/.claude/settings.json` (`model`, `remoteControlAtStartup`, `tui`, …),
+   so a launcher using it must pass what it needs on the command line. No
+   per-project switch for the synced skills alone was found.
+
+6. A sub-agent can spawn its own sub-agent: a test agent with
+   `Agent(inner)` in its `tools:`, itself spawned by the main session,
+   called `inner` and got its reply.
+7. `skills:` in an agent definition preloads the full skill body (a test
+   agent with only `Read` quoted a heading of `idea`); a sub-agent given the
+   `Skill` tool instead sees the whole listing (62 entries).
+
+What this means for Stage 3:
+- `Skill` is the expensive tool of the router: 11 k with every skill listed,
+  ~5.9 k with the synced ones hidden — hence rule 2.
+- `--strict-mcp-config` cannot be used in a session whose agents need the
+  connectors — hence rule 6.
+- Slimming CLAUDE.md pays per agent run — hence Phase 0 (b).
+
+Seen after the restart: `gimli`, `legolas`, `erestor`, `gloin`, `narvi` are
+listed with their narrowed tools, the `gimli` server connects, and the four
+`disable-model-invocation` skills are out of the model's listing.
+
+---
+
 ## Long-term (condensed)
 
 Steps 4–11 from the README roadmap, condensed for orientation. Detailed tasks will
@@ -1572,6 +2118,9 @@ reshuffle it.**
   to `agentic-sdlc-forge` for dev tasks via n8n / HTTP.
 - [ ] **Step 5 — L.E.G.O.L.A.S.** — outbound web search (DuckDuckGo first,
   self-hosted SearXNG later). Only agent with external network access.
+  A first narrow version exists since 2026-10-10 (`.claude/agents/legolas.md`,
+  `WebSearch` + `WebFetch`, target of the forked research helpers) — the
+  Gandalf route and the search backend are still this step.
 - [ ] **Step 6 — First skill: White Council** — multi-perspective deliberation
   over a hard question; validates the agent/skill split in practice.
   Design agreed 2026-09-28 (one card-driven agent, persona and role cards) —
@@ -1767,6 +2316,8 @@ so they don't get lost.
 | ~~**`brain/db/` access contract**~~ | ~~Step 4~~ | **RESOLVED 2026-09-18.** Gimli's "sole reader" monopoly was unworkable for operational databases (Faramir's dispatcher must ask "what is due now" of its own DB). Replaced by an owner model: each DB has one owner that writes (INSERT, idempotent upsert, state-column UPDATE; never DELETE) and runs fixed, pre-defined operational reads on its own DB; G.I.M.L.I. keeps the monopoly on analytical / ad-hoc SQL. External systems (n8n) never write — they notify the owner, which applies the change. → `brain/db/CLAUDE.md`, `.claude/agents/gimli.md`. |
 | ~~**brain/ rules — single source**~~ | ~~Step 0~~ | **RESOLVED 2026-09-18.** Rule files were kept in two places (`.claude/brain-skeleton/` and brain/) and had drifted: 17 of them differed or existed on one side only. Root cause: Claude Code does not load `CLAUDE.md` from brain/ (a sibling directory, not part of the project tree — verified: nothing loads without `--add-dir` + `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1`, and nested folder rules never load; an `@` import of a path outside the project does not load in headless `claude -p`), so skills pointed at the skeleton copy instead. Fix: brain/ is the single source (it describes itself, also for other tools); the skeleton keeps only data templates; `.claude/hooks/brain-instruction-sync/sync.py` injects brain/'s root rules at `SessionStart` and each folder's rules on the first Read/Edit/Glob/Grep there (Write: `PreToolUse`, whose context arrives together with the write result, not before it). Access via Bash does not trigger it. How it works, limits, and what to do when adding folders or debugging: `.claude/hooks/brain-instruction-sync/README.md`. |
 | ~~**brain/ rules — scaffolding a new brain/**~~ | ~~Step 0~~ | **RESOLVED 2026-09-20.** Making brain/ the sole author of its rules broke the second supported setup path: `/init-brain` creation mode built a bare structure with no `CLAUDE.md` at all, so a new brain/ had no privacy levels, no frontmatter schema and no writer rules. Fix: the skeleton carries **bootstrap copies** of all 24 rule files — generic (personal examples and installation-specific databases stripped), copied only when a folder is created (`/init-brain` creation mode; `/daily`, `/idea`, `/english-review` for folders they create later), never read afterwards. Drift between the two copies no longer affects a live brain/ — it only makes a *newly created* brain/ slightly stale, and the hook always serves the brain/ version. Validation mode checks rule files for existence only and never restores them from the skeleton. Rejected alternative: exporting the snapshot from brain/ with a script + gitignored deny-list of private terms (built, then rolled back as premature — see git history of this branch if it is ever wanted). |
+| ~~**Gimli's tools: read-only MCP server vs. a wider role**~~ | ~~Least privilege, Stage 1~~ | **RESOLVED 2026-10-10.** The question was whether Gimli should also manage (write) the databases. The 2026-09-18 contract above stands: each database's owner writes, Gimli holds only analytical reads — so his `Bash` is replaced by a read-only MCP server. → `.claude/scripts/gimli/README.md`. |
+| **Skill / agent registry in Qdrant** | Step 7 | Owner's idea, 2026-10-10: index skill and agent descriptions as another collection and hand the router only the top 5 instead of the full listing. Under Claude Code the listing of the 22 project skills is ~2.7 k of a ~48 k start, and deferred tool loading already does this for MCP tools — small gain now. It is the right shape for the engine-agnostic router, where no harness builds the listing. |
 | **Phase 2 orchestration framework** | Step 7 | LangGraph vs LlamaIndex vs custom thin wrapper. Decided when the engine abstraction layer is built. |
 | **Log-analysis role** | Step 2+ | **Partially resolved 2026-07-01.** R.A.D.A.G.A.S.T. (Step 2.5) covers the *reporting/analysis* half generically (trends, anomalies, comparisons over any data handed to it) — it could analyze Smeagol's logs like any other input, once something feeds them to it. Still open: whether a dedicated FTS5 retrieval layer over Smeagol's logs (E3) is needed before that's useful, or Radagast + ad-hoc `brain/current/smeagol/` reads suffice. |
 | ~~**`brain/` privacy in MVP**~~ | ~~Step 1–3~~ | **RESOLVED 2026-06-09.** Private content may enter the Claude API context window in MVP. See § "Privacy in the Claude-API MVP". Tightened in Phase 2 (Step 7). |

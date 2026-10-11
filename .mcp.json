@@ -17,6 +17,41 @@
         "-c",
         "exec .claude/scripts/arwen/.venv/bin/python .claude/scripts/arwen/mcp_server.py"
       ]
+    },
+    "gimli": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "exec .claude/scripts/gimli/.venv/bin/python .claude/scripts/gimli/mcp_server.py"
+      ]
+    },
+    "ori": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "exec .claude/scripts/gimli/.venv/bin/python .claude/scripts/ori/mcp_server.py"
+      ]
+    },
+    "frodo": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "exec .claude/scripts/gimli/.venv/bin/python .claude/scripts/frodo/mcp_server.py"
+      ]
+    },
+    "elrond": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "exec .claude/scripts/gimli/.venv/bin/python .claude/scripts/elrond/mcp_server.py"
+      ]
+    },
+    "thorin": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "exec .claude/scripts/gimli/.venv/bin/python .claude/scripts/thorin/mcp_server.py"
+      ]
     }
   }
 }
