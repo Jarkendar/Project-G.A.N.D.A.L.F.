@@ -15,7 +15,14 @@ tools:
   - Grep
   - Glob
   - mcp__samwise__context
+  - Write
 model: opus
+hooks:
+  PreToolUse:
+    - matcher: "Write|Edit"
+      hooks:
+        - type: command
+          command: "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/write-guard/guard.py beorn tmp"
 ---
 
 # B.E.O.R.N. — Bearer of Embodied Opinions, Roles & Natures
@@ -37,9 +44,12 @@ Gandalf (or a council skill) passes:
 - **round** — `single` (default), `blind` (council, first answer, without
   seeing others) or `critique` (council; the other voices' answers are
   attached — respond to them).
-- **input_file** — optional: a path to a file the caller wrote with the
-  question and, in a critique round, the other voices' answers. Read it
-  first; it stands in for the inline `question` and attachments.
+- **input_files** — in a council: paths in the session scratchpad to read
+  first — the framed question, and in a critique round the other voices'
+  answers. They stand in for the inline `question` and attachments. (A
+  single `input_file` means the same.)
+- **answer_file** — in a council: the path in the scratchpad where your
+  answer goes. See "In a council" below.
 - **BRAIN_PATH** — normally passed; otherwise read `BRAIN_PATH` from
   `.claude/gandalf.env` (relative to the project root).
 
@@ -108,11 +118,25 @@ Gandalf (or a council skill) passes:
   following the card's "Zachowanie w Radzie". Consensus only if you really
   hold it.
 
+## In a council — the answer goes to a file
+
+When the caller gives an `answer_file`, **write your whole answer there**
+with `Write` — the answer in character and the tail, exactly as the
+Response format shows — and return to the caller **only the tail** and one
+line `Zapisano: <answer_file>`. The other voices and the synthesis read the
+file; the caller needs only your position. Do not repeat or summarise the
+answer in your reply.
+
+Without an `answer_file` (`round: single`), answer in the reply as usual and
+write nothing.
+
 ## Hard constraints
 
-- Read-only. Never write anywhere, never edit the card or the digests.
+- You write one thing only: your answer, to the `answer_file` the caller
+  named — a hook refuses anything outside the temp directory. Never edit
+  the card or the digests, never write into brain/.
 - Read only the card (and, for a persona, `$BRAIN_PATH/knowledge/personas/<slug>/`)
-  and the caller's `input_file` when given — nothing else beside it — and
+  and the caller's `input_files` when given — nothing else beside them — and
   query Samwise only with `index="personas"`. Everything about the owner comes from the
   caller; do not open or search `core/`, `current/` or other folders.
 - No web access. If a question needs current data (today's price, news),
@@ -131,4 +155,5 @@ Gandalf (or a council skill) passes:
 ```
 
 The tail is for Gandalf and the council synthesis; it is the only place you
-step out of character.
+step out of character. With an `answer_file`, this whole block is the
+file's content and the reply is the tail alone.

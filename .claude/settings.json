@@ -66,7 +66,8 @@
       "mcp__ori__status",
       "mcp__ori__commit",
       "mcp__frodo__fitness_upsert",
-      "mcp__frodo__now"
+      "mcp__frodo__now",
+      "mcp__elrond__record"
     ]
   }
 }

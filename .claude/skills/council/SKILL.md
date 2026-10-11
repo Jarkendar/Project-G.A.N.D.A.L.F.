@@ -19,8 +19,15 @@ value is in **where and why the voices disagree** — consensus is reported
 only when it actually emerged.
 
 Voices are cards; B.E.O.R.N. (`.claude/agents/beorn.md`) speaks each one.
-This skill composes the council, runs the rounds and writes the synthesis.
-It never speaks as a voice itself.
+This skill composes the council and runs the rounds; E.L.R.O.N.D.
+(`.claude/agents/elrond.md`) writes the synthesis and the record. It never
+speaks as a voice itself.
+
+**The debate lives in files, not in this conversation.** Every answer is
+written by its voice to the Council's working folder; you see only each
+voice's tail. A Council of five voices and two rounds is ~60k characters of
+answers — read into the conversation, they are paid for again on every
+later turn. Do not `Read` the answer files yourself.
 
 ## 1. Resolve BRAIN_PATH
 
@@ -68,97 +75,76 @@ Read `.claude/gandalf.env` from the project root and take `BRAIN_PATH`
 5. Tell the owner the composition in one line with a reason per voice, and
    go on — do not wait for approval.
 
-## 4. Blind round
+## 4. The working folder
+
+Make one folder for this Council in the session scratchpad (a temporary
+directory if there is none): `<scratchpad>/council-<slug>/`, slug from the
+question. Write the framed question with the owner's context to
+`question.md` there — once; every voice reads it from the file. Answers
+will land beside it, one file per voice per round:
+
+```
+question.md
+blind-<voice>.md   critique-<voice>.md   critique2-<voice>.md
+synthesis.md       (Elrond's)
+```
+
+`<voice>` is the card's slug (`taleb`, `critic`, `local-practitioner`).
+
+## 5. Blind round
 
 Invoke one `beorn` sub-agent per voice, **all in one message** (parallel),
-each with: `persona` or `role`, the framed `question` with the owner's
-context, `round: blind`, `BRAIN_PATH`. No voice sees
-another's answer.
+each with: `persona` or `role`, `round: blind`, `BRAIN_PATH`,
+`input_files: [<dir>/question.md]` and
+`answer_file: <dir>/blind-<voice>.md`. No voice sees another's answer.
 
-Then read the tails (`Stanowisko`). If every voice reached the same
-conclusion and no role is present, add `devils-advocate` for the critique
-round — agreement reached blind is a reason to test it, not to stop.
+Each voice writes its answer to the file and returns only its tail. Read
+the tails (`Stanowisko`). If every voice reached the same conclusion and no
+role is present, add `devils-advocate` for the critique round — agreement
+reached blind is a reason to test it, not to stop.
 
-## 5. Critique round
+## 6. Critique round
 
-Again one `beorn` call per voice, in parallel, `round: critique`,
-with the question and **the other voices' blind
-answers in full** (without the tails). A devil's advocate added after the
-blind round answers the blind round in its first turn.
-
-Pass that input as a **file**, not inline: per voice, write the question
-followed by the other voices' answers (each under `## <voice name>`) to
-a temporary file — the session scratchpad if there is one, else a
-temporary directory — and give Beorn its path as `input_file`, plus the
-voice's own blind `Stanowisko` as a reminder. Three answers are ~15–20k
-characters per call; inline, the orchestrator writes them out once per
-voice. Same for a second critique round (blind + first critique answers).
+Again one `beorn` call per voice, in parallel, `round: critique`, with
+`input_files`: `question.md` and **the other voices' blind files** (not its
+own), `answer_file: <dir>/critique-<voice>.md`, and the voice's own blind
+`Stanowisko` as a one-line reminder. A devil's advocate added after the
+blind round answers the blind round in its first turn (it has no blind
+file).
 
 **Second critique round** only when a disagreement is still live and
 sharp after the first (two voices directly contradicting each other on
-the point that decides the question), or when the owner asked for it. Two
-critique rounds at most.
+the point that decides the question — judge it from the tails), or when the
+owner asked for it: `input_files` are then the question and the other
+voices' blind and critique files, `answer_file` is
+`<dir>/critique2-<voice>.md`. Two critique rounds at most.
 
-## 6. Synthesis
+## 7. Synthesis and record — Elrond
 
-Written by you, in Polish, from the rounds — not a fourth opinion. Shape:
+Invoke the `elrond` sub-agent with `council_dir` and the `voices` (slug,
+the card's name, why each was called). He reads every answer and returns
+the synthesis — where the voices agree, where they differ and why, the
+strongest argument of each, what the decision depends on. **Show it to the
+owner in full, as he wrote it**, with his question whether to save the
+record.
 
-```markdown
-## Rada: <question in one line>
+Send the owner's answer to the same Elrond (`SendMessage`), in the owner's
+words:
 
-**Skład:** <voice — why, per voice>
+- **yes** → he has the record written to
+  `$BRAIN_PATH/knowledge/councils/YYYY-MM-DD_<slug>.md` — frontmatter per
+  `knowledge/councils/CLAUDE.md`, the synthesis, then `## Przebieg` with
+  every answer copied from the files. Pass on the path he reports.
+- **a correction** ("to nie tak ujęte", "pominąłeś …") → he checks it
+  against the answers and returns the corrected text, or says no voice
+  held it.
+- **no** → nothing is written.
 
-### Gdzie się zgadzają
-<points every voice holds, with the reasoning they share>
+Do not commit on your own; when the owner asks, committing brain/ goes
+through the `ori` sub-agent, with the record's path.
 
-### Gdzie się różnią — i dlaczego
-<each disagreement: who holds what, and the assumption, value or
-time horizon that drives the split — this is the core of the synthesis>
-
-### Najmocniejszy argument każdego głosu
-- **<voice>:** <one or two sentences>
-
-### Konsensus
-<only if it actually emerged — otherwise "Brak konsensusu." and why>
-
-### Od czego zależy decyzja
-<the one to three facts or preferences of the owner that tip it — questions,
-not a verdict>
-
-### Ostatnie słowo
-- **<voice>:** <two or three sentences in that voice, from its last round>
-```
-
-Rules: attribute every claim to a voice; do not add arguments no voice
-made; do not average positions into a middle one nobody held; keep the
-voices' own words where they are sharp.
-
-## 7. Save (ask first)
-
-Show the synthesis in the conversation, then ask: "Zapisać zapis Rady
-w `knowledge/councils/`? (t/n)". On yes, write
-`$BRAIN_PATH/knowledge/councils/YYYY-MM-DD_<slug>.md` (slug: kebab-case,
-≤40 chars, from the question), following `knowledge/councils/CLAUDE.md`:
-
-```yaml
----
-date: <YYYY-MM-DDTHH:MM:SS>
-source: council
-privacy: private            # always — the record holds the owner's problem
-status: active
-tags: [council, <category>, ...]
-title: "Rada — <question in a few words>"
-question: "<the framed question>"
-voices: [<persona-slug>, critic, ...]
-rounds: <1 or 2 critique rounds>
-consensus: <yes | no | partial>
----
-```
-
-Body: the synthesis, then `## Przebieg` with `### Runda na ślepo` and
-`### Krytyka` (and `### Krytyka 2`) — each voice's full answer with its
-tail. Do not commit on your own; when the owner asks, committing brain/
-goes through the `ori` sub-agent. On no, write nothing.
+If the owner wants to read a voice's whole answer before the record
+exists, `Read` that one file and show it — only then.
 
 ## Constraints
 

@@ -38,6 +38,13 @@
         "-c",
         "exec .claude/scripts/gimli/.venv/bin/python .claude/scripts/frodo/mcp_server.py"
       ]
+    },
+    "elrond": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "exec .claude/scripts/gimli/.venv/bin/python .claude/scripts/elrond/mcp_server.py"
+      ]
     }
   }
 }

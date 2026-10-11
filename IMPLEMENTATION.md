@@ -1877,6 +1877,24 @@ Phases — each ends with a measurement from `token-usage.py`:
   material, a private card.
   Radagast got the same sentence as Frodo and Arwen: a yes the router
   passes on is the owner's yes.
+- [ ] **The Council through files, 2026-10-11 — built, half tested.** A
+  Council left ~90 k in the router's conversation. Now each voice (`beorn`,
+  `Write` + a `tmp` write guard) writes its answer to
+  `<scratchpad>/council-<slug>/<round>-<voice>.md` and returns only its
+  tail; the critique round is handed the other voices' files; `elrond`
+  (E.L.R.O.N.D., `.claude/agents/elrond.md`, sonnet) reads the folder,
+  writes the synthesis and — after the owner's yes — has the record
+  assembled by `mcp__elrond__record` (`.claude/scripts/elrond/`), which
+  copies every answer instead of retyping it. The router's guard is `tmp`
+  only: it writes `question.md` and nothing in brain/. The skill
+  (`council/SKILL.md` §4–7) describes this flow for a full session too.
+  Tested: the `record` tool directly (a record, six refusals); through the
+  router on a test copy — composition, `question.md`, the blind round with
+  three role voices (files written, tails returned). **Not run:** the
+  critique round, Elrond's synthesis and the record — the test stopped on
+  the usage limit; no measurement of the router's conversation yet. In a
+  headless test copy the voices need `Read`, `Glob` and `Write` in
+  `--allowedTools` to reach the scratchpad.
 - [ ] **Phase 4 — career & practice, projects.** First use of a sub-team
   (`legolas`, `erestor`) under a domain agent.
 - [ ] **Phase 5 — finance, travel, personas.** Low frequency; only if the
