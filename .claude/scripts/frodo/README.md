@@ -1,13 +1,14 @@
-# F.R.O.D.O. — the fitness upsert, as an MCP tool
+# F.R.O.D.O. — what Frodo would need a shell for, as MCP tools
 
-One tool for the `frodo` sub-agent (`.claude/agents/frodo.md`), which
-processes the daily note without a shell.
+Two tools for the `frodo` sub-agent (`.claude/agents/frodo.md`), which files
+the owner's records into brain/ without a shell.
 
 | Tool | What it does |
 |---|---|
 | `fitness_upsert(strava_id, date, sport_type, …)` | `INSERT OR REPLACE` of one Strava activity into `brain/db/fitness.db`, keyed on `strava_id` |
+| `now()` | the local date and time — `iso` for frontmatter, `file` for timestamped file names |
 
-No SQL comes in — only the named fields of one row, bound as parameters. A
+`fitness_upsert`: no SQL comes in — only the named fields of one row, bound as parameters. A
 field left out is stored as NULL; `synced_at` is set by the server; the table
 is created on first use with the schema the `/daily` skill documents. It
 refuses a non-positive id, a date that is not a real `YYYY-MM-DD`, an empty

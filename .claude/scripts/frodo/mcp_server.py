@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-# F.R.O.D.O. — Filing Records Of Daily Occurrences.
+# F.R.O.D.O. — Filing Records Of Days & Observations.
 #
-# The one database write the daily note needs, as an MCP tool, so the Frodo
-# sub-agent holds no shell: `fitness_upsert` puts one Strava activity into
-# brain/db/fitness.db (INSERT OR REPLACE keyed on strava_id — the statement
-# the /daily skill documents). Nothing else in the database can be reached
-# from here: no SQL comes in, only the named fields of one row.
+# The two things the Frodo sub-agent would otherwise need a shell for, as MCP
+# tools:
+#
+#   fitness_upsert  the one database write the daily note needs — one Strava
+#                   activity into brain/db/fitness.db (INSERT OR REPLACE keyed
+#                   on strava_id, the statement the /daily skill documents).
+#                   No SQL comes in, only the named fields of one row.
+#   now             the local date and time, for `date:` fields and
+#                   timestamped file names — an agent has no clock.
 #
 # Reading and analysing fitness.db stays with G.I.M.L.I.
 #
@@ -56,9 +60,10 @@ server = MCPServer(
     name="frodo",
     log_level="WARNING",
     instructions=(
-        "Writes one Strava activity into the owner's fitness database. It belongs to the "
-        "F.R.O.D.O. sub-agent, which processes the daily note — hand the note to it rather "
-        "than calling this tool yourself. Questions about fitness data go to G.I.M.L.I."
+        "Writes one Strava activity into the owner's fitness database, and tells the local "
+        "time. It belongs to the F.R.O.D.O. sub-agent, which files the owner's records into "
+        "brain/ — hand the note to it rather than calling these tools yourself. Questions "
+        "about fitness data go to G.I.M.L.I."
     ),
 )
 
@@ -146,6 +151,18 @@ def fitness_upsert(
         )
     except (ValueError, sqlite3.Error) as exc:
         return f"FRODO: refused — {exc}"
+
+
+@server.tool(annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=False, openWorldHint=False))
+def now() -> str:
+    """The current local date and time. Use `iso` for `date:` / `updated:`
+    frontmatter fields and `file` for timestamped file names."""
+    t = datetime.now().astimezone()
+    return (
+        f"iso: {t.strftime('%Y-%m-%dT%H:%M:%S')}\n"
+        f"file: {t.strftime('%Y-%m-%dT%H-%M-%S')}\n"
+        f"date: {t.strftime('%Y-%m-%d')} ({t.strftime('%A')}, UTC{t.strftime('%z')})"
+    )
 
 
 if __name__ == "__main__":

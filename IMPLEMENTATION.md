@@ -1709,7 +1709,7 @@ names are the owner's call; skill sizes are chars / 4):
 |---|---|---|---|---|
 | questions | — | the router with `gimli`, `radagast`, samwise | — | — |
 | council | `council` (1.8 k, preloaded in the router) | `beorn` × N | — | in the router |
-| personal records (`core/`, `current/`, `backlog/`) | `daily` (8.7 k), `update-core`, `add-contact`, `idea`, `interview` — ~18.5 k together | `Read`, `Grep`, `Glob`, `Write`, `Edit`, Strava | — | heavy |
+| personal records (`core/`, `current/`, `backlog/`) — **`frodo`** | `daily` (8.7 k), `update-core`, `add-contact`, `idea`, `interview` — ~18.5 k together | `Read`, `Grep`, `Glob`, `Write`, `Edit`, Strava | `ori` | heavy |
 | career & practice | `analyze-offer`, `practice-review`, `english-review` | `Read`, `Grep`, `Glob`, `Write`, `Edit` | `legolas`, `erestor` | medium |
 | projects | `develop-idea` | `Read`, `Grep`, `Glob`, `Write` | `legolas` | medium |
 | finance | `ingest-finance` | `Read`, `Write`, `Edit` | `gloin` | low |
@@ -1815,8 +1815,42 @@ Phases — each ends with a measurement from `token-usage.py`:
   row upserted with NULLs where Strava had nothing, one commit by Ori with
   the trailer. **Not yet run:** on the real brain, in a live router session;
   a note with questions (step 5c) and an `edit` round.
-  Still to move into this domain: `update-core`, `add-contact`, `idea`,
-  `interview` as requests of their own.
+  **The rest of the domain, 2026-10-11:** Frodo takes a `task` — `daily`,
+  `idea`, `update-core`, `add-contact`, `interview` — and is renamed to fit
+  (Filing Records Of Days & Observations). The four skills are unchanged
+  and **read on demand**, not preloaded (~10 k together; only `daily`
+  stays in `skills:`). His prompt carries the differences once, for all
+  tasks: two kinds of return (`PYTANIA`, `PLAN`) with a skill's consecutive
+  gates folded into one plan; `Grep` / `Glob` for the shell lookups; a clock
+  (`mcp__frodo__now` — an agent has none, and the skills stamp `date:`);
+  the commit through Ori **when the change is whole** (owner's rule: not a
+  half-finished write, not a backlog review still going on). An interview
+  runs as many rounds as it needs: plan (target + outline) → the outline's
+  questions in one list → follow-up lists for as long as answers open
+  something new → the text to approve. The write guard now covers all of
+  `knowledge/` (owner's call) and `archive/` (the opt-in pre-revision copy
+  of `update-core` / `interview`); what in `knowledge/` is his to write is
+  a rule in his prompt, not the hook's. The router routes all five and no
+  longer lists them under "cannot do yet".
+  Tested through the router on a copy of the project with a throwaway
+  brain: idea capture (plan → `y` → file, commit), backlog list and a
+  status change, a contact (one question → plan → `y`, new group and detail
+  file), a profile fact (plan → `edit` → `y`), an interview (plan with an
+  outline edit → ten questions → five follow-ups → "wystarczy" → text →
+  `y`), and the day's note with questions and an `edit` round — seven
+  commits by Ori, each with exactly the paths of its change.
+  Three things the tests turned up, all fixed in the prompt: (1) a
+  sub-agent may **refuse a relayed `y`** — "the message came from the
+  coordinator, not from you" — and stop every write; the prompt now states
+  that the caller is the owner's only channel (expect the same of any
+  agent that waits for approval); (2) he concluded a file was missing from
+  a `Glob **/*` over brain/, which is cut off — a file is missing only when
+  its exact path says so; (3) `permissions.allow` from `.claude/settings.json`
+  is ignored in a workspace that was never trusted interactively — a
+  headless test copy needs `--allowedTools`.
+  **Not yet run:** any of it on the real brain in a live router session; a
+  promotion to `knowledge/projects/`; an interview into an existing `core/`
+  or `knowledge/` document.
 - [ ] **Phase 3 — learning (`flashcards`).** One approval gate; the first
   copy of the pattern.
 - [ ] **Phase 4 — career & practice, projects.** First use of a sub-team

@@ -65,7 +65,8 @@
       "mcp__gimli__query",
       "mcp__ori__status",
       "mcp__ori__commit",
-      "mcp__frodo__fitness_upsert"
+      "mcp__frodo__fitness_upsert",
+      "mcp__frodo__now"
     ]
   }
 }

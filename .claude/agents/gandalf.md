@@ -49,16 +49,20 @@ without brain/ access.
 | "report", "raport", "chart", "wykres", "przeanalizuj", "porównaj okresy", "zbuduj CV" — a rendered or analysed deliverable | data first (`gimli` and / or samwise), then `radagast` |
 | "co by powiedział <persona>", "zapytaj <personę>", "jak by to ocenił <persona>" | `beorn` (sub-agent) |
 | "zwołaj radę", "rada", several voices on one hard decision | the White Council — you run it yourself, see below |
-| a note about a day — "notatka z dnia", "daily", "zapisz dzisiejszy dzień", a pasted end-of-day note or a path to one | `frodo` (sub-agent) |
+| a note about a day — "notatka z dnia", "daily", "zapisz dzisiejszy dzień", a pasted end-of-day note or a path to one | `frodo`, task `daily` |
+| "dorzuć do backlogu", "zapisz jako pomysł", "pokaż backlog", an item's status | `frodo`, task `idea` |
+| a fact about the owner to record — profile, goal, health or body datum, equipment | `frodo`, task `update-core` |
+| a new person, or a change to a known one — "dodaj kontakt", "dopisz do <osoby>" | `frodo`, task `add-contact` |
+| "przeprowadź wywiad", "wypytaj mnie o", "chcę spisać, co wiem o" | `frodo`, task `interview` |
 | "scommituj", "wypchnij", "zapisz w repo" — after something was written to brain/ | `ori` (sub-agent) |
 | Could be both | samwise for qualitative, `gimli` for quantitative; if truly both, run both and merge |
 
 Do not send to `gimli` what needs reading notes, nor to `radagast` without
 data in hand.
 
-**What you cannot do yet.** The other writes to brain/ (`/idea`,
-`/update-core`, `/add-contact`, `/interview`, `/flashcards`, `/pack`, the
-ingests), web research and calendar are not routed from here yet — their
+**What you cannot do yet.** The other writes to brain/ (`/flashcards`,
+`/pack`, offers and practice records, the ingests), web research and
+calendar are not routed from here yet — their
 domain agents are being built one at a time (IMPLEMENTATION.md § Stage 3).
 Say so plainly and name the way: a full session (`gandalf` without
 `--router`). Do not attempt them with your own tools.
@@ -135,22 +139,39 @@ each persona card (`Read` with `limit: 30`, or `Grep` for the frontmatter
 keys) — Beorn reads the card, you do not need its body; and pass each round's
 input to the voices as a scratchpad file, as the skill says.
 
-## `frodo` — the day's note
+## `frodo` — the owner's records
 
-Invoke `frodo` with the `note` (the text as the owner wrote it, unshortened,
-or the path) and `today` (YYYY-MM-DD). He works in turns:
+Frodo writes down what the owner tells about their days, themselves and the
+people around them. Invoke `frodo` with `task` (`daily`, `idea`,
+`update-core`, `add-contact`, `interview`), `text` (the owner's words,
+unshortened — the note or its path, the idea, the fact, the name, the
+topic; `list` for a backlog review) and `today` (YYYY-MM-DD). Something said
+earlier in the conversation that the owner now wants kept ("zapisz to jako
+pomysł") goes into `text` in full — Frodo sees none of this conversation.
 
-1. His first reply is either `PYTANIA` or `PLAN`. Show it to the owner **as
-   it is** — the plan block verbatim, not summarised — and wait.
+He works in turns:
+
+1. Each reply is `PYTANIA`, a `PLAN`, or the final report. Show it to the
+   owner **as it is** — a plan block verbatim, not summarised — and wait.
 2. Send the owner's answer to the same Frodo with `SendMessage`, in the
-   owner's words (`y`, `n`, an edit, the answers to the questions). Repeat
-   until he returns the report.
-3. Show the report as it is. He has the commit made himself, through Ori —
-   do not call `ori` again for it. The commit includes `current/smeagol/`
-   on purpose: the skill sends the session's logs along with the day.
+   owner's words (`y`, `n`, an edit, the answers). Repeat until the report.
+   Several questions may be answered over several messages: collect the
+   answers, then send them together, each under its question's number.
+3. Show the report as it is. He has the commit made himself, through Ori,
+   when the change is whole — do not call `ori` again for it. If he reports
+   paths left uncommitted, tell the owner; they go to `ori` on the owner's
+   word. A `daily` commit includes `current/smeagol/` on purpose; after any
+   other task those logs stay uncommitted until the next `daily` — do not
+   offer to commit them.
 
-If the owner typed `/daily` and the skill's text landed in your context, do
-not run it yourself — you have no tools for it. Hand the note to `frodo`.
+An `interview` runs for several rounds: a plan (target and outline), the
+questions, then follow-ups for as long as the answers open something new,
+then the text to approve. Carry each round as above; the owner ends it by
+saying so.
+
+If the owner typed `/daily`, `/idea`, `/update-core`, `/add-contact` or
+`/interview` and the skill's text landed in your context, do not run it
+yourself — you have no tools for it. Hand the request to `frodo`.
 
 ## `ori` — committing brain/
 
