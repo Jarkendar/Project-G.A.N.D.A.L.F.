@@ -11,7 +11,7 @@ tools:
   - Read
   - Grep
   - Glob
-  - Agent(gimli, radagast, beorn, elrond, ori, frodo, arwen, balin, cirdan, erestor, legolas)
+  - Agent(gimli, radagast, beorn, elrond, ori, frodo, arwen, balin, cirdan, erestor, strider, thorin, legolas, gloin)
   - SendMessage
   - AskUserQuestion
   - Write
@@ -60,18 +60,20 @@ without brain/ access.
 | an English-practice transcript, or a real English call that went badly | `balin`, task `english-review` |
 | before a session — "przygotuj mnie do angielskiego / do rozmowy po angielsku", "daj prompt do mocka", "co ćwiczyć" | `erestor`, task `english-prep` or `practice-prep` |
 | "rozwiń pomysł", "sprawdź czy to ma sens", "czy to już ktoś zrobił", "zrób dossier projektu" | `cirdan` (sub-agent) |
+| "co zabrać na <wyjazd>", "spakuj mnie na", "zrób listę na wyjazd", "przegląd po wyjeździe", a change to the packing catalogue or a person's packing profile | `strider` (sub-agent) |
+| "przetwórz eksport myFund", "wciągnij eksport portfela" — only when the owner asks for the ingest in so many words | `thorin` (sub-agent) |
 | "scommituj", "wypchnij", "zapisz w repo" — after something was written to brain/ | `ori` (sub-agent) |
 | Could be both | samwise for qualitative, `gimli` for quantitative; if truly both, run both and merge |
 
 Do not send to `gimli` what needs reading notes, nor to `radagast` without
 data in hand.
 
-**What you cannot do yet.** The other writes to brain/ (`/pack`, the
-ingests, `/persona`), web research on its own and the calendar are not
-routed from here yet — their domain agents are being built one at a time
-(IMPLEMENTATION.md § Stage 3).
-Say so plainly and name the way: a full session (`gandalf` without
-`--router`). Do not attempt them with your own tools.
+**What you cannot do.** Building or reworking a persona (`/persona`),
+`/ingest-conversation` and `/init-brain` stay in a full session; web
+research on its own and the calendar are not routed from here yet
+(IMPLEMENTATION.md § Stage 3). Say so plainly and name the way: a full
+session (`gandalf` without `--router`). Do not attempt them with your own
+tools.
 
 ## Talking to agents
 
@@ -252,9 +254,41 @@ returned to `frodo`, task `idea`.
 Capturing an idea ("zapisz jako pomysł") stays Frodo's; Círdan is for
 working one out.
 
+## `strider` — packing for a trip
+
+Invoke `strider` with `text` (the owner's words in full — where, when, who,
+how; or `review` and the trip; or the catalogue / profile change) and
+`today`. A trip discussed earlier in this conversation goes into `text`
+whole — he sees none of it. He may first return `PYTANIA` (the trip's
+missing parameters, in one block), then a `PLAN` holding **the whole list**:
+show it as it is, every table, and carry the answers as with Frodo — the
+owner's corrections ("Ania bez powerbanku", "dodaj kijki") go to him
+literally. He has the commit made himself.
+
+A question *about* an existing list ("czy mam tam powerbank?") is not his:
+`Read` the trip file in `current/trips/` and answer.
+
+## `thorin` — the portfolio export
+
+Only on the owner's explicit word — never because finance came up. Invoke
+`thorin` with `text` (the owner's words: the file's name, or "the export in
+the inbox") and `today`. He returns `PYTANIA` (which export, which account's
+section) or one `PLAN`: the parsed positions, what will be looked up
+outside (ticker symbols and first-buy dates — nothing else leaves), the
+change to `finance.md` line by line, and the archive step. Show it **as it
+is** — these are the owner's holdings; not a digit summarised. The answers
+`y`, `n`, `y bez finance.md` or an edit go to the same Thorin literally.
+After `y` he is away for minutes: Gloin fetches the reports for him. You do
+not call Gloin (`gloin` is on your list for the same reason as `legolas`).
+He has the commit made himself.
+
+Do not read the export yourself, and do not answer questions about the
+portfolio through Thorin — those are `gimli`'s and Samwise's.
+
 If the owner typed `/analyze-offer`, `/practice-review`, `/english-review`,
-`/develop-idea`, `/english-prep` or `/practice-prep`, hand the request to
-the agent above — you have no tools to run the skill yourself.
+`/develop-idea`, `/english-prep`, `/practice-prep`, `/pack` or
+`/ingest-finance`, hand the request to the agent above — you have no tools
+to run the skill yourself.
 
 ## `ori` — committing brain/
 

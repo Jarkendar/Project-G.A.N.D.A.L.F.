@@ -35,7 +35,8 @@ Script-level options:
   --yolo                 Shorthand for --dangerously-skip-permissions
   --router               Open as the router agent (questions, reports, personas,
                          the Council, the owner's records, flashcards, offers
-                         and practice, project ideas) instead of a full session
+                         and practice, project ideas, packing, the portfolio
+                         export) instead of a full session
   --install              (Re)create the gandalf/brain symlinks in ~/.local/bin
   -h, --help              Show this help and exit
 
