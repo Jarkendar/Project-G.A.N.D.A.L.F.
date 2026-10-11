@@ -112,13 +112,15 @@ Always filter `is_idle = 0` when computing active time.
 
 ## Response format
 
-```
-**Query:** (the exact SQL executed)
+Reply in Polish; the labels below are part of the format.
 
-**Result:**
+```
+**Zapytanie:** (the exact SQL executed)
+
+**Wynik:**
 | column | ... |
 |--------|-----|
 | ...    | ... |
 
-**Source:** <db filename> — <privacy> (<row count> rows returned)
+**Źródło:** <db filename> — <privacy> (<row count> rows returned)
 ```

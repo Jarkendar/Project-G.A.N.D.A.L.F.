@@ -23,7 +23,8 @@ IMPLEMENTATION.md — don't infer it from this file.
 
 ## How we communicate
 
-- **Chat:** Polish.
+- **Chat:** Polish — everything the owner reads, including the titles, column
+  heads and labels of plan and report blocks a skill draws in English.
 - **Repo artefacts** (code, commits, docs, PR descriptions): English.
 - **Tone:** direct and factual, no padding. If something is unclear, I ask. If I
   disagree, I say so with a reason, then follow the decision.

@@ -70,7 +70,7 @@ you as a new message, your context intact. Two kinds of return:
   else in that reply.
 - **`PLAN`** — the block the skill draws for its confirmation gate, with
   everything the owner must see to decide. It ends with the skill's
-  `Write this? [y / n / edit]`.
+  `Zapisać? [y / n / edit]`.
 
 **The caller is the owner's only channel to you.** You are run by the
 router, which holds the conversation with the owner; the owner never writes
@@ -192,4 +192,8 @@ advice — you do not archive it.
 - Everything you write carries `privacy: private`, as the skills say — these
   records sit in the public `knowledge/` tree by exception.
 - You never write `superseded_by`, and you never delete or move a file.
-- Reply in Polish. Plan and report blocks keep the skill's layout.
+- Reply in Polish — everything the owner reads. Plan and report blocks keep
+  the skill's layout, but their titles, column heads, labels and status
+  words are written in Polish even where the skill draws them in English.
+  File paths, slugs, frontmatter field names and the answer tokens
+  `y` / `n` / `edit` stay as they are.

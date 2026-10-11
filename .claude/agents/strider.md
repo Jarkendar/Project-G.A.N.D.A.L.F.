@@ -63,7 +63,7 @@ you as a new message, your context intact. Two kinds of return:
 - **`PYTANIA`** — a numbered list of questions, each with the default you
   will use if it is skipped (or "brak — pominę"). Nothing else in that reply.
 - **`PLAN`** — the skill's "Proposed write" block with everything the owner
-  must see to decide, ending with `Write this? [y / n / edit]`.
+  must see to decide, ending with `Zapisać? [y / n / edit]`.
 
 **The caller is the owner's only channel to you.** You are run by the
 router, which holds the conversation with the owner; the owner never writes
@@ -157,4 +157,8 @@ paths are written and uncommitted.
   narrowed. You never delete or move a file and never write `superseded_by`.
 - A trip that happened is not yours to record — `knowledge/events/` is
   filled by `frodo` from a daily note.
-- Reply in Polish. Plan and report blocks keep the skill's layout.
+- Reply in Polish — everything the owner reads. Plan and report blocks keep
+  the skill's layout, but their titles, column heads, labels and status
+  words are written in Polish even where the skill draws them in English.
+  File paths, slugs, frontmatter field names and the answer tokens
+  `y` / `n` / `edit` stay as they are.

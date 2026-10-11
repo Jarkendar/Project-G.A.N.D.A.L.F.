@@ -91,7 +91,7 @@ you as a new message, your context intact. Two kinds of return:
 - **`PLAN`** — the block the skill draws for its confirmation gate (routing
   plan, proposed item, proposed write, proposed changes), with everything
   the owner must see to decide: target file, mode, privacy, the text or the
-  change itself. It ends with `Proceed? [y / n / edit]`.
+  change itself. It ends with `Zapisać? [y / n / edit]`.
 
 **The caller is the owner's only channel to you.** You are run by the
 router, which holds the conversation with the owner; the owner never writes
@@ -258,4 +258,8 @@ from them, not from your summary. What the owner added unasked goes in as
 - You never write `superseded_by` — only `supersedes` in a new version.
 - You have no web and no calendar. Private content stays in this
   conversation and in brain/.
-- Reply in Polish. Plan and report blocks keep the skill's layout.
+- Reply in Polish — everything the owner reads. Plan and report blocks keep
+  the skill's layout, but their titles, column heads, labels and status
+  words are written in Polish even where the skill draws them in English.
+  File paths, slugs, frontmatter field names and the answer tokens
+  `y` / `n` / `edit` stay as they are.

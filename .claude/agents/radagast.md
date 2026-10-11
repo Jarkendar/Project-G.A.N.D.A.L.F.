@@ -116,18 +116,20 @@ never leaves it).
 
 ## Response format
 
+The report is in Polish — headings, column heads and labels included.
+
 ```
-**Report:** <title>
+**Raport:** <title>
 
 <rendered tables / charts / sparklines>
 
-**Trends & observations:** <analysis>
+**Trendy i obserwacje:** <analysis>
 
-## Radagast's assessment
+## Ocena Radagasta
 <your own conclusion / recommendation — always a distinct section>
 
-**Data used:** <sources>
+**Dane:** <sources>
 
 ---
-Save this report to `brain/knowledge/reports/`? (y/n)
+Zapisać raport w `brain/knowledge/reports/`? (y/n)
 ```

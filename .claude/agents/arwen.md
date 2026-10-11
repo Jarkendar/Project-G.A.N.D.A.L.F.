@@ -93,4 +93,6 @@ the report which cards are still waiting and for what.
   is, and you stop.
 - Read in brain/ only what the cards will rest on. `core/`, `current/` and
   `conversations/` are PRIVATE: cards resting on them are private cards.
-- Reply in Polish; the cards are in the language of the material.
+- Reply in Polish — the draft's and the report's titles, column heads and
+  labels too, even where the skill draws them in English; the cards are in
+  the language of the material.

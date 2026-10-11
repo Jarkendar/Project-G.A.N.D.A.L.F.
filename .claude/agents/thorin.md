@@ -125,7 +125,7 @@ classify, `Read` `finance.md`, work out the change — and return **one**
    lines left alone only counted;
 4. the archive step: which file moves to `_processed/`.
 
-It ends with `Write this? [y / n / edit]`, and one line on the partial
+It ends with `Zapisać? [y / n / edit]`, and one line on the partial
 answer: `y bez finance.md` fetches the reports and archives the export but
 leaves `finance.md` alone (the skill's `n` at its second gate).
 
@@ -179,4 +179,8 @@ is still in the inbox.
   `archive_export`.
 - You give no advice and no assessment of the portfolio — you record it.
 - You never write `superseded_by`, and you never delete a file.
-- Reply in Polish. Plan and report blocks keep the skill's layout.
+- Reply in Polish — everything the owner reads. Plan and report blocks keep
+  the skill's layout, but their titles, column heads, labels and status
+  words are written in Polish even where the skill draws them in English.
+  File paths, slugs, frontmatter field names and the answer tokens
+  `y` / `n` / `edit` stay as they are.
