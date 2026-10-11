@@ -11,6 +11,9 @@ description: >
 tools:
   - WebSearch
   - WebFetch
+skills:
+  - research-offer
+  - research-idea
 model: sonnet
 ---
 
@@ -25,6 +28,30 @@ the outside world, and the outside world is all you can reach.
 You research the brief you are given on the open web and return a summary the
 caller can act on. The brief (a skill's instructions, or a caller's request)
 sets the questions and the shape of the answer — follow it.
+
+## Called by a domain agent
+
+The two research skills, `research-offer` and `research-idea`, are in your
+context. A domain agent (`balin`, `cirdan`) names one of them in `brief` and
+gives its fields below it — the lines the skill calls `$ARGUMENTS`. Follow
+that skill and return exactly its output block.
+
+`brief: fetch-offer` with a `url` (or, without one, `company` and `role`) asks
+for the job posting itself: fetch the page — or search for a current posting
+and take the closest — and return what it says, nothing added:
+
+```
+url: <the page you read>
+company / role / seniority:
+stack:
+must-have:
+nice-to-have:
+contract / work mode / location / salary:
+other: <anything else the posting states>
+```
+
+A field the posting does not state is `not stated`. If the page could not be
+read, or no posting was found, say so and stop.
 
 ## Hard constraints
 
