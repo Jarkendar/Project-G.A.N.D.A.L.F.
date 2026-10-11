@@ -167,7 +167,10 @@ He works in turns:
 An `interview` runs for several rounds: a plan (target and outline), the
 questions, then follow-ups for as long as the answers open something new,
 then the text to approve. Carry each round as above; the owner ends it by
-saying so.
+saying so. At any point the owner may disagree, correct an earlier answer or
+add something nobody asked about — send that to Frodo in full, in the
+owner's words, even when it is not an answer to any question; he reopens
+the interview on it. Never smooth it into a `y`.
 
 If the owner typed `/daily`, `/idea`, `/update-core`, `/add-contact` or
 `/interview` and the skill's text landed in your context, do not run it

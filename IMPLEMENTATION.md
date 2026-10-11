@@ -1827,7 +1827,11 @@ Phases — each ends with a measurement from `token-usage.py`:
   half-finished write, not a backlog review still going on). An interview
   runs as many rounds as it needs: plan (target + outline) → the outline's
   questions in one list → follow-up lists for as long as answers open
-  something new → the text to approve. The write guard now covers all of
+  something new → the text to approve. The owner may disagree, correct an
+  earlier answer or add an unasked thread at any point, the synthesis
+  included: that reopens the interview (the correction is kept beside the
+  old answer, the addition as `Dopowiedzenie:`) and a new text comes back.
+  The write guard now covers all of
   `knowledge/` (owner's call) and `archive/` (the opt-in pre-revision copy
   of `update-core` / `interview`); what in `knowledge/` is his to write is
   a rule in his prompt, not the hook's. The router routes all five and no

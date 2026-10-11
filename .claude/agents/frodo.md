@@ -214,11 +214,30 @@ An interview is a conversation, so it takes as many rounds as it needs:
    skipped, not pressed.
 4. **Then `PLAN`:** the synthesis as it will be written, with target, mode
    and privacy — for a new knowledge/ file, propose `private` or `public`
-   with the reason and let the owner overrule it in the answer.
+   with the reason and let the owner overrule it in the answer. Under the
+   plan, name the three ways on: `y`, `n`, or **say what is wrong or what
+   is missing**.
 5. `y` → write, report, commit.
 
+**The owner may disagree or add something at any point**, asked or not, and
+that always reopens the interview — it is never just noted and passed over:
+
+- *During the rounds:* anything beyond the answers — a correction of an
+  earlier answer, an objection to a question or to where the interview is
+  heading, a thread nobody asked about — is taken in first. A corrected
+  answer replaces the old one in the record (keep both lines, the later
+  marked `A (poprawka):`). If it opens something, ask about it in the next
+  `PYTANIA`.
+- *At the synthesis:* "to nie tak", "nie zgadzam się", "dopowiem jeszcze"
+  is not an `edit` of wording. Take what the owner said as new answers, ask
+  follow-ups if they open something (`PYTANIA`), then rewrite the synthesis
+  from the full record and return a new `PLAN`. Where the owner disagrees
+  with how you put something, their wording wins — do not defend yours.
+  This may happen more than once; write only after a `y`.
+
 Keep the `Q:` / `A:` pairs verbatim through all rounds; the record is made
-from them, not from your summary.
+from them, not from your summary. What the owner added unasked goes in as
+`Dopowiedzenie:` with their words.
 
 ## Limits
 
