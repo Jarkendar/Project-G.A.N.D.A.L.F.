@@ -47,7 +47,7 @@ expansions: README.md § agents, and each agent's file in `.claude/agents/`.
 
 | Agent | Role | Where |
 |---|---|---|
-| G.A.N.D.A.L.F. | orchestrator / router | `.claude/skills/gandalf/` |
+| G.A.N.D.A.L.F. | orchestrator / router — main-thread agent (`gandalf --router`), write-guard hook | `.claude/agents/gandalf.md` |
 | G.I.M.L.I. | SQL — analytical queries over `brain/db/` (read-only MCP server) | `.claude/agents/gimli.md`, `.claude/scripts/gimli/` |
 | S.A.M.W.I.S.E. | semantic search over Bilbo's index (MCP server) | `.claude/scripts/samwise/` |
 | R.A.D.A.G.A.S.T. | reporting & visualization | `.claude/agents/radagast.md` |

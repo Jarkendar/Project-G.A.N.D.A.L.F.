@@ -14,8 +14,8 @@ execution path and status: **[IMPLEMENTATION.md](IMPLEMENTATION.md)**.
 personal J.A.R.V.I.S.) on a Raspberry Pi 5: a **router + specialised
 sub-agents**, with **skills** for higher-order workflows.
 
-**Status: MVP running on Claude Code** — Gandalf as a CC skill, agents as CC
-sub-agents, engine = Claude API. Local-first (Ollama) is *deferred*, not
+**Status: MVP running on Claude Code** — Gandalf as a CC main-thread agent
+(`gandalf --router`), agents as CC sub-agents, engine = Claude API. Local-first (Ollama) is *deferred*, not
 abandoned: shape first, engine later. For what is built and what is next, read
 IMPLEMENTATION.md — don't infer it from this file.
 

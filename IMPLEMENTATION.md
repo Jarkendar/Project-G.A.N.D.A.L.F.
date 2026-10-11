@@ -1737,14 +1737,29 @@ Phases — each ends with a measurement from `token-usage.py`:
   runs although the main agent has no `Skill` tool; `SendMessage` resumes a
   sub-agent from an `--agent` main thread with its context intact (it needs
   session persistence — with `--no-session-persistence` there is no
-  transcript to resume). Still open: a frontmatter hook under the harness.
-- [ ] **Phase 1 — the router.** `.claude/agents/gandalf.md`: Steps 1–3 of
-  `.claude/skills/gandalf/SKILL.md` shortened into its prompt, tools as in
-  rule 1, `skills: [council]`, `model: sonnet`. `bin/gandalf` adds `--agent
-  gandalf`; `--full` keeps today's behaviour as the way back. Delete the
-  `gandalf` skill (never invoked). Dev stays plain `claude` in the repo.
-  Done when: a question goes through samwise / `gimli` / `radagast`, a
-  Council runs, and the interactive start is measured.
+  transcript to resume).
+- [ ] **Phase 1 — the router.** Built 2026-10-11, opt-in:
+  `.claude/agents/gandalf.md` (the old skill's Steps 1–3 as its prompt;
+  `Read`, `Grep`, `Glob`, `Agent(gimli, radagast, beorn)`, `SendMessage`,
+  `AskUserQuestion`, `Write`, samwise; `skills: [council]`; `model: sonnet`)
+  and `gandalf --router` in `bin/gandalf`. The `gandalf` skill is deleted.
+  Two deviations from the plan above. The router is **opt-in, not the
+  default with `--full` as the way back**: a typed `/daily` runs in the main
+  thread with the router's tools and could not write, so the default flips
+  only once the writing domains have agents. And `Write` is bounded by a
+  hook rather than by prose: `.claude/hooks/write-guard/guard.py tmp
+  brain:knowledge/councils` (generic — allowed places are its arguments;
+  thirteen cases tested, symlink and `..` included) — the Council saves its
+  record to `knowledge/councils/`, so "outside brain/ only" was wrong.
+  Measured headless: start 16.9 k against the 33.8 k baseline; a
+  quantitative question went to `gimli` and came back with numbers and
+  source, an open one through samwise `context` + `search(wide)`; writes to
+  the repo and to `brain/knowledge/` were refused by the hook. The frontmatter
+  hook question is closed with it: `narvi`'s guard refuses too, as main
+  agent and as sub-agent, even with permissions skipped.
+  **Left for the owner, in a real session:** `gandalf --router` — the
+  interactive start (`/context`), one report through `radagast` with the
+  save question relayed, and one Council.
 - [ ] **Phase 2 — pilot domain: personal records, starting with `daily`.**
   The most used skill (21 invocations in 15 of 87 sessions, with `idea` at
   20) and the heaviest: invoking it adds ~14 k to the main conversation,
@@ -1836,10 +1851,7 @@ What this means for Stage 3:
 
 Seen after the restart: `gimli`, `legolas`, `erestor`, `gloin`, `narvi` are
 listed with their narrowed tools, the `gimli` server connects, and the four
-`disable-model-invocation` skills are out of the model's listing. Still
-open: a `narvi` asked to write outside the scratchpad is refused (the
-frontmatter hook running under the harness), and the interactive start of
-the router, which only a real `gandalf` session shows.
+`disable-model-invocation` skills are out of the model's listing.
 
 ---
 

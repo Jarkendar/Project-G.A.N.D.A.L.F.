@@ -5,6 +5,11 @@
 # same thing: sync the Gandalf + brain repos on git, then open a `claude`
 # session rooted in this repo with the brain/ sibling directory tool-accessible.
 #
+# `--router` opens the session as the router agent (.claude/agents/gandalf.md)
+# instead of a full session: it routes and reads, and writes nothing to brain/
+# but a Council record. Opt-in until the domain agents exist — IMPLEMENTATION.md
+# § "Least privilege & token diet", Stage 3.
+#
 # See: .claude/plans (design doc) / IMPLEMENTATION.md for background.
 
 set -euo pipefail
@@ -28,6 +33,8 @@ identical behaviour either way.
 Script-level options:
   --no-sync, --no-pull   Skip git pull / branch check on both repos
   --yolo                 Shorthand for --dangerously-skip-permissions
+  --router               Open as the router agent (questions, reports, personas,
+                         the Council) instead of a full session
   --install              (Re)create the gandalf/brain symlinks in ~/.local/bin
   -h, --help              Show this help and exit
 
@@ -40,6 +47,7 @@ Examples:
   ${SCRIPT_NAME} -r                      # pick a previous session to resume
   ${SCRIPT_NAME} "summarize today"       # start with an initial prompt
   ${SCRIPT_NAME} --no-sync --yolo        # fast start, skip permission prompts
+  ${SCRIPT_NAME} --router                # the router: routes to agents, no writes
 EOF
 }
 
@@ -162,6 +170,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --yolo)
       CLAUDE_ARGS+=("--dangerously-skip-permissions")
+      shift
+      ;;
+    --router)
+      CLAUDE_ARGS+=("--agent" "gandalf")
       shift
       ;;
     --install)
