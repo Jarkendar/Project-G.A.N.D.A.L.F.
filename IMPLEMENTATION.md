@@ -1417,7 +1417,7 @@ Storage and retrieval:
       worth it for multidisciplinary thinking once there are 3+ finance
       voices), Jeff Bezos (shareholder letters — category *projects &
       entrepreneurship*, not finance).
-- [ ] **Polish voices** (2026-10-05, from the council smoke test) — every
+- [x] **Polish voices** (2026-10-05, from the council smoke test) — every
       finance persona is American and treats the Polish market as small and
       weak by default; none knows the local wrappers (IKE/IKZE, PPK,
       retail treasury bonds, Belka tax), so they answer "outside my
