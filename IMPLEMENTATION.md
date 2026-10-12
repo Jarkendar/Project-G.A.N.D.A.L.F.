@@ -2112,8 +2112,17 @@ Phases — each ends with a measurement from `token-usage.py`:
   Then a full write cycle (same day): `idea` through Frodo, plan → `y`
   on a resumed session → file in `brain/backlog/check/`, committed and
   pushed to main through Ori (1fd7bf8, only the one path, trailer
-  present; 2 turns, $0.26 + $0.32, no denials). Not covered: the other
-  agents (Balin, Círdan, Strider, Thorin, Arwen).
+  present; 2 turns, $0.26 + $0.32, no denials). The other agents, same
+  day, headless, each stopped at its plan or questions (nothing written;
+  $0.12–0.20 each, no denials): Balin (update of an existing dossier —
+  caught that the dossier was `closed-lost` and asked), Círdan (dossier
+  already existed — asked update/new), Strider (trip block and questions),
+  Arwen (four-card draft, duplicate check against Anki), Thorin (empty
+  inbox, nothing to process). Seen once: Thorin's first headless run
+  reported its MCP tools missing (`mcp__thorin__*` "still connecting");
+  a repeat, and a plain session, had them — a start-up race, not a
+  config fault. Not covered: Thorin on an actual export, Gloin's fetch,
+  Círdan's research through Legolas, and any of them past the plan.
   **Left open:** the rest of the new agents on the real brain (the lists
   under each phase above); the GPW report fetch (Phase 5); the
   claude.ai-synced skills in a full session (Stage 2); trimming the router's
