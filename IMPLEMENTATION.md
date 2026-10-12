@@ -1458,6 +1458,77 @@ Storage and retrieval:
              (one with a conflict of interest), so blind spots come mainly
              from his own admitted mistakes and from tracking how his
              explanations shift across years.
+      2. [x] **Mateusz Samołyk** — FIRE and early retirement in Polish
+             terms (savings rate, 3% withdrawal instead of 4%, sequence
+             risk, IKE/IKZE/OKI), passive ETF + retail treasury bond
+             portfolio, half-yearly public portfolio reports. Done
+             2026-10-08/09: 302 digests (all 300 posts from inwestomat.eu
+             2019–2026 — one author, post body from the WordPress API — plus
+             the "O blogu" page and one thin external review, Comparic.pl
+             2024), ~1.44M words in 26 batches of ~55k words, 308 quotes
+             checked, core card v1 (493 lines) built from three period
+             syntheses (2019–21, 2021–23, 2024–26) instead of reading all
+             digests in the main context. Validation v1: 0/36 yielding vs
+             bare 1 yielding + 5 blurred (the bare model drifts to 80–100%
+             equities); path 69 vs 48/72, character 59 vs 40, nuance 59 vs
+             54; tics 7/36 ("dziecko hossy" 3× in one dilemma). Weak points:
+             under pressure the persona drops złoty amounts and Polish
+             specifics; on the TFI-fee dilemma the bare model matches the
+             path (12 vs 10); no referral to a market-cycle voice on the
+             "bubble" question; a few arithmetic slips (Belka ×0.81 applied
+             to loan interest). No v2 needed by the skill's criteria.
+             Spot-check (four digests vs originals): figures match. The
+             card keeps the sources' own inconsistencies visible (FIRE
+             target 4 / 5 / 6 / 7.5–8M zł, "example" hysteresis thresholds,
+             inflation bonds in and out of the portfolio) rather than
+             smoothing them. Guest voices (floridian interviews, lawyer
+             co-authored posts) excluded from his views. Lessons: Haiku is
+             not good enough for digests — the trial batch invented sources,
+             attributed a model portfolio to him and quoted an actor;
+             Sonnet at low effort was enough. General-purpose sub-agents
+             carry ~36k tokens of overhead and full tool access, and wrote
+             scratch files outside the drafts folder — hence the backlog
+             items on narrow task agents with minimal permissions.
+      3. [x] **Tomasz Jaroszek** — the investor's workshop on the GPW:
+             passive vs active and the cost of sitting "astride" both,
+             quality before price, IPOs, behaviour in a crash, leverage
+             told by someone who lost on it. Done 2026-10-09/13: 402
+             digests (2014–2026: 99 posts from doradca.tv via the WordPress
+             API and 303 YouTube videos — podcast "Nic za darmo", Portfel
+             10k, #PortfelDTV, talks — from automatic Polish captions),
+             ~1.55M words in 30 batches, 330 quotes checked. Digests by
+             Narvi (Sonnet), three batches in parallel, two sources per
+             call. Core card built in layers because the digests do not fit
+             one context: eight period syntheses → two merges → a draft by
+             Narvi on Opus, read in full and fact-checked against the
+             digests in the main thread. Card v2 (489 lines). Validation
+             v1: 0/36 yielding for card and bare model; path 71 vs 39/72,
+             character 67 vs 26 (the widest gap so far — the bare model
+             barely knows him and hands out percentage ranges), nuance 64
+             vs 49; but tics in 32/36 answers — the control question "what
+             did you do in the last drop" in 11/36, "write down your
+             reasons" 6, "don't take my word" 5, mixed "Pan"/"ty", and one
+             invented detail (a 1% risk rule moved from stocks to Forex).
+             Card v2 narrowed each of these to its question type:
+             re-validation path 72/72, character 67, nuance 62, the
+             refrain 11 → 0, "Pan" 6 → 0, ornaments 5 → 1 — and the
+             repetition moved to the next vivid item, the "portfolio must
+             survive −50%" test (6 → 9/36), as with Housel. v3 only on the
+             owner's request. Spot-check (four digests vs originals, ~25
+             figures): all match. Gaps: no external criticism in the
+             catalogue — blind spots come from his own admissions,
+             contradictions between digests and the commercial threads; 50
+             early videos have no captions; captions carry no speaker
+             split, so the card holds no quotes; many sources are
+             sponsored (banks, brokers, ETF issuers, GPW, Orlen) and the
+             card marks every view that appears only there. Lessons: a
+             behaviour written as "asks X" becomes a closing formula just
+             like a slogan — name the question types where it fits and
+             where it does not; automatic captions garble names, so every
+             name an agent "recognised" needs a check (several sponsors
+             and one company were guesses); the trailing dot in this
+             repo's directory name blocks sub-agents from reading skill
+             files — the digest reference was copied to the scratchpad.
 - [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
       useful_for / not_for; purpose, how it thinks, style, in a council,
       does not). Next to the skill, not in `.claude/agents/`.
