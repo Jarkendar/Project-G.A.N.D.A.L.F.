@@ -2098,8 +2098,21 @@ Phases — each ends with a measurement from `token-usage.py`:
   is. The two interactive router sessions predate Phases 2–5; the number to
   watch is the `main: gandalf` row that `token-usage.py` now prints apart
   from `main session`.
-  **Left open:** nothing of the new agents has run on the real brain yet
-  (the lists under each phase above); the GPW report fetch (Phase 5); the
+  **Checked on the real brain, 2026-10-12** (headless `claude -p --agent
+  gandalf --add-dir brain`, from the real project directory): `Read` of
+  `.claude/skills/<name>/SKILL.md` works for a sub-agent and for the
+  headless session — relative and absolute path, no denial, no approval
+  (Claude Code 2.1.296). The "suspicious Windows path" block noted at the
+  council smoke test did not reproduce for skill files, so the dotted
+  directory name stays and the `skills:` preload is not needed as a
+  workaround. Two runs: `english-prep` through Erestor (read-only; 2
+  turns, $0.19, briefing built from `knowledge/language/`, no denials) and
+  `idea` through Frodo stopped at the plan (1 turn, $0.20; the plan block
+  in Polish, nothing written, `brain/` clean apart from the Smeagol log).
+  Not covered: a write and a commit through Ori on the real brain, and
+  the other agents (Balin, Círdan, Strider, Thorin, Arwen).
+  **Left open:** the rest of the new agents on the real brain (the lists
+  under each phase above); the GPW report fetch (Phase 5); the
   claude.ai-synced skills in a full session (Stage 2); trimming the router's
   prompt and the agent descriptions if the start matters.
 
