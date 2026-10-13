@@ -2098,8 +2098,33 @@ Phases — each ends with a measurement from `token-usage.py`:
   is. The two interactive router sessions predate Phases 2–5; the number to
   watch is the `main: gandalf` row that `token-usage.py` now prints apart
   from `main session`.
-  **Left open:** nothing of the new agents has run on the real brain yet
-  (the lists under each phase above); the GPW report fetch (Phase 5); the
+  **Checked on the real brain, 2026-10-12** (headless `claude -p --agent
+  gandalf --add-dir brain`, from the real project directory): `Read` of
+  `.claude/skills/<name>/SKILL.md` works for a sub-agent and for the
+  headless session — relative and absolute path, no denial, no approval
+  (Claude Code 2.1.296). The "suspicious Windows path" block noted at the
+  council smoke test did not reproduce for skill files, so the dotted
+  directory name stays and the `skills:` preload is not needed as a
+  workaround. Two runs: `english-prep` through Erestor (read-only; 2
+  turns, $0.19, briefing built from `knowledge/language/`, no denials) and
+  `idea` through Frodo stopped at the plan (1 turn, $0.20; the plan block
+  in Polish, nothing written, `brain/` clean apart from the Smeagol log).
+  Then a full write cycle (same day): `idea` through Frodo, plan → `y`
+  on a resumed session → file in `brain/backlog/check/`, committed and
+  pushed to main through Ori (1fd7bf8, only the one path, trailer
+  present; 2 turns, $0.26 + $0.32, no denials). The other agents, same
+  day, headless, each stopped at its plan or questions (nothing written;
+  $0.12–0.20 each, no denials): Balin (update of an existing dossier —
+  caught that the dossier was `closed-lost` and asked), Círdan (dossier
+  already existed — asked update/new), Strider (trip block and questions),
+  Arwen (four-card draft, duplicate check against Anki), Thorin (empty
+  inbox, nothing to process). Seen once: Thorin's first headless run
+  reported its MCP tools missing (`mcp__thorin__*` "still connecting");
+  a repeat, and a plain session, had them — a start-up race, not a
+  config fault. Not covered: Thorin on an actual export, Gloin's fetch,
+  Círdan's research through Legolas, and any of them past the plan.
+  **Left open:** the rest of the new agents on the real brain (the lists
+  under each phase above); the GPW report fetch (Phase 5); the
   claude.ai-synced skills in a full session (Stage 2); trimming the router's
   prompt and the agent descriptions if the start matters.
 
