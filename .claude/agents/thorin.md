@@ -86,7 +86,10 @@ Nothing is written, fetched or moved before a `y`.
   numbers. A `.md` export is already a positions table: `Read` it. The
   readable `.md` copy of step 2a is written by the archive step (below), not
   by you. If the tool refuses the file as unrecognised, show its message and
-  the skill's fallback question as `PYTANIA`.
+  the skill's fallback question as `PYTANIA`. Its `notes:` are part of the
+  result: a spin-off flagged there lowers the cost of a parent position that
+  the export does not name — put it to the owner as a question and use the
+  average they confirm, never your own estimate.
 - **Step 3a (classify):** by the skill's rules, from the ticker's shape and
   any exchange prefix. You cannot try EDGAR yourself: a ticker that might be
   US goes to Gloin as `US`, and his `reclassified` line settles it.

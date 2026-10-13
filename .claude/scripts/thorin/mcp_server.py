@@ -6,7 +6,8 @@
 #
 #   read_export     a myFund XML export in brain/current/inbox/ → the net
 #                   position per ticker (the arithmetic of /ingest-finance
-#                   step 3, done here so no model adds up transactions).
+#                   step 3, done here so no model adds up transactions;
+#                   average = cost of the lots still held, FIFO).
 #                   Without a file name: the exports waiting in the inbox.
 #                   Reads only.
 #   archive_export  the end of an ingest: writes the readable .md copy of the
@@ -143,34 +144,77 @@ def _parse(path: Path) -> dict:
             skipped += 1
             continue
         rows.append({
+            "id": (op.get("id") or "").strip(),
             "date": day,
             "time": (op.findtext("CZAS") or "").strip(),
             "ticker": ticker,
             "type": (op.findtext("TYP") or "").strip(),
             "qty": _num(op.findtext("LICZBAJEDNOSTEK")),
             "price": _num(op.findtext("CENA")),
+            "value": _num(op.findtext("WARTOSCTRANSAKCJI") or "0"),
             "currency": (op.findtext("WALUTA") or "").strip(),
+            "lot": (op.findtext("ID_KUPNA") or "").strip(),
+            "spinoff": (op.findtext("SPINOFF") or "").strip() == "1",
         })
     if not rows:
         raise Refused(f"{path.name} holds no <operacje> transactions — not a myFund portfolio export, or a format this tool does not know")
-    rows.sort(key=lambda r: (r["date"], r["time"]))
+    rows.sort(key=lambda r: (r["date"], r["time"], int(r["id"]) if r["id"].isdigit() else 0))
     positions: dict[str, dict] = {}
+    warnings: list[str] = []
+    lots: dict[str, list[dict]] = {}
+    by_id: dict[str, dict] = {}
     for r in rows:
         p = positions.setdefault(r["ticker"], {
             "qty": Decimal(0), "buy_cost": Decimal(0), "buy_qty": Decimal(0),
-            "first_buy": None, "last_sell": None, "currencies": [],
+            "first_buy": None, "last_sell": None, "currencies": [], "spinoff": Decimal(0),
         })
         p["qty"] += r["qty"]
         if r["qty"] > 0:
             p["buy_cost"] += r["qty"] * r["price"]
             p["buy_qty"] += r["qty"]
             p["first_buy"] = min(p["first_buy"] or r["date"], r["date"])
+            # What a unit cost: the value of the transaction (commission
+            # included, as myFund does). A spin-off carries no value — its
+            # unit price is the cost allocated to it.
+            cost = r["qty"] * r["price"] if r["spinoff"] or r["value"] == 0 else r["value"]
+            lot = {"qty": r["qty"], "cost": cost, "date": r["date"]}
+            lots.setdefault(r["ticker"], []).append(lot)
+            if r["id"]:
+                by_id[(r["ticker"], r["id"])] = lot
+            if r["spinoff"]:
+                p["spinoff"] += cost
         else:
             p["last_sell"] = max(p["last_sell"] or r["date"], r["date"])
+            need = -r["qty"]
+            # A sale names its lot (ID_KUPNA) or takes the oldest first.
+            chosen = by_id.get((r["ticker"], r["lot"])) if r["lot"] not in ("", "0") else None
+            queue = ([chosen] if chosen else []) + lots.get(r["ticker"], [])
+            for lot in queue:
+                take = min(need, lot["qty"])
+                if take > 0:
+                    lot["cost"] -= lot["cost"] * take / lot["qty"]
+                    lot["qty"] -= take
+                    need -= take
+                if need <= 0:
+                    break
+            if need > OPEN_THRESHOLD:
+                warnings.append(f"{r['ticker']}: sale of {-r['qty']} on {r['date']} exceeds the units bought before it")
         if r["currency"] and r["currency"] not in p["currencies"]:
             p["currencies"].append(r["currency"])
-    for p in positions.values():
-        p["avg_buy"] = p["buy_cost"] / p["buy_qty"] if p["buy_qty"] else None
+    for t, p in positions.items():
+        # What the owner holds: the cost of the lots still in the portfolio —
+        # a position closed and opened anew starts its average afresh.
+        left = [l for l in lots.get(t, []) if l["qty"] > 0]
+        held = sum((l["qty"] for l in left), Decimal(0))
+        p["avg_buy"] = sum((l["cost"] for l in left), Decimal(0)) / held if held > OPEN_THRESHOLD else None
+        # A closed position has no lots left: its figure is the old all-buys one.
+        p["avg_all"] = p["buy_cost"] / p["buy_qty"] if p["buy_qty"] else None
+        if p["spinoff"]:
+            warnings.append(
+                f"{t}: spin-off lot(s) worth {p['spinoff']:.2f} — myFund lowers the parent's "
+                "cost by that amount; the export does not name the parent, so no average here "
+                "is adjusted for it. Ask the owner which position it came from"
+            )
     types: dict[str, int] = {}
     for r in rows:
         types[r["type"]] = types.get(r["type"], 0) + 1
@@ -179,6 +223,7 @@ def _parse(path: Path) -> dict:
         "base_currency": (root.findtext("settings/walutaBazowa") or "").strip(),
         "rows": rows,
         "skipped": skipped,
+        "warnings": warnings,
         "types": types,
         "open": {t: p for t, p in sorted(positions.items()) if p["qty"] > OPEN_THRESHOLD},
         "closed": {t: p for t, p in sorted(positions.items()) if p["qty"] <= OPEN_THRESHOLD},
@@ -205,8 +250,8 @@ def _open_table(data: dict) -> str:
 
 def _closed_table(data: dict) -> str:
     return _table(
-        ["Ticker", "Śr. cena zakupu", "Waluta", "First buy", "Last sell"],
-        [[t, _f(p["avg_buy"]), "/".join(p["currencies"]), p["first_buy"] or "n/a", p["last_sell"] or "n/a"]
+        ["Ticker", "Śr. cena zakupu (wszystkie zakupy)", "Waluta", "First buy", "Last sell"],
+        [[t, _f(p["avg_all"]), "/".join(p["currencies"]), p["first_buy"] or "n/a", p["last_sell"] or "n/a"]
          for t, p in data["closed"].items()],
     )
 
@@ -257,8 +302,11 @@ def read_export(filename: str = "") -> str:
     (.xml or .md whose name contains `myfund` or `portfel`). With one — a plain
     file name, no folders — the positions computed from that XML export: quantity
     held, average buy price, currency, first buy and last sell per ticker, open
-    and closed apart. Quantities in the export are signed, sells negative; the
-    average is over buys only. Nothing is written. A `.md` export is already a
+    and closed apart. Quantities in the export are signed, sells negative. The
+    average of an open position is the cost of the lots still held (oldest sold
+    first, or the lot a sale names), commission included; a position closed and
+    reopened starts afresh. A closed one shows the average over all its buys.
+    A spin-off is flagged, not allocated. Nothing is written. A `.md` export is already a
     positions table — `Read` it instead."""
     try:
         inbox = _inbox()
@@ -278,6 +326,7 @@ def read_export(filename: str = "") -> str:
             notes.append(f"transactions in more than one currency, average not comparable: {', '.join(mixed)}")
         if data["skipped"]:
             notes.append(f"{data['skipped']} record(s) without a ticker or a date left out")
+        notes.extend(data["warnings"])
         return (
             f"THORIN: {path.name} — portfolio \"{data['portfolio'] or 'unnamed'}\", base currency "
             f"{data['base_currency'] or 'n/a'}, {len(data['rows'])} transactions "

@@ -11,8 +11,14 @@ which runs `/ingest-finance` without a shell, and one for `gloin`
 | `edgar_reports(ticker, since)` | gloin | the 10-K / 10-Q filings of one US ticker filed since a date, with the key figures, from SEC EDGAR |
 
 `read_export` does the arithmetic of `/ingest-finance` step 3 — signed
-quantities summed per ticker, average over buys only, open above 0.001 units —
-so no model adds up transactions. It was checked against the four exports
+quantities summed per ticker, open above 0.001 units — so no model adds up
+transactions. The average of an open position is the cost of the lots still
+held (oldest sold first, or the lot a sale names; commission included, as
+myFund does), so a position closed and opened anew starts its average afresh;
+a closed position shows the average over all its buys. A spin-off (`SPINOFF=1`)
+is flagged in the notes, not allocated: the export does not name the parent
+whose cost myFund lowers, so the agent asks the owner. Checked 2026-10-13
+against the owner's figures on the IKE, IKZE and XTB exports. It was checked against the four exports
 converted by hand in 2026-06: every open position identical. The XML itself
 never enters an agent's context.
 

@@ -2041,6 +2041,17 @@ Phases — each ends with a measurement from `token-usage.py`:
     moves the source to `_processed/` — the skill's `mv`; `edgar_reports`
     gives Gloin a ticker's 10-K / 10-Q since a date with the figures
     extracted.
+    **Fix 2026-10-13, from the first real ingest** (IKE / IKZE / XTB): the
+    average was taken over every buy ever made, commission left out — wrong
+    once a position was closed and opened anew (CDPROJEKT: 174.63 against
+    the real 246.64). It is now the cost of the lots still held, oldest sold
+    first or the lot a sale names, commission included (checked against the
+    owner's `finance.md` figures on all three exports). A spin-off
+    (`SPINOFF=1`, SYN2BIO out of SYNEKTIK) is flagged, not allocated: the
+    export does not name the parent whose cost myFund lowers. Still open:
+    Gloin's GPW fetch gets long myFund names where the broker URLs want GPW
+    codes (all seven GPW tickers returned 404), and ASML / TSM file 20-F /
+    6-K, which `edgar_reports` does not cover.
   - **`gloin` lost `Bash`**: `WebFetch`, `Glob`, `Write`, `edgar_reports`,
     `now`; `fetch-finance-reports` preloaded and its US steps rewritten
     around the tool; write-guard on `knowledge/finance`. A filing whose

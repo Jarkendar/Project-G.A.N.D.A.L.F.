@@ -149,7 +149,7 @@ Each open position must yield:
 |---|---|
 | `TICKER` | Instrument identifier |
 | `QTY` | Net quantity held |
-| `AVG_BUY` | `buy_cost / buy_qty` |
+| `AVG_BUY` | cost of the lots still held (FIFO, commission included) ÷ quantity held — a position closed and reopened starts afresh; not the average over every buy ever made |
 | `WALUTA` | Currency |
 | `FIRST_BUY_DATE` | Date of first buy (`YYYY-MM-DD`) |
 | `ASSET_CLASS` | One of: `ETF`, `US`, `GPW` — see classification rules below |
