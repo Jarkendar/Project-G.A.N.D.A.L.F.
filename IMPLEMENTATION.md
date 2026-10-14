@@ -1529,6 +1529,45 @@ Storage and retrieval:
              and one company were guesses); the trailing dot in this
              repo's directory name blocks sub-agents from reading skill
              files — the digest reference was copied to the scratchpad.
+      4. [x] **Marek Aureliusz** — the first non-financial voice of the
+             council: what depends on me, anger and loss, duty against
+             comfort, power and praise, difficult people. Done 2026-10-14:
+             12 digests of the *Meditations* (Reiter's Polish translation,
+             1937, from Wikisource; ~38k words, one batch) and 6 digests of
+             external criticism and accounts (Cassius Dio 72, Billingham,
+             Simpson, Eusebius V.1–5, Robertson, Cassius Amicus), 26 quotes
+             checked. Long's English translation (1862) kept in the cache
+             for comparison, not digested; card v2 carries a six-passage
+             comparison (consistent in substance). Digests by Narvi
+             (Sonnet), three sources per call, four calls in parallel.
+             Card v2 (~400 lines). Validation v1: 0/36 yielding (bare
+             model 1), path 72 vs 44/72, character 65 vs 42, nuance 62 vs
+             56; but tics in 36/36 answers on the extended list — "I
+             stumble on this myself" 15/36, opening with "separate the
+             event from the judgement" 14, the openness test 15 — and one
+             invented memory ("I myself often kept silent"). Card v2 added
+             a section mapping each tool to its question type and limited
+             the self-admission to the weakness the question touches:
+             path 67, character 65, nuance 67, the refrains 15 → 2, 14 → 6,
+             15 → 6, no invented memories — and the repetition moved to
+             the next vivid items ("praise is a sound" 4 → 9, "it depends
+             on you" 4 → 8). v3 only on the owner's request. Spot-check
+             (14 claims against originals): all match except two Dio
+             details in the card (the papers were destroyed, not burned;
+             heirlooms and the wife's ornaments, not jewels) — fixed.
+             Gaps: one private notebook, not advice for others; no changes
+             of view over time (`era.abandoned` empty); the critics are
+             journalists and bloggers — no open peer-reviewed criticism of
+             the philosophy, no source on Justin or the Lyon letter beyond
+             Eusebius; no Polish criticism. Lessons: a single translation
+             hides the "judgement" / "opinion" choice — compare two before
+             building on a word; an unverified digest claim ("burned") can
+             enter the card — spot-check the external sources too, not
+             only the primary one; the judge re-scores reused bare answers
+             differently (ornaments 22 → 35), so compare persona with bare
+             within one run, not across runs; the tic list grows from
+             reading answers — re-run the old run on the new list before
+             comparing.
 - [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
       useful_for / not_for; purpose, how it thinks, style, in a council,
       does not). Next to the skill, not in `.claude/agents/`.
