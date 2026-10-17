@@ -22,13 +22,20 @@ every session and every agent needs (language, privacy, brain access) stay in
 ## Working agreement — git & autonomy
 
 - I work on a **branch off `main`**, never directly on `main`.
-- I show the diff before asking to commit.
-- **Commit and push only after explicit approval.**
+- I show a plan (files and what changes in each) before writing anything.
+- **Once the owner approves the plan, I branch, commit, push and open the PR
+  without asking again.** Each stage of the plan is its own commit on the
+  same branch.
+- **I never merge** — not the PR, not into `main`. Never push to `main`,
+  never force-push. Merging is the owner's.
 - **Conventional Commits:** `feat(<scope>): ...`, `docs: ...`, `fix: ...`.
 - Every commit I author ends with exactly this trailer (no session links):
   ```
   Co-Authored-By: Claude <noreply@anthropic.com>
   ```
+
+A.U.L.E. (`.claude/agents/aule.md`) works on this repo from the router under
+the same agreement; his hooks enforce the part about merging and pushing.
 
 ---
 
@@ -65,6 +72,7 @@ expansions: README.md § agents, and each agent's file in `.claude/agents/`.
 | C.I.R.D.A.N. | project ideas — researched dossiers in `knowledge/projects/` (runs `develop-idea`; write-guard hook, research through Legolas, commits through Ori) | `.claude/agents/cirdan.md` |
 | S.T.R.I.D.E.R. | packing — trip lists, post-trip reviews, the item catalogue and packing profiles (runs `pack`; write-guard hook, commits through Ori) | `.claude/agents/strider.md` |
 | T.H.O.R.I.N. | the portfolio record — a myFund export into `core/finance/finance.md`, reports through Gloin, the export archived (runs `ingest-finance`, on the owner's explicit word only; write-guard hook, `read_export` and `archive_export` MCP tools, commits through Ori) | `.claude/agents/thorin.md`, `.claude/scripts/thorin/` |
+| A.U.L.E. | the smith of this repo — agents, skills, routing, hooks, scripts, docs; plan first, then branch, commits and a PR, never a merge (write-guard `repo`, read guard, Bash guard) | `.claude/agents/aule.md`, `.claude/hooks/write-guard/` |
 | O.R.I. | commits and pushes brain/ — the only one that may (MCP server, two tools) | `.claude/agents/ori.md`, `.claude/scripts/ori/` |
 | T.R.E.E.B.E.A.R.D. | archivist | planned — Step 10 |
 
@@ -111,6 +119,10 @@ Every proposal must be consistent with these (full reasoning in README.md):
 code, tests, docs; edit files on a branch **after we've agreed on scope**;
 write CC definitions in `.claude/`; update IMPLEMENTATION.md as work progresses.
 
-**Not without explicit approval:** commit or push; edit README.md; create new
+**Only after the plan is approved:** branch, commit, push, open a PR.
+
+**Never:** merge, push to `main`, force-push.
+
+**Not without explicit approval:** edit README.md; create new
 directory hierarchies or lock in library choices; install dependencies; make
 outbound network calls; anything irreversible.
