@@ -2188,6 +2188,28 @@ Phases — each ends with a measurement from `token-usage.py`:
   reaches a new session only; the channel service is restarted daily at
   04:30 by the user timer `gandalf-restart` (outside the repo), which since
   2026-10-17 restarts a live session too, not only a dead one.
+  **The router sees git, 2026-10-17.** The router could not tell which
+  branch a repo stood on, nor go back to `main` after a PR was merged (the
+  owner had to ask a session with a shell). `sync` has three more tools,
+  logic in `.claude/scripts/sync/gitops.py`: `status` (both repos: branch,
+  clean or dirty tree, last commit, ahead / behind), `log` (`gandalf` or
+  `brain`, 1 to 30 subjects) and `checkout_main` (clean tree, not detached,
+  no commits on no remote, fetch, switch to `main`, `pull --ff-only`, under
+  the hook's lock). All three are in the router's `tools:` and in
+  `settings.json` `allow`. Every git call passes a whitelist that fixes the
+  arguments of `switch` (only `main`), `pull` (only `--ff-only`), `fetch`
+  (only `origin`) and `branch` (only `--show-current`); the caller supplies
+  only a repo name from a fixed list and a number. No commit, push, branch,
+  merge, reset or stash — those stay with Aulë and Ori. A full shell for
+  the router was rejected: it would go around the protection of `core/` and
+  `current/`. Tested: `.claude/scripts/sync/test_sync_tools.py` (21 cases on
+  throwaway repositories, plus an MCP handshake and a real `status` call).
+  **Not tested:** `checkout_main` on the real repos, and the tools in a live
+  router session (they reach a new session only). **Known gaps:** `status`
+  names dirty files, including paths in `core/` and `current/` (the router
+  can list those folders anyway); a branch pushed and then rewritten counts
+  as pushed; the switch under a running Aulë rests on the router's
+  instruction, not on code.
   The same day the service stopped being a full session with the Telegram
   channel (`cc-channel`): it now runs the router, `gandalf --no-sync --yolo
   --remote-control gandalf-router`, in tmux session `gandalf`. One session

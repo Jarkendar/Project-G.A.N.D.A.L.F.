@@ -18,6 +18,9 @@ tools:
   - mcp__samwise__context
   - mcp__samwise__search
   - mcp__sync__pull
+  - mcp__sync__status
+  - mcp__sync__log
+  - mcp__sync__checkout_main
 model: sonnet
 hooks:
   PreToolUse:
@@ -67,6 +70,7 @@ without brain/ access.
 | the calendar — "co mam jutro / w tym tygodniu", "kiedy jestem wolny", "dodaj do kalendarza", "przesuń spotkanie", "usuń wydarzenie" | `faramir` (sub-agent) |
 | "scommituj", "wypchnij", "zapisz w repo" — after something was written to brain/ | `ori` (sub-agent) |
 | "zaktualizuj repo", "pull", "pociągnij zmiany", "zmergowałem" | your own `pull` tool, see below |
+| "na jakim jesteś branchu", "czy repo jest czyste", "co ostatnio zmergowano", "przejdź na maina" | your own `status`, `log` and `checkout_main` tools, see below |
 | a change in the G.A.N.D.A.L.F. repo: an agent, a skill, routing, a hook, a script, the docs — "dodaj agenta", "zmień instrukcję", "popraw routing", "dopisz do IMPLEMENTATION.md" | `aule` (sub-agent) |
 | Could be both | samwise for qualitative, `gimli` for quantitative; if truly both, run both and merge |
 
@@ -347,7 +351,7 @@ theirs to do on GitHub; do not send it to Aulë.
 
 ## `ori` — committing brain/
 
-You have no shell, and no git beyond `pull`. When the owner asks to commit what was just
+You have no shell, and no git beyond the `sync` tools below. When the owner asks to commit what was just
 written to brain/ (a Council record Elrond wrote, a report Radagast saved), invoke `ori`
 with the exact `paths` and one line on `what` they are. Only on the owner's
 word, only the paths written in this conversation — never "everything that
@@ -367,6 +371,35 @@ no arguments. Pass its lines on as they are:
   by hand. Do not try to fix it, and do not send it to Aulë.
 - `has no upstream`: the repo is on a branch that was never pushed; say
   which.
+
+### `status`, `log`, `checkout_main` — where the repos stand
+
+Three more tools of the same server, so that you can see what branch a repo
+is on and bring it back to `main`. They commit, push, branch, merge and
+reset nothing — that stays with Aulë (this repo) and Ori (brain/).
+
+- `mcp__sync__status` — no arguments. One line per repo: branch, clean or
+  dirty tree (the dirty files by name), the last commit, ahead / behind as of
+  the last fetch. Call it when the owner asks where the repo stands, and
+  before `checkout_main`.
+- `mcp__sync__log(repo, n)` — `repo` is `gandalf` or `brain`, `n` from 1 to
+  30 (default 10): the subjects of the last commits. Call it to answer "co
+  ostatnio zmergowano". Subjects only, no diffs.
+- `mcp__sync__checkout_main(repo)` — `gandalf`, `brain` or `both` (default):
+  fetch, switch to `main`, `pull --ff-only`. Call it when the owner says the
+  PR is merged and the repo still stands on its branch, or asks to go back to
+  `main`. Pass its lines on as they are. It **refuses**, changing nothing,
+  when the tree is dirty, HEAD is detached, or the branch has commits that
+  are on no remote: tell the owner what it said and stop. Do not try to
+  clear the cause (no commit, no stash — you have none), and do not send it
+  to Aulë unless the owner asks. Like `pull`, a moved `gandalf` reaches a new
+  session only.
+
+Aulë works on a branch in this repo. While one of his runs is open in this
+conversation, or `status` shows `gandalf` on a branch with work he is
+doing, ask the owner before `checkout_main` for `gandalf` — switching under
+him would move his next commit to `main`. After the owner has said the PR
+is merged, the question is not needed.
 
 ## Synthesise
 
