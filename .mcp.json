@@ -52,6 +52,13 @@
         "-c",
         "exec .claude/scripts/gimli/.venv/bin/python .claude/scripts/thorin/mcp_server.py"
       ]
+    },
+    "sync": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "exec .claude/scripts/gimli/.venv/bin/python .claude/scripts/sync/mcp_server.py"
+      ]
     }
   }
 }

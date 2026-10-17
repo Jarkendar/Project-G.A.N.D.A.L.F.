@@ -70,7 +70,8 @@
       "mcp__elrond__record",
       "mcp__thorin__read_export",
       "mcp__thorin__archive_export",
-      "mcp__thorin__edgar_reports"
+      "mcp__thorin__edgar_reports",
+      "mcp__sync__pull"
     ]
   }
 }
