@@ -62,7 +62,7 @@ expansions: README.md § agents, and each agent's file in `.claude/agents/`.
 | A.R.W.E.N. | Anki flashcards via AnkiWeb — sub-agent that drafts and adds cards (owns the `flashcards` skill), over its MCP server | `.claude/agents/arwen.md`, `.claude/scripts/arwen/` |
 | B.E.O.R.N. | speaks as a persona card (White Council voice; in a council writes its answer to a scratchpad file — write-guard hook) | `.claude/agents/beorn.md` |
 | E.L.R.O.N.D. | closes a White Council — writes the synthesis from the voices' answer files and has the record assembled into `knowledge/councils/` (write-guard hook, `record` MCP tool) | `.claude/agents/elrond.md`, `.claude/scripts/elrond/` |
-| F.A.R.A.M.I.R. | calendar, reminders, delegation | planned — Step 4 |
+| F.A.R.A.M.I.R. | the calendar (Google Calendar connector) — reads the main and shared calendars, writes the main one only; deletes, edits and events with guests only on the owner's yes (consent-token hook; no brain/ access). Reminders and delegation: not built, Step 4 | `.claude/agents/faramir.md`, `.claude/hooks/faramir-guard/` |
 | L.E.G.O.L.A.S. | web search — the research helpers (`research-offer`, `research-idea`, preloaded) for Balin and Círdan, or forked from a full session; a route of its own from Gandalf is planned (Step 5) | `.claude/agents/legolas.md` |
 | E.R.E.S.T.O.R. | practice briefings from brain/ records (read-only; english-prep, practice-prep) — routed from Gandalf, or forked | `.claude/agents/erestor.md` |
 | G.L.O.I.N. | fetches public company reports into `knowledge/finance/` — for Thorin, or forked (`fetch-finance-reports`, preloaded); no shell: EDGAR through the `edgar_reports` MCP tool, write-guard hook | `.claude/agents/gloin.md`, `.claude/scripts/thorin/` |
