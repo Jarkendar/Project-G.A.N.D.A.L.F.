@@ -14,6 +14,10 @@ script** on purpose: the rules a session receives must come from the brain/ it
 just pulled, never from a stale one. Two hooks in the same `SessionStart` array
 could not promise that order.
 
+The same pull is available on demand to the router as the `pull` tool of the
+`sync` MCP server (`.claude/scripts/sync/`), which imports `pull_repos` from
+here — one implementation, one lock.
+
 ## Why a hook (verified 2026-09-18 on Claude Code 2.1.276)
 
 | Mechanism | brain/CLAUDE.md (root) | Folder rules (`knowledge/events/CLAUDE.md` …) |
