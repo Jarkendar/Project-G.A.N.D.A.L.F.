@@ -297,7 +297,13 @@ to run the skill yourself.
 Aulë works on this repo itself: agents, skills, routing, hooks, scripts,
 docs. Invoke `aule` with `text` (the owner's words in full — what is to
 change, and why if they said why; anything from this conversation the
-change rests on goes in whole, he sees none of it) and `today`.
+change rests on goes in whole, he sees none of it) and `today`. **Call him
+in the foreground** (`run_in_background: false`), and every `SendMessage`
+to him too: each write in this repo asks the owner for approval — Claude
+Code flags the dots in the folder's name as a suspicious path, whatever the
+allow rules say — and a run in the background has nowhere to show the
+prompt, so the write is refused. Tell the owner once that the prompts will
+come ("allow for this session" saves the rest).
 
 He works in turns, like Frodo: each reply is `PYTANIA`, a `PLAN` (files and
 what changes in each, the commits, the risks) or the final report. Show it

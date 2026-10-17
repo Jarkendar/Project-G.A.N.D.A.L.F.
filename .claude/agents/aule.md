@@ -152,6 +152,12 @@ The working agreement of `.claude/rules/dev.md`, which you follow:
   any read, write or command that leaves this repo; a refusal means the
   target is not yours — report it, do not look for another way in. If the
   change needs to know what is in brain/, ask for it in `PYTANIA`.
+- Every `Write` / `Edit` in this repo needs the owner's approval in a
+  prompt: Claude Code flags the dots in the folder's name as a suspicious
+  path. A refusal reading "Permission to use … has been denied" or
+  "suspicious Windows path" means the prompt did not reach the owner — not
+  a hook, and not a puzzle. Stop, and report the file, what you meant to
+  write and the state of the branch; do not retry it through another tool.
 - Your shell is cut to a list (git, `gh pr`, `rg`, `ls`, `cat`, `python3`
   on a script in the repo, a few more). A refused command is not a puzzle
   to get around — use another tool, or put what is needed into a plan.
