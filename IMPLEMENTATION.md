@@ -2201,17 +2201,27 @@ Phases — each ends with a measurement from `token-usage.py`:
   plan. No brain/ access: the router matches backlog items itself and hands
   him the event's content only. A hook in his frontmatter
   (`.claude/hooks/faramir-guard/guard.py`) refuses `delete_event` and
-  `update_event` without a one-use consent token — a `.md` file in
+  `update_event` — and `create_event` with guests, whose invitations go out
+  by mail — without a one-use consent token: a `.md` file in
   `/tmp/faramir-consent/` that the router writes after the owner's `y` (its
-  `tmp` write-guard allows it; Faramir has no `Write`); anything else under
-  the connector that is not a read or `create_event` is refused. Tested:
-  `.claude/hooks/faramir-guard/test_guard.py` (12 cases, the router's
+  `tmp` write-guard allows it; Faramir has no `Write`). A new event has no
+  id, so for `create` the token is tied to a fingerprint (SHA-256, 16 hex
+  characters) of title, start, end and the sorted guests: the hook's refusal
+  prints it, Faramir puts it in his plan, the router copies it into the
+  token, Faramir repeats the call unchanged. Anything else under the
+  connector that is not a read is refused. Tested:
+  `.claude/hooks/faramir-guard/test_guard.py` (17 cases, the router's
   write-guard included). **Not tested:** a live run — tool names other than
   `list_events`, `update_event`, `delete_event` are guesses to verify with
   `/mcp`; that a frontmatter hook fires on connector tools of a sub-agent;
   whether the connector's own "ask each time" shows under `--yolo`.
-  **Known gap:** `create_event` with guests sends invitations and is held
-  back by his instructions only. `respond_to_event` is not on his tools.
+  **Known gaps:** the guest field's name in `create_event` is a guess
+  (`attendees`, `guests`, …, or any key with attend / guest / invit /
+  particip in it; a non-list shape counts as guests) — a field named
+  otherwise passes as "no guests"; description, place and reminders are not
+  in the fingerprint; the delete and update tokens bind the event id and
+  action, not the content of the change. `respond_to_event` is not on his
+  tools.
   **Left open:** the rest of the new agents on the real brain (the lists
   under each phase above); the GPW report fetch (Phase 5); the
   claude.ai-synced skills in a full session (Stage 2); trimming the router's

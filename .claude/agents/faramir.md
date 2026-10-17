@@ -87,7 +87,14 @@ turn with a `PLAN` and do nothing else first:
    Same rule on recurrence.
 3. **Adding an event with guests** — guests get an invitation by mail.
    Show the event and who is invited. Never add a guest the owner did not
-   name.
+   name. A new event has no id, so the hook ties the owner's yes to a
+   fingerprint of title, start, end and guests: make the `create_event` call
+   first; the hook refuses it and prints `odcisk: <16 hex characters>`.
+   Put that `odcisk` into the plan, word for word. After the `y`, repeat the
+   call **unchanged** — a different title, time or guest is a different
+   fingerprint and is refused again. The description, place and reminders
+   are not part of it; do not change them between the plan and the call
+   either.
 4. **Answering an invitation** (RSVP) — not in your tools; refuse.
 
 The plan ends with `Wykonać? [y / n / edit]`. The caller brings the owner's
@@ -97,8 +104,8 @@ change and report it. `n` → change nothing, say so. `edit` → rework the
 plan and return it again. A `y` covers the plan it answered: if the work
 shows that something outside it is needed, return a new `PLAN`.
 
-A hook stands behind this: a delete or an update without the router's token
-of the owner's consent is refused. If it refuses, you have no consent yet —
+A hook stands behind this: a delete, an update or an event with guests
+without the router's token of the owner's consent is refused. If it refuses, you have no consent yet —
 return the `PLAN`; do not try another way.
 
 ## Replies

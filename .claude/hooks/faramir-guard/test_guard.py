@@ -7,6 +7,7 @@
 
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -40,16 +41,69 @@ class FaramirGuard(unittest.TestCase):
     def tearDown(self):
         if os.path.isdir(DIR):
             for name in os.listdir(DIR):
-                if name.endswith(".md") and name.split("-", 1)[0] in ("delete", "update", "respond"):
+                if name.endswith(".md") and name.split("-", 1)[0] in ("delete", "update", "respond", "create"):
                     os.remove(os.path.join(DIR, name))
 
     def refused(self, code, err, msg=""):
         self.assertEqual(code, 2, f"{msg}: {err}")
 
-    def test_reads_and_create_pass(self):
+    def test_reads_pass(self):
         for tool in ["list_events", "get_event", "list_calendars",
-                     "search_events", "suggest_time_periods", "create_event"]:
+                     "search_events", "suggest_time_periods"]:
             self.assertEqual(run(P + tool, {"x": 1})[0], 0, tool)
+
+    EVENT = {"summary": "Lunch", "start": "2026-10-20T12:00:00", "end": "2026-10-20T13:00:00"}
+
+    def create(self, **extra):
+        return run(P + "create_event", dict(self.EVENT, **extra))
+
+    def key_of(self, **extra):
+        code, err = self.create(**extra)
+        self.assertEqual(code, 2, err)
+        match = re.search(r"odcisk: ([0-9a-f]{16})", err)
+        self.assertTrue(match, err)
+        return match.group(1)
+
+    def test_create_without_guests_passes(self):
+        self.assertEqual(self.create()[0], 0)
+        self.assertEqual(self.create(attendees=[])[0], 0)
+        self.assertEqual(self.create(guests=[], location="Kraków")[0], 0)
+
+    def test_create_with_guests_needs_token(self):
+        key = self.key_of(attendees=["Ola@example.com"])
+        self.assertEqual(run(P + "create_event", dict(self.EVENT, attendees=["Ola@example.com"]))[0], 2)
+        path = token("create", key)
+        self.assertEqual(self.create(attendees=["Ola@example.com"])[0], 0)
+        self.assertFalse(os.path.exists(path), "token must be consumed")
+        self.assertEqual(self.create(attendees=["Ola@example.com"])[0], 2, "second use")
+
+    def test_fingerprint_follows_the_event(self):
+        base = self.key_of(attendees=["a@x.com", "b@x.com"])
+        self.assertEqual(base, self.key_of(attendees=["B@x.com", "a@x.com", "a@x.com"]))
+        self.assertEqual(base, self.key_of(attendees=[{"email": "a@x.com"}, {"email": "b@x.com"}]))
+        self.assertEqual(base, self.key_of(attendees=["a@x.com", "b@x.com"], description="other"))
+        self.assertNotEqual(base, self.key_of(attendees=["a@x.com", "c@x.com"]))
+        token("create", base)
+        for changed in [dict(summary="Dinner"), dict(start="2026-10-20T14:00:00"),
+                        dict(end="2026-10-20T15:00:00")]:
+            event = dict(self.EVENT, attendees=["a@x.com", "b@x.com"], **changed)
+            self.refused(*run(P + "create_event", event), f"changed {changed}")
+
+    def test_create_token_wrong(self):
+        key = self.key_of(attendees=["a@x.com"])
+        token("create", "0123456789abcdef")
+        self.refused(*self.create(attendees=["a@x.com"]), "token for another key")
+        token("create", key, age=31 * 60)
+        self.refused(*self.create(attendees=["a@x.com"]), "expired")
+        token("create", key, body="action: delete\nevent: " + key + "\n")
+        self.refused(*self.create(attendees=["a@x.com"]), "wrong content")
+
+    def test_unknown_guest_shapes_count_as_guests(self):
+        for extra in [dict(attendees="a@x.com"), dict(attendees={"a": 1}),
+                      dict(attendees=None), dict(attendees=[None]),
+                      dict(Guests_list=["a@x.com"]), dict(invitees=3),
+                      dict(extra_participants="a@x.com")]:
+            self.refused(*self.create(**extra), str(extra))
 
     def test_other_servers_pass(self):
         self.assertEqual(run("mcp__samwise__search", {})[0], 0)
@@ -98,7 +152,8 @@ class FaramirGuard(unittest.TestCase):
         # The router's own guard (`guard.py gandalf tmp`) must let it write one.
         repo = os.path.realpath(os.path.join(HERE, "..", "..", ".."))
         guard = os.path.join(HERE, "..", "write-guard", "guard.py")
-        for name, want in [("delete-abc123.md", 0), ("delete-abc123.json", 2)]:
+        for name, want in [("delete-abc123.md", 0), ("create-0123456789abcdef.md", 0),
+                           ("delete-abc123.json", 2)]:
             event = {"agent_type": "gandalf", "cwd": repo, "tool_name": "Write",
                      "tool_input": {"file_path": os.path.join(DIR, name)}}
             proc = subprocess.run([sys.executable, guard, "gandalf", "tmp"],

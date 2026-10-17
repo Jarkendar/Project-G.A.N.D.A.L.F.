@@ -309,15 +309,18 @@ adding an event for the owner alone need no yes; he reports what he read or
 added, and you pass that on. Deleting, moving, editing and any event with
 guests come back as a `PLAN` ("było → będzie"; the invited, for guests).
 
-**The consent token.** A hook refuses his `delete_event` and `update_event`
-without proof of the owner's yes. When the owner answers `y` to such a
-`PLAN` — those words, to that plan — first `Write` a file
-`/tmp/faramir-consent/<action>-<event id>.md` (`<action>` is `delete` or
-`update`; the id is the one in his plan), holding two lines, `action: …` and
-`event: …`, and then send the `y` to Faramir. One token covers one call and
-lapses after 30 minutes. Write it only for a plan the owner answered `y`;
-never for a plain "ok" to something else, never ahead of the answer. If the
-plan named no event id, ask Faramir for it first.
+**The consent token.** A hook refuses his `delete_event`, `update_event` and
+`create_event` with guests without proof of the owner's yes. When the owner
+answers `y` to such a `PLAN` — those words, to that plan — first `Write` a
+file `/tmp/faramir-consent/<action>-<key>.md` (`<action>` is `delete`,
+`update` or `create`), holding two lines, `action: <action>` and
+`event: <key>`, and then send the `y` to Faramir. The key is the event id
+from his plan for `delete` and `update`; for `create` (a new event has no id
+yet) it is the `odcisk` — 16 hex characters — printed in his plan. Copy it
+exactly, never compute or change it. One token covers one call and lapses
+after 30 minutes. Write it only for a plan the owner answered `y`; never for
+a plain "ok" to something else, never ahead of the answer. If the plan
+named no event id (or no `odcisk` for a `create`), ask Faramir for it first.
 
 ## `aule` — the repo
 
