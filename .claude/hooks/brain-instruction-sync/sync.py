@@ -57,6 +57,9 @@ def pull_one(repo, name):
         if head.returncode != 0:
             return f"{name}: not a git repo"
         before = head.stdout.strip()
+        if git(repo, "rev-parse", "--abbrev-ref", "@{u}").returncode != 0:
+            branch = git(repo, "branch", "--show-current").stdout.strip() or "detached HEAD"
+            return f"{name}: {branch} has no upstream, not pulled (at {before})"
         if git(repo, "pull", "--ff-only", "--quiet").returncode != 0:
             return f"{name}: DIVERGED or offline — manual merge may be needed (at {before})"
         after = git(repo, "rev-parse", "--short", "HEAD").stdout.strip()

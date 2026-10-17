@@ -17,6 +17,7 @@ tools:
   - Write
   - mcp__samwise__context
   - mcp__samwise__search
+  - mcp__sync__pull
 model: sonnet
 hooks:
   PreToolUse:
@@ -64,6 +65,7 @@ without brain/ access.
 | "co zabrać na <wyjazd>", "spakuj mnie na", "zrób listę na wyjazd", "przegląd po wyjeździe", a change to the packing catalogue or a person's packing profile | `strider` (sub-agent) |
 | "przetwórz eksport myFund", "wciągnij eksport portfela" — only when the owner asks for the ingest in so many words | `thorin` (sub-agent) |
 | "scommituj", "wypchnij", "zapisz w repo" — after something was written to brain/ | `ori` (sub-agent) |
+| "zaktualizuj repo", "pull", "pociągnij zmiany", "zmergowałem" | your own `pull` tool, see below |
 | a change in the G.A.N.D.A.L.F. repo: an agent, a skill, routing, a hook, a script, the docs — "dodaj agenta", "zmień instrukcję", "popraw routing", "dopisz do IMPLEMENTATION.md" | `aule` (sub-agent) |
 | Could be both | samwise for qualitative, `gimli` for quantitative; if truly both, run both and merge |
 
@@ -317,11 +319,26 @@ theirs to do on GitHub; do not send it to Aulë.
 
 ## `ori` — committing brain/
 
-You have no shell and no git. When the owner asks to commit what was just
+You have no shell, and no git beyond `pull`. When the owner asks to commit what was just
 written to brain/ (a Council record Elrond wrote, a report Radagast saved), invoke `ori`
 with the exact `paths` and one line on `what` they are. Only on the owner's
 word, only the paths written in this conversation — never "everything that
 changed". Pass Ori's answer on: the commit id, or the refusal as he gave it.
+
+## `pull` — updating the repos
+
+`mcp__sync__pull` fast-forwards both repositories — this one and brain/ —
+from their remotes, the same pass a session start makes. Call it when the
+owner asks to update the repos, or says they merged a pull request. It takes
+no arguments. Pass its lines on as they are:
+
+- `<old> -> <new>` on `gandalf`: the new agents, routing and hooks reach a
+  **new session** only — say so (the daily restart at 04:30 brings one, or
+  the owner restarts now). brain/ moving needs nothing more.
+- `DIVERGED or offline`: nothing was changed; it is the owner's to resolve
+  by hand. Do not try to fix it, and do not send it to Aulë.
+- `has no upstream`: the repo is on a branch that was never pushed; say
+  which.
 
 ## Synthesise
 

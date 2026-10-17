@@ -2178,6 +2178,16 @@ Phases — each ends with a measurement from `token-usage.py`:
   tests (`.claude/hooks/write-guard/test_guards.py`). A missing hook
   script exits 127, which Claude Code treats as non-blocking: on a branch
   older than these guards Aulë's Bash would run unguarded.
+  **The router pulls, 2026-10-17.** Repos were fast-forwarded only at a
+  session start, so after a merge on GitHub the long-running router kept
+  stale brain/ and code until a restart. MCP server `sync`
+  (`.claude/scripts/sync/`) has one tool, `pull`, with no arguments: the
+  SessionStart hook's own `pull_repos` (both repos, `--ff-only`, same lock),
+  so the router still holds no shell. A branch with no upstream is now
+  reported as such instead of as `DIVERGED`. Code pulled into this repo
+  reaches a new session only; the channel service is restarted daily at
+  04:30 by the user timer `gandalf-restart` (outside the repo), which since
+  2026-10-17 restarts a live session too, not only a dead one.
   **Left open:** the rest of the new agents on the real brain (the lists
   under each phase above); the GPW report fetch (Phase 5); the
   claude.ai-synced skills in a full session (Stage 2); trimming the router's
