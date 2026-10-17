@@ -24,6 +24,12 @@ tools:
   - mcp__claude_ai_Google_Calendar__update_event
   - mcp__claude_ai_Google_Calendar__delete_event
 model: sonnet
+hooks:
+  PreToolUse:
+    - matcher: "mcp__claude_ai_Google_Calendar__.*"
+      hooks:
+        - type: command
+          command: "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/faramir-guard/guard.py"
 ---
 
 # F.A.R.A.M.I.R. — Forwarding Actions, Reminders And Meetings, Invoking Repositories
