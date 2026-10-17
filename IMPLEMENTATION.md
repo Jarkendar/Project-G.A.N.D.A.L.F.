@@ -1829,7 +1829,7 @@ names are the owner's call; skill sizes are chars / 4):
 | travel — **`strider`** | `pack` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `ori` | medium |
 | this repo — **`aule`** | — (the rules are `.claude/rules/dev.md`) | `Read`, `Grep`, `Glob`, `Write`, `Edit` inside the repo; `Bash` cut to git, `gh pr`, `rg`, `python3` on repo scripts | — | a plan |
 | personas — stays in a full session | `persona` (typed by hand only) | `Read`, `Write`, `Bash` for the persona scripts | `narvi` | heavy |
-| calendar | — (Step 4, F.A.R.A.M.I.R.) | Google Calendar | — | — |
+| calendar — **`faramir`** | — (no skill; the agent's own instructions) | Google Calendar connector (claude.ai): 8 tools, no `Read`, no brain/ | — | a plan before a delete, an edit or an event with guests |
 
 Open in the map: whether `daily` gets an agent of its own (it is half of the
 records domain's preload and delegates to the other four skills), and which
@@ -2192,6 +2192,26 @@ Phases — each ends with a measurement from `token-usage.py`:
   channel (`cc-channel`): it now runs the router, `gandalf --no-sync --yolo
   --remote-control gandalf-router`, in tmux session `gandalf`. One session
   instead of two; a full session is `gandalf --full` by hand.
+  **`faramir`, the calendar, 2026-10-17.** First slice of Step 4: only the
+  calendar (reminders and delegation are not built). The calendar is a
+  claude.ai connector, not an entry in `.mcp.json`, so the router session
+  must not be `--strict-mcp-config`. Main calendar read and write, shared
+  ones read only. Reading and adding an event for the owner alone need no
+  yes; deleting, moving, editing and events with guests come back as a
+  plan. No brain/ access: the router matches backlog items itself and hands
+  him the event's content only. A hook in his frontmatter
+  (`.claude/hooks/faramir-guard/guard.py`) refuses `delete_event` and
+  `update_event` without a one-use consent token — a `.md` file in
+  `/tmp/faramir-consent/` that the router writes after the owner's `y` (its
+  `tmp` write-guard allows it; Faramir has no `Write`); anything else under
+  the connector that is not a read or `create_event` is refused. Tested:
+  `.claude/hooks/faramir-guard/test_guard.py` (12 cases, the router's
+  write-guard included). **Not tested:** a live run — tool names other than
+  `list_events`, `update_event`, `delete_event` are guesses to verify with
+  `/mcp`; that a frontmatter hook fires on connector tools of a sub-agent;
+  whether the connector's own "ask each time" shows under `--yolo`.
+  **Known gap:** `create_event` with guests sends invitations and is held
+  back by his instructions only. `respond_to_event` is not on his tools.
   **Left open:** the rest of the new agents on the real brain (the lists
   under each phase above); the GPW report fetch (Phase 5); the
   claude.ai-synced skills in a full session (Stage 2); trimming the router's
@@ -2280,7 +2300,8 @@ be written here as each step becomes near-term. **Order is a guess; Smeagol's lo
 reshuffle it.**
 
 - [ ] **Step 4 — F.A.R.A.M.I.R.** — calendar integration, reminders, delegation
-  to `agentic-sdlc-forge` for dev tasks via n8n / HTTP.
+  to `agentic-sdlc-forge` for dev tasks via n8n / HTTP. Calendar built
+  2026-10-17 (`faramir`, awaiting a live check); reminders and delegation left.
 - [ ] **Step 5 — L.E.G.O.L.A.S.** — outbound web search (DuckDuckGo first,
   self-hosted SearXNG later). Only agent with external network access.
   A first narrow version exists since 2026-10-10 (`.claude/agents/legolas.md`,
