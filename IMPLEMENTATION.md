@@ -2188,6 +2188,10 @@ Phases — each ends with a measurement from `token-usage.py`:
   reaches a new session only; the channel service is restarted daily at
   04:30 by the user timer `gandalf-restart` (outside the repo), which since
   2026-10-17 restarts a live session too, not only a dead one.
+  The same day the service stopped being a full session with the Telegram
+  channel (`cc-channel`): it now runs the router, `gandalf --no-sync --yolo
+  --remote-control gandalf-router`, in tmux session `gandalf`. One session
+  instead of two; a full session is `gandalf --full` by hand.
   **Left open:** the rest of the new agents on the real brain (the lists
   under each phase above); the GPW report fetch (Phase 5); the
   claude.ai-synced skills in a full session (Stage 2); trimming the router's
