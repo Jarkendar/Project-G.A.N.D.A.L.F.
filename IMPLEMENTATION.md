@@ -1827,6 +1827,7 @@ names are the owner's call; skill sizes are chars / 4):
 | finance — **`thorin`** | `ingest-finance` (read on demand; on the owner's explicit word only) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now`, `read_export`, `archive_export` | `gloin`, `ori` | one plan |
 | learning — **`arwen`** | `flashcards` | `Read`, `Grep`, `Glob`, samwise, arwen | — | one approval |
 | travel — **`strider`** | `pack` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `ori` | medium |
+| this repo — **`aule`** | — (the rules are `.claude/rules/dev.md`) | `Read`, `Grep`, `Glob`, `Write`, `Edit` inside the repo; `Bash` cut to git, `gh pr`, `rg`, `python3` on repo scripts | — | a plan |
 | personas — stays in a full session | `persona` (typed by hand only) | `Read`, `Write`, `Bash` for the persona scripts | `narvi` | heavy |
 | calendar | — (Step 4, F.A.R.A.M.I.R.) | Google Calendar | — | — |
 
@@ -2162,6 +2163,21 @@ Phases — each ends with a measurement from `token-usage.py`:
   a repeat, and a plain session, had them — a start-up race, not a
   config fault. Not covered: Thorin on an actual export, Gloin's fetch,
   Círdan's research through Legolas, and any of them past the plan.
+  **Aulë, headless through the router, 2026-10-17** (from the real
+  directory, $0.44 over three turns): the plan came first and nothing was
+  written before `y`; after `y` he pulled and branched; his Bash guard
+  refused a command live (`od`). His `Edit` was then refused by Claude
+  Code itself, not by a hook: the dots in `Project-G.A.N.D.A.L.F.` trip the
+  "suspicious Windows path" check, which asks for manual approval on every
+  write here regardless of allow rules or `acceptEdits` (reproduced with a
+  bare `claude -p` edit); only `bypassPermissions` skips it. Run in the
+  background, a sub-agent has nowhere to show that prompt, so the router
+  now calls Aulë in the foreground. Aulë stopped and reported both times
+  instead of working around it. Not yet seen live: the PR, a refused
+  merge, a refused write to `../brain` — those rest on the guards' unit
+  tests (`.claude/hooks/write-guard/test_guards.py`). A missing hook
+  script exits 127, which Claude Code treats as non-blocking: on a branch
+  older than these guards Aulë's Bash would run unguarded.
   **Left open:** the rest of the new agents on the real brain (the lists
   under each phase above); the GPW report fetch (Phase 5); the
   claude.ai-synced skills in a full session (Stage 2); trimming the router's

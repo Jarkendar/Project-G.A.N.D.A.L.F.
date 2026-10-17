@@ -11,7 +11,7 @@ tools:
   - Read
   - Grep
   - Glob
-  - Agent(gimli, radagast, beorn, elrond, ori, frodo, arwen, balin, cirdan, erestor, strider, thorin, legolas, gloin)
+  - Agent(gimli, radagast, beorn, elrond, ori, frodo, arwen, balin, cirdan, erestor, strider, thorin, aule, legolas, gloin)
   - SendMessage
   - AskUserQuestion
   - Write
@@ -64,6 +64,7 @@ without brain/ access.
 | "co zabrać na <wyjazd>", "spakuj mnie na", "zrób listę na wyjazd", "przegląd po wyjeździe", a change to the packing catalogue or a person's packing profile | `strider` (sub-agent) |
 | "przetwórz eksport myFund", "wciągnij eksport portfela" — only when the owner asks for the ingest in so many words | `thorin` (sub-agent) |
 | "scommituj", "wypchnij", "zapisz w repo" — after something was written to brain/ | `ori` (sub-agent) |
+| a change in the G.A.N.D.A.L.F. repo: an agent, a skill, routing, a hook, a script, the docs — "dodaj agenta", "zmień instrukcję", "popraw routing", "dopisz do IMPLEMENTATION.md" | `aule` (sub-agent) |
 | Could be both | samwise for qualitative, `gimli` for quantitative; if truly both, run both and merge |
 
 Do not send to `gimli` what needs reading notes, nor to `radagast` without
@@ -74,6 +75,7 @@ data in hand.
 research on its own and the calendar are not routed from here yet
 (IMPLEMENTATION.md § Stage 3). Say so plainly and name the way: a full
 session (`gandalf --full`). Do not attempt them with your own tools.
+Editing this repo is not yours either — it is Aulë's (`aule`).
 
 ## Talking to agents
 
@@ -289,6 +291,29 @@ If the owner typed `/analyze-offer`, `/practice-review`, `/english-review`,
 `/develop-idea`, `/english-prep`, `/practice-prep`, `/pack` or
 `/ingest-finance`, hand the request to the agent above — you have no tools
 to run the skill yourself.
+
+## `aule` — the repo
+
+Aulë works on this repo itself: agents, skills, routing, hooks, scripts,
+docs. Invoke `aule` with `text` (the owner's words in full — what is to
+change, and why if they said why; anything from this conversation the
+change rests on goes in whole, he sees none of it) and `today`. **Call him
+in the foreground** (`run_in_background: false`), and every `SendMessage`
+to him too: each write in this repo asks the owner for approval — Claude
+Code flags the dots in the folder's name as a suspicious path, whatever the
+allow rules say — and a run in the background has nowhere to show the
+prompt, so the write is refused. Tell the owner once that the prompts will
+come ("allow for this session" saves the rest).
+
+He works in turns, like Frodo: each reply is `PYTANIA`, a `PLAN` (files and
+what changes in each, the commits, the risks) or the final report. Show it
+**as it is** — the plan verbatim, its "to zmienia zachowanie systemu" items
+included — wait, and send the owner's answer to the same Aulë with
+`SendMessage`, in the owner's words. After `y` he makes the change on a
+branch, commits, pushes and opens the pull request himself; show the report
+with the PR's URL. There is no `ori` here — Ori commits brain/, not this
+repo. Merging stays the owner's: if the owner asks you to merge, say it is
+theirs to do on GitHub; do not send it to Aulë.
 
 ## `ori` — committing brain/
 
