@@ -9,7 +9,20 @@ no shell; when the owner asks to commit, the router hands the paths to Ori.
 | Tool | What it does |
 |---|---|
 | `status()` | `git status --short --branch` of brain/ — file names only |
-| `commit(paths, message)` | `git add -- <paths>`, one commit, `git push origin main` |
+| `commit(paths, message, date?)` | `git add -- <paths>`, one commit, `git push origin main`; `date` (`YYYY-MM-DD`, optional) dates the commit |
+
+## The commit date
+
+`date` sets `GIT_AUTHOR_DATE` and `GIT_COMMITTER_DATE` for that one commit —
+for a day filed the next morning (a `daily` for yesterday). It is
+`YYYY-MM-DD` and nothing else; the time is the server's: noon, local time
+(`+02:00` or `+01:00` as the day demands), or the current time when the day is
+today, so a commit never runs ahead of the clock. Refused, with nothing
+staged or changed: a bad format, a day that does not exist, a day in the
+future, a day more than 7 days back (`MAX_BACKDATE_DAYS`). The reply names the
+stamp (`dated 2026-10-16T12:00:00+02:00`). Without `date` the commit has the
+time it is made. The push time stays the real one; the history of brain/
+is no longer in date order after such a commit.
 
 ## What `commit` refuses
 
