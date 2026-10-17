@@ -7,9 +7,9 @@
 #
 # The session opens as the router agent (.claude/agents/gandalf.md): it routes
 # and reads; writes to brain/ are made by the domain agents it routes to.
-# `--full` opens a full session instead — every tool and skill, for work on
-# this repo and for what is not routed yet (/persona, /ingest-conversation,
-# /init-brain). IMPLEMENTATION.md § "Least privilege & token diet", Stage 3.
+# Work on this repo is routed too, to Aulë. `--full` opens a full session
+# instead — every tool and skill, for what is not routed yet (/persona,
+# /ingest-conversation, /init-brain). IMPLEMENTATION.md § "Least privilege & token diet", Stage 3.
 #
 # See: .claude/plans (design doc) / IMPLEMENTATION.md for background.
 
@@ -34,14 +34,14 @@ identical behaviour either way.
 By default the session is the router: it routes each request to the agent
 that owns it (questions, reports, personas, the Council, the owner's records,
 flashcards, offers and practice, project ideas, packing, the portfolio
-export). It has no shell and writes nothing itself.
+export, changes to this repo). It has no shell and writes nothing itself.
 
 Script-level options:
   --no-sync, --no-pull   Skip git pull / branch check on both repos
   --yolo                 Shorthand for --dangerously-skip-permissions
   --full                 Open a full session instead of the router: every tool
-                         and skill — work on this repo, /persona,
-                         /ingest-conversation, /init-brain
+                         and skill — /persona, /ingest-conversation,
+                         /init-brain
   --router               The default; accepted for older habits
   --install              (Re)create the gandalf/brain symlinks in ~/.local/bin
   -h, --help              Show this help and exit
@@ -55,7 +55,7 @@ Examples:
   ${SCRIPT_NAME} -r                      # pick a previous session to resume
   ${SCRIPT_NAME} "summarize today"       # start with an initial prompt
   ${SCRIPT_NAME} --no-sync --yolo        # fast start, skip permission prompts
-  ${SCRIPT_NAME} --full                  # a full session (dev work, /persona)
+  ${SCRIPT_NAME} --full                  # a full session (/persona, /init-brain)
 EOF
 }
 
