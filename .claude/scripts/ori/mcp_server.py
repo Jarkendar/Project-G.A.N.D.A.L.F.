@@ -10,7 +10,8 @@
 # (from .claude/gandalf.env); commit on a branch other than main; stage
 # anything it was not handed (no `-A`, no repository root); delete, amend,
 # rebase, force or skip brain/'s pre-commit hook. The commit trailer is added
-# here, not left to the caller.
+# here, not left to the caller. `commit` takes an optional `date` (YYYY-MM-DD)
+# that sets GIT_AUTHOR_DATE and GIT_COMMITTER_DATE for that one commit.
 #
 # Run by Claude Code from .mcp.json (stdio), with the Gimli server's venv —
 # the MCP SDK is its only dependency.
@@ -18,6 +19,7 @@
 import os
 import re
 import subprocess
+from datetime import datetime, time, timedelta
 from pathlib import Path
 
 from mcp.server.mcpserver import MCPServer
@@ -31,6 +33,11 @@ SUBJECT_RE = re.compile(r"^(feat|fix|docs|chore|refactor)(\([a-z0-9][a-z0-9-]*\)
 MAX_SUBJECT = 100
 MAX_PATHS = 2000
 GIT_TIMEOUT_S = 60
+# An optional date for a commit (a `daily` filed the next day): YYYY-MM-DD only,
+# never in the future, at most this many days back, at noon local time.
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+MAX_BACKDATE_DAYS = 7
+COMMIT_HOUR = 12
 
 server = MCPServer(
     name="ori",
@@ -64,11 +71,38 @@ def _brain() -> Path:
     return path
 
 
-def _git(brain: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess:
+def _now() -> datetime:
+    return datetime.now().astimezone()
+
+
+def _commit_date(date: object) -> str | None:
+    """`YYYY-MM-DD` -> an ISO timestamp with the local offset, or None for no date.
+    Noon of that day; for today, the current time (a commit never runs ahead of
+    the clock). Refuses a bad format, a day that does not exist, the future and
+    anything older than MAX_BACKDATE_DAYS."""
+    if date is None:
+        return None
+    if not isinstance(date, str) or not DATE_RE.match(date):
+        raise Refused(f"date must be YYYY-MM-DD, got {date!r}")
+    try:
+        day = datetime.strptime(date, "%Y-%m-%d").date()
+    except ValueError:
+        raise Refused(f"{date} is not a real day")
+    now = _now()
+    if day > now.date():
+        raise Refused(f"date {date} is in the future")
+    if day < now.date() - timedelta(days=MAX_BACKDATE_DAYS):
+        raise Refused(f"date {date} is more than {MAX_BACKDATE_DAYS} days back")
+    if day == now.date():
+        return now.replace(microsecond=0).isoformat()
+    return datetime.combine(day, time(COMMIT_HOUR)).astimezone().isoformat(timespec="seconds")
+
+
+def _git(brain: Path, *args: str, check: bool = True, env: dict | None = None) -> subprocess.CompletedProcess:
     proc = subprocess.run(
         ["git", "-C", str(brain), *args],
         capture_output=True, text=True, timeout=GIT_TIMEOUT_S,
-        env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+        env={**os.environ, "GIT_TERMINAL_PROMPT": "0", **(env or {})},
     )
     if check and proc.returncode != 0:
         raise Refused(f"git {args[0]} failed: {(proc.stderr or proc.stdout).strip()[:800]}")
@@ -122,17 +156,21 @@ def status() -> str:
 
 
 @server.tool(annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True))
-def commit(paths: list[str], message: str) -> str:
+def commit(paths: list[str], message: str, date: str | None = None) -> str:
     """Stage exactly `paths` (files or folders, relative to brain/), make one commit
     on main and push it. `message` is a Conventional Commits subject in English —
     `feat(councils): …`, `docs(core): …` — optionally followed by a blank line and
-    a body; the Co-Authored-By trailer is added for you. Anything already staged
-    by someone else, a branch other than main, a missing path or a path outside
-    brain/ is refused and nothing is changed. If the push fails the commit stays
-    local and the reply says so."""
+    a body; the Co-Authored-By trailer is added for you. `date` (optional,
+    `YYYY-MM-DD`) dates the commit — author and committer — at noon of that day,
+    for a record filed the next day; not in the future, at most 7 days back. Left
+    out, the commit has the time it is made. Anything already staged by someone
+    else, a branch other than main, a missing path or a path outside brain/ is
+    refused and nothing is changed. If the push fails the commit stays local and
+    the reply says so."""
     try:
         brain = _brain()
         _on_main(brain)
+        stamp = _commit_date(date)
         subject, _, body = message.strip().partition("\n")
         subject = subject.strip()
         if not SUBJECT_RE.match(subject) or len(subject) > MAX_SUBJECT:
@@ -159,7 +197,8 @@ def commit(paths: list[str], message: str) -> str:
             _git(brain, "reset", "-q", "--", *rel)
             raise Refused(f"the paths include deletions ({', '.join(deleted[:5])}) — brain/ is append-only; nothing committed")
         full_message = subject + ("\n\n" + body.strip() if body.strip() else "") + "\n\n" + TRAILER
-        done = _git(brain, "commit", "-q", "-m", full_message, check=False)
+        when = {"GIT_AUTHOR_DATE": stamp, "GIT_COMMITTER_DATE": stamp} if stamp else None
+        done = _git(brain, "commit", "-q", "-m", full_message, check=False, env=when)
         if done.returncode != 0:
             _git(brain, "reset", "-q", "--", *rel)
             raise Refused(f"the commit was rejected (pre-commit hook?): {(done.stderr or done.stdout).strip()[:1200]}")
@@ -168,10 +207,11 @@ def commit(paths: list[str], message: str) -> str:
         pushed = _git(brain, "push", "-q", "origin", BRANCH, check=False)
         if pushed.returncode != 0:
             return (
-                f"ORI: committed {sha} ({len(to_commit)} file(s)) but the PUSH FAILED — the commit is local only.\n"
+                f"ORI: committed {sha}{f' (dated {stamp})' if stamp else ''} ({len(to_commit)} file(s)) but the PUSH FAILED — the commit is local only.\n"
                 f"{(pushed.stderr or pushed.stdout).strip()[:800]}\n{listing}"
             )
-        return f"ORI: committed and pushed {sha} to {BRANCH} — {subject}\n{len(to_commit)} file(s):\n{listing}"
+        dated = f" (dated {stamp})" if stamp else ""
+        return f"ORI: committed and pushed {sha} to {BRANCH}{dated} — {subject}\n{len(to_commit)} file(s):\n{listing}"
     except subprocess.TimeoutExpired:
         return f"ORI: git did not answer within {GIT_TIMEOUT_S} s — check brain/ by hand"
     except Refused as exc:

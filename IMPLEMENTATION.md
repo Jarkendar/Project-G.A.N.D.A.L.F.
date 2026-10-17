@@ -2210,6 +2210,20 @@ Phases — each ends with a measurement from `token-usage.py`:
   can list those folders anyway); a branch pushed and then rewritten counts
   as pushed; the switch under a running Aulë rests on the router's
   instruction, not on code.
+  **Ori dates a commit, 2026-10-17.** A `daily` filed the next day got the
+  time of the commit, so the history showed the wrong day. `commit` in
+  `.claude/scripts/ori/mcp_server.py` takes an optional `date` (`YYYY-MM-DD`,
+  nothing else) and sets `GIT_AUTHOR_DATE` and `GIT_COMMITTER_DATE` for that
+  one commit: noon local time, or the current time when the day is today;
+  refused (before anything is staged) a bad format, a day that does not
+  exist, the future, or more than 7 days back. `ori.md` passes the date on
+  as given and treats a refusal as final; `frodo.md` hands it for a `daily`
+  whose day is not `today`. Tested: `.claude/scripts/ori/test_commit_date.py`
+  (11 cases on a throwaway repository with a bare remote). **Not tested:** a
+  live Frodo → Ori run (the new definitions reach a new session only).
+  **Known gaps:** brain/'s history is no longer in date order after such a
+  commit; the push time stays real; the router has no way to pass a date
+  outside Frodo's `daily`.
   The same day the service stopped being a full session with the Telegram
   channel (`cc-channel`): it now runs the router, `gandalf --no-sync --yolo
   --remote-control gandalf-router`, in tmux session `gandalf`. One session

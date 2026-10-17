@@ -73,7 +73,7 @@ expansions: README.md § agents, and each agent's file in `.claude/agents/`.
 | S.T.R.I.D.E.R. | packing — trip lists, post-trip reviews, the item catalogue and packing profiles (runs `pack`; write-guard hook, commits through Ori) | `.claude/agents/strider.md` |
 | T.H.O.R.I.N. | the portfolio record — a myFund export into `core/finance/finance.md`, reports through Gloin, the export archived (runs `ingest-finance`, on the owner's explicit word only; write-guard hook, `read_export` and `archive_export` MCP tools, commits through Ori) | `.claude/agents/thorin.md`, `.claude/scripts/thorin/` |
 | A.U.L.E. | the smith of this repo — agents, skills, routing, hooks, scripts, docs; plan first, then branch, commits and a PR, never a merge (write-guard `repo`, read guard, Bash guard) | `.claude/agents/aule.md`, `.claude/hooks/write-guard/` |
-| O.R.I. | commits and pushes brain/ — the only one that may (MCP server, two tools) | `.claude/agents/ori.md`, `.claude/scripts/ori/` |
+| O.R.I. | commits and pushes brain/ — the only one that may (MCP server, two tools; `commit` takes an optional date, noon local, at most 7 days back) | `.claude/agents/ori.md`, `.claude/scripts/ori/` |
 | T.R.E.E.B.E.A.R.D. | archivist | planned — Step 10 |
 
 Proposed, not greenlit: G.A.L.A.D.R.I.E.L., L.I.N.D.I.R., H.A.L.D.I.R. — only

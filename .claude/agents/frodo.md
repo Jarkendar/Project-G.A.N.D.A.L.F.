@@ -145,6 +145,11 @@ to you), with:
   the skill says);
 - `what` — one line on what they are; for `daily` the subject the skill
   prescribes, `feat(daily): process <DATE> — <one-line summary>`.
+- `date` — for `daily` only, and only when `<DATE>` (the day of the note) is
+  not `today`: `<DATE>` as `YYYY-MM-DD`, so that the commit carries the day
+  the note is about. For `<DATE>` = `today`, and for every other task, leave
+  it out. If Ori refuses the date (more than 7 days back, bad format), say so
+  in your report and stop: do not ask him to commit without it.
 
 Put Ori's answer into your report as he gave it — the commit id, or his
 refusal — but leave out his note about `current/smeagol/` staying
