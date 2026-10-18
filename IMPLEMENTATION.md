@@ -1728,7 +1728,7 @@ What the numbers say:
 - [x] `legolas` — new, `WebSearch` + `WebFetch` only, `model: sonnet`. No file
   tools, so "never reads brain/" is structural. `research-offer` and
   `research-idea` fork into it (`agent: legolas`) instead of
-  `general-purpose`. The Gandalf route stays Step 5.
+  `general-purpose`. The Gandalf route came 2026-10-18 (see Stage 3, rule 1).
 - [x] `erestor` — new, `Read` + `Grep` + `Glob`, `model: sonnet`: the
   read-only briefing before a practice session. `english-prep` and
   `practice-prep` fork into it.
@@ -1788,8 +1788,17 @@ owner ↔ Gandalf — router, main thread: holds the conversation, asks, confirm
 Rules of the shape:
 1. **The router routes.** Tools: `Read`, `Grep`, `Glob`, `Agent(…)`,
    `SendMessage`, `AskUserQuestion`, samwise, `Write` outside brain/ only
-   (council round files). No `Skill`, `Edit`, `Bash`, web or connectors:
-   nothing in its context can leave the machine or change brain/.
+   (council round files). No `Skill`, `Edit`, `Bash` or connectors: nothing
+   in its context can change brain/. *Amended 2026-10-18 (owner's decision):*
+   the router also holds `WebSearch` and `WebFetch`, so that a quick public
+   check needs no delegation. Rule "Small, large, unclear" in `gandalf.md`:
+   a small request it does itself; web research, and a quick check that
+   grows into one, it hands to `legolas` on its own, with no plan and no yes;
+   anything else large waits for the owner's yes; an unclear one gets one
+   question. Only public names go to the web, never content of `core/` or
+   `current/`. This protection is an instruction, not structure (no hook can
+   tell a private query from a public one); Smeagol's logs will show how it
+   holds.
 2. **Agents own the skills.** A skill is preloaded into its agent with
    `skills:` in the agent's frontmatter; the agent needs no `Skill` tool and
    carries no skill listing. The router drops `Skill` (11 k) and keeps one
@@ -1807,7 +1816,8 @@ Rules of the shape:
    above); README is the owner's.
 5. **Privacy by structure.** An agent that reads `core/` or `current/` holds
    no outbound tool; outbound work goes to a task agent with a brief that
-   contains only what may leave (the `legolas` pattern).
+   contains only what may leave (the `legolas` pattern). The router is the
+   one exception, by the owner's choice (rule 1).
 6. **MCP servers are per session, tools are per agent.** A sub-agent uses the
    session's servers, so the router session must load every server any agent
    needs — `--strict-mcp-config` is out. The boundary is each agent's
@@ -2351,8 +2361,9 @@ reshuffle it.**
 - [ ] **Step 5 — L.E.G.O.L.A.S.** — outbound web search (DuckDuckGo first,
   self-hosted SearXNG later). Only agent with external network access.
   A first narrow version exists since 2026-10-10 (`.claude/agents/legolas.md`,
-  `WebSearch` + `WebFetch`, target of the forked research helpers) — the
-  Gandalf route and the search backend are still this step.
+  `WebSearch` + `WebFetch`, target of the forked research helpers). The
+  Gandalf route is done (2026-10-18: the router calls him for research and
+  does quick public checks itself); the search backend is still this step.
 - [ ] **Step 6 — First skill: White Council** — multi-perspective deliberation
   over a hard question; validates the agent/skill split in practice.
   Design agreed 2026-09-28 (one card-driven agent, persona and role cards) —
