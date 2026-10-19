@@ -171,6 +171,17 @@ class WriteGuard(unittest.TestCase):
         self.write(os.path.join(BRAIN, "core/finance/finance.md"), dain, False, agent="dain")
         self.write(os.path.join(REPO, "x.md"), dain, False, agent="dain")
 
+    def test_glorfindel_plans_only(self):
+        glor = ["glorfindel", "brain:current/fitness/plans"]
+        self.write(os.path.join(BRAIN, "current/fitness/plans/2026-10-25.md"), glor, True, agent="glorfindel")
+        self.write(os.path.join(BRAIN, "current/fitness/plans/2026-10-25-retro.md"), glor, True, agent="glorfindel")
+        self.write(os.path.join(BRAIN, "current/fitness/plans/x.py"), glor, False, agent="glorfindel")
+        self.write(os.path.join(BRAIN, "current/fitness/2026-10-25.md"), glor, False, agent="glorfindel")
+        self.write(os.path.join(BRAIN, "current/daily/x.md"), glor, False, agent="glorfindel")
+        self.write(os.path.join(BRAIN, "core/health/fitness.md"), glor, False, agent="glorfindel")
+        self.write(os.path.join(BRAIN, "db/fitness.db"), glor, False, agent="glorfindel")
+        self.write(os.path.join(REPO, "x.md"), glor, False, agent="glorfindel")
+
     def test_reads(self):
         self.read("Read", {"file_path": os.path.join(REPO, "CLAUDE.md")}, True)
         self.read("Read", {"file_path": ".claude/rules/dev.md"}, True)
