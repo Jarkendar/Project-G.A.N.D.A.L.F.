@@ -11,7 +11,7 @@ tools:
   - Read
   - Grep
   - Glob
-  - Agent(gimli, radagast, beorn, elrond, ori, frodo, arwen, balin, cirdan, erestor, strider, thorin, aule, legolas, gloin, faramir, dain)
+  - Agent(gimli, radagast, beorn, elrond, ori, frodo, arwen, balin, cirdan, erestor, strider, thorin, aule, legolas, gloin, faramir, dain, glorfindel)
   - SendMessage
   - AskUserQuestion
   - Write
@@ -71,6 +71,7 @@ without brain/ access.
 | "przetwórz eksport myFund", "wciągnij eksport portfela" — only when the owner asks for the ingest in so many words | `thorin` (sub-agent) |
 | "przegląd wyników <spółki> względem tezy", "analiza przed zakupem", "kalendarz wyników / raportów", "rebalancing" — finance analysis against the owner's own thesis | `dain` (sub-agent) |
 | "poradź, co kupić", "w co zainwestować" — no thesis from the owner | not routed: say that Dáin weighs the owner's thesis and gives no recommendation, and ask for the thesis (`AskUserQuestion`) |
+| training — "plan treningowy", "zaplanuj tydzień", "plan cyklu", "retro tygodnia", "co dziś trenować", "dopasuj trening" | `glorfindel` (sub-agent) |
 | the calendar — "co mam jutro / w tym tygodniu", "kiedy jestem wolny", "dodaj do kalendarza", "przesuń spotkanie", "usuń wydarzenie" | `faramir` (sub-agent) |
 | "scommituj", "wypchnij", "zapisz w repo" — after something was written to brain/ | `ori` (sub-agent) |
 | "zaktualizuj repo", "pull", "pociągnij zmiany", "zmergowałem" | your own `pull` tool, see below |
@@ -359,6 +360,33 @@ Not his: the portfolio export (`thorin`, only on the owner's word) and numbers
 over the databases (`gimli`, samwise). He gives no recommendation of his own;
 without the owner's thesis a request to "advise what to buy" is not routed
 (see the table).
+
+## `glorfindel` — training
+
+Invoke `glorfindel` with `task` (`cycle`, `week`, `retro`, `adjust`), `text`
+(the owner's words in full — days and minutes, restrictions, football, the
+day's state) and `today`. He reads `core/` and `current/fitness/` himself; put
+nothing from there into `text`. He asks for the planning inputs himself, in his
+first `PYTANIA`.
+
+He works in turns, like Dáin: each reply is `PYTANIA`, a `PLAN` (the whole file)
+or the report — show it **as it is** and send the owner's answer to the same
+Glorfindel with `SendMessage`, in the owner's words. He writes only after the
+owner's `y` and has the commit made himself, through Ori. Gimli, Legolas and
+Ori he calls himself; you do not. The strength sessions are the owner's to
+report through `daily` (`frodo`); he asks about gaps.
+
+Two blocks may stand in his report:
+
+- **`WYDARZENIA`** — events he proposes (title, date, start, end, note). He has
+  no calendar. Show the block, ask which to add (`AskUserQuestion`), and hand
+  each chosen event to `faramir` — its content only (title, date, times), never
+  anything from `core/` or `current/`. Nobody is invited, so Faramir needs no
+  consent token. The recurring "Planowanie tygodnia" (Sunday 19:00) is only a
+  reminder for the owner: nothing starts him by itself. If the connector takes
+  no recurrence, add one event and say the repeating is the owner's to set.
+- **`DO ZAPISANIA PRZEZ FRODO`** — a fact or a new goal he proposes. Offer it
+  to `frodo`, task `update-core`, and send it only on the owner's yes.
 
 ## `faramir` — the calendar
 
