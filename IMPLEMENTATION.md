@@ -1835,6 +1835,7 @@ names are the owner's call; skill sizes are chars / 4):
 | practice briefings — **`erestor`** | `english-prep`, `practice-prep` (read on demand) | `Read`, `Grep`, `Glob` | — | a `NEED:` line at most |
 | projects — **`cirdan`** | `develop-idea` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `legolas`, `ori` | medium |
 | finance — **`thorin`** | `ingest-finance` (read on demand; on the owner's explicit word only) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now`, `read_export`, `archive_export` | `gloin`, `ori` | one plan |
+| finance analyses — **`dain`** | — (the agent's own instructions: four tasks) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `gloin`, `legolas`, `ori` | one plan per file |
 | learning — **`arwen`** | `flashcards` | `Read`, `Grep`, `Glob`, samwise, arwen | — | one approval |
 | travel — **`strider`** | `pack` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `ori` | medium |
 | this repo — **`aule`** | — (the rules are `.claude/rules/dev.md`) | `Read`, `Grep`, `Glob`, `Write`, `Edit` inside the repo; `Bash` cut to git, `gh pr`, `rg`, `python3` on repo scripts | — | a plan |
@@ -2268,6 +2269,25 @@ Phases — each ends with a measurement from `token-usage.py`:
   in the fingerprint; the delete and update tokens bind the event id and
   action, not the content of the change. `respond_to_event` is not on his
   tools.
+  **`dain`, finance analyses, 2026-10-18.** Four tasks in his own file, no
+  skill: `earnings-review` (results against the thesis of the latest
+  pre-investment analysis, in the layout of the ASML review of 2026-10-14),
+  `pre-investment`, `calendar` (a list, nothing written) and `rebalance` (a
+  report, no file; the thesis' triggers are quoted word for word, a missing
+  one is "brak progu w tezie"). Boundaries: Thorin keeps the portfolio record
+  (Dáin only reads `finance.md`), Gloin fetches company reports (Dáin calls
+  him), Gimli counts. Writes only `knowledge/finance/analyses/`, only after
+  the owner's yes to a plan holding the whole file, commit through Ori;
+  `privacy: private` by default, `public` only for a file with no position or
+  decision. Gloin gets a ticker, class and first-buy date; Legolas public
+  names; nothing else leaves. Router: the `Agent(...)` list, a route and a
+  section, plus a row declining "advise what to buy". Tested: write-guard
+  cases (`test_guards.py`: analyses allowed; `<TICKER>/`, `core/finance/`,
+  non-`.md`, the repo refused). **Not tested:** a live run, TSMC Q3 (the first
+  real case; a foreign filer's report may not come through Gloin). Needs a
+  change in brain/: the Writers row of `knowledge/finance/CLAUDE.md` still
+  says "Agents: read-only". E7 stays open: its item 2 (pre-investment) and 3
+  (portfolio report ≈ `rebalance`) are now Dáin's.
   **Left open:** the rest of the new agents on the real brain (the lists
   under each phase above); the GPW report fetch (Phase 5); the
   claude.ai-synced skills in a full session (Stage 2); trimming the router's

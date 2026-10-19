@@ -163,6 +163,14 @@ class WriteGuard(unittest.TestCase):
         self.write(os.path.join(BRAIN, "knowledge/personas/x/p.md"), frodo, False, agent="frodo")
         self.write(os.path.join(BRAIN, "knowledge/places/x.md"), frodo, True, agent="frodo")
 
+    def test_dain_analyses_only(self):
+        dain = ["dain", "brain:knowledge/finance/analyses"]
+        self.write(os.path.join(BRAIN, "knowledge/finance/analyses/2026-10-18_X_q3-check.md"), dain, True, agent="dain")
+        self.write(os.path.join(BRAIN, "knowledge/finance/analyses/x.py"), dain, False, agent="dain")
+        self.write(os.path.join(BRAIN, "knowledge/finance/X/2026-Q3.md"), dain, False, agent="dain")
+        self.write(os.path.join(BRAIN, "core/finance/finance.md"), dain, False, agent="dain")
+        self.write(os.path.join(REPO, "x.md"), dain, False, agent="dain")
+
     def test_reads(self):
         self.read("Read", {"file_path": os.path.join(REPO, "CLAUDE.md")}, True)
         self.read("Read", {"file_path": ".claude/rules/dev.md"}, True)

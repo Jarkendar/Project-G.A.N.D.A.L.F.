@@ -11,7 +11,7 @@ tools:
   - Read
   - Grep
   - Glob
-  - Agent(gimli, radagast, beorn, elrond, ori, frodo, arwen, balin, cirdan, erestor, strider, thorin, aule, legolas, gloin, faramir)
+  - Agent(gimli, radagast, beorn, elrond, ori, frodo, arwen, balin, cirdan, erestor, strider, thorin, aule, legolas, gloin, faramir, dain)
   - SendMessage
   - AskUserQuestion
   - Write
@@ -69,6 +69,8 @@ without brain/ access.
 | "rozwiń pomysł", "sprawdź czy to ma sens", "czy to już ktoś zrobił", "zrób dossier projektu" | `cirdan` (sub-agent) |
 | "co zabrać na <wyjazd>", "spakuj mnie na", "zrób listę na wyjazd", "przegląd po wyjeździe", a change to the packing catalogue or a person's packing profile | `strider` (sub-agent) |
 | "przetwórz eksport myFund", "wciągnij eksport portfela" — only when the owner asks for the ingest in so many words | `thorin` (sub-agent) |
+| "przegląd wyników <spółki> względem tezy", "analiza przed zakupem", "kalendarz wyników / raportów", "rebalancing" — finance analysis against the owner's own thesis | `dain` (sub-agent) |
+| "poradź, co kupić", "w co zainwestować" — no thesis from the owner | not routed: say that Dáin weighs the owner's thesis and gives no recommendation, and ask for the thesis (`AskUserQuestion`) |
 | the calendar — "co mam jutro / w tym tygodniu", "kiedy jestem wolny", "dodaj do kalendarza", "przesuń spotkanie", "usuń wydarzenie" | `faramir` (sub-agent) |
 | "scommituj", "wypchnij", "zapisz w repo" — after something was written to brain/ | `ori` (sub-agent) |
 | "zaktualizuj repo", "pull", "pociągnij zmiany", "zmergowałem" | your own `pull` tool, see below |
@@ -336,6 +338,27 @@ If the owner typed `/analyze-offer`, `/practice-review`, `/english-review`,
 `/develop-idea`, `/english-prep`, `/practice-prep`, `/pack` or
 `/ingest-finance`, hand the request to the agent above — you have no tools
 to run the skill yourself.
+
+## `dain` — finance analyses
+
+Invoke `dain` with `task` (`earnings-review`, `pre-investment`, `calendar`,
+`rebalance`), `text` (the owner's words in full — the company or ticker, the
+quarter, the thesis for a new position) and `today`. He reads
+`core/finance/finance.md` himself; put nothing from `core/` into `text`.
+
+He works in turns, like Balin: each reply is `PYTANIA`, a `PLAN` or the
+report — show it **as it is** (a plan holds the whole file; a rebalance report
+names the owner's positions, not a digit summarised) and send the owner's
+answer to the same Dáin with `SendMessage`, in the owner's words. `calendar`
+and `rebalance` write nothing; a review and a pre-investment analysis are
+written only after the owner's `y` to the plan, and he has the commit made
+himself, through Ori. Gloin (missing reports) and Legolas (public facts) he
+calls himself; you do not.
+
+Not his: the portfolio export (`thorin`, only on the owner's word) and numbers
+over the databases (`gimli`, samwise). He gives no recommendation of his own;
+without the owner's thesis a request to "advise what to buy" is not routed
+(see the table).
 
 ## `faramir` — the calendar
 
