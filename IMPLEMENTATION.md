@@ -1836,6 +1836,7 @@ names are the owner's call; skill sizes are chars / 4):
 | projects — **`cirdan`** | `develop-idea` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `legolas`, `ori` | medium |
 | finance — **`thorin`** | `ingest-finance` (read on demand; on the owner's explicit word only) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now`, `read_export`, `archive_export` | `gloin`, `ori` | one plan |
 | finance analyses — **`dain`** | — (the agent's own instructions: four tasks) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `gloin`, `legolas`, `ori` | one plan per file |
+| fitness training — **`glorfindel`** | — (the agent's own instructions: four tasks) | `Read`, `Grep`, `Glob`, `Write`, `now`, samwise, Strava (read) | `gimli`, `legolas`, `ori` | one plan per file |
 | learning — **`arwen`** | `flashcards` | `Read`, `Grep`, `Glob`, samwise, arwen | — | one approval |
 | travel — **`strider`** | `pack` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `ori` | medium |
 | this repo — **`aule`** | — (the rules are `.claude/rules/dev.md`) | `Read`, `Grep`, `Glob`, `Write`, `Edit` inside the repo; `Bash` cut to git, `gh pr`, `rg`, `python3` on repo scripts | — | a plan |
@@ -2288,6 +2289,34 @@ Phases — each ends with a measurement from `token-usage.py`:
   change in brain/: the Writers row of `knowledge/finance/CLAUDE.md` still
   says "Agents: read-only". E7 stays open: its item 2 (pre-investment) and 3
   (portfolio report ≈ `rebalance`) are now Dáin's.
+  **`glorfindel`, the trainer, 2026-10-19.** Four tasks in his own file, no
+  skill: `cycle`, `week`, `retro`, `adjust`. Reads the goal, body, health and
+  gear records, `current/fitness/`, earlier plans, Strava (read-only, six
+  tools) and `fitness.db` through Gimli (called by him, not by the router;
+  PRIVATE, the MVP exception). Writes only
+  `current/fitness/plans/YYYY-MM-DD.md` (`-<type>` suffix when the name is
+  taken), append-only (no `Edit`), after the owner's yes to a full plan;
+  commit through Ori. Planning inputs (days, minutes, restrictions on the scale
+  ignoruj / uważaj / omijaj, football) are asked each time. Web through Legolas
+  with the problem anonymised and five rounded fields (sex, age, weight, height,
+  level) — the owner's explicit yes. The calendar is not his: the report's
+  `WYDARZENIA` block goes through the router to Faramir; the Sunday 19:00
+  "Planowanie tygodnia" is a reminder, nothing starts him by itself. Facts for
+  `core/` go out as `DO ZAPISANIA PRZEZ FRODO`. Tested: write-guard cases
+  (`test_guards.py`). **Not tested:** a live run; the Strava tools from a
+  sub-agent; Gimli called from him; recurrence in Faramir's `create_event`.
+  **Strava hour rule (investigation 2026-10-19), in `glorfindel.md`:** local
+  time from `start_date_local` of `get-activity-laps` (the `Z` is Poznań
+  wall-clock, CEST until 2026-10-25, then CET — not UTC); the true start is the
+  laps' `start_date` (UTC); the time of `get-activity-details` (`Date`) is 2 h
+  too late (probably a double zone conversion) and is not used; an activity
+  without laps gets no hour or an uncertain one; the log and `fitness_upsert`
+  take the date only, from `get-all-activities` or `start_date_local`. Evidence:
+  runs 20558714823 and 20546542340. Limit: the raw `start_date` / `timezone`
+  of details were never seen — an inference from the difference. **Open:**
+  `db/fitness.db` unchecked for the same shift (a Gimli query, separately).
+  Needs a change in brain/: an exception in `current/fitness/CLAUDE.md` for
+  `plans/` (the router orders it).
   **Left open:** the rest of the new agents on the real brain (the lists
   under each phase above); the GPW report fetch (Phase 5); the
   claude.ai-synced skills in a full session (Stage 2); trimming the router's
