@@ -51,3 +51,25 @@ ignores case; a quote elided with `...` passes when each fragment appears in
 the source.
 
 `GANDALF_PERSONA_CACHE` overrides the cache root (tests).
+
+## MCP tools (for F.I.N.R.O.D.)
+
+A sub-agent has no shell, so `mcp_server.py` (server `mirdain`, started from
+`.mcp.json` on the Gimli venv) wraps the scripts for the `finrod` agent
+(`.claude/agents/finrod.md`):
+
+| Tool | Runs |
+|---|---|
+| `status(slug)` | nothing — reads the build stage from disk (sources.md rows, digests, `card_version`, validation runs) |
+| `catalog_put(slug, sources)` | writes `sources.json` into the persona's folder after checking the entries |
+| `fetch(slug, wayback, only)` | `fetch.py` and `fetch.py --table` (network: the URLs of the list) |
+| `prepare(slug, ids)` | `reflow.py`, folded at 1500 characters, into `/tmp/gandalf-persona/<slug>/text/` for Narvi |
+| `assemble(slug, drafts_dir, ids, write)` | `assemble.py` (drafts under `/tmp` only) |
+| `verify_quotes(slug, ids)` | `verify_quotes.py` |
+| `validation_put(slug, config)` | writes `validation.json` |
+| `validation_start(slug, run, reuse_bare)` | `validate.py`, detached (spends Claude quota; resumable) |
+| `validation_status(slug, run)` | log tail and `validate.py --report` |
+
+They refuse a slug that is not kebab-case, ids that are not catalogue ids,
+and drafts outside `/tmp`. Tests: `python3 .claude/scripts/personas/test_mcp_server.py`
+(stands in for the MCP SDK when it is not installed).

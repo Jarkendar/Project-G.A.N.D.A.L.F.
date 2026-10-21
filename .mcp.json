@@ -46,6 +46,13 @@
         "exec .claude/scripts/gimli/.venv/bin/python .claude/scripts/elrond/mcp_server.py"
       ]
     },
+    "mirdain": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "exec .claude/scripts/gimli/.venv/bin/python .claude/scripts/personas/mcp_server.py"
+      ]
+    },
     "thorin": {
       "command": "bash",
       "args": [
