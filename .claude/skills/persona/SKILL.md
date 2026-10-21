@@ -93,9 +93,15 @@ owner as too thin; 250k+ worked.
 
 ## 3. Digests, batch by batch
 
-**Default engine: Antigravity CLI (Gemini), not a Claude sub-agent.** Drafts
-come from `agy_digest.py`, which runs one headless `agy` call per source in
-parallel and spends the Gemini quota instead of the Claude one:
+**Default engine: `narvi`, a Claude sub-agent (see "Handing steps 1–2" below).
+The Antigravity (Gemini) path is OFF** — the owner switched it off on
+2026-10-10 (quota 429); do not use `agy_digest.py` until the owner says so.
+The same procedure runs from a full session and from `finrod`
+(`.claude/agents/finrod.md`), which drives it through the `mirdain` MCP tools.
+
+The disabled path, kept for reinstatement: `agy_digest.py` runs one headless
+`agy` call per source in parallel and spends the Gemini quota instead of the
+Claude one:
 
 ```
 python3 .claude/scripts/personas/agy_digest.py <slug> <drafts> <id,...> --surname <Surname>
@@ -120,7 +126,8 @@ python3 .claude/scripts/personas/agy_digest.py <slug> <drafts> <id,...> --surnam
   `--write` (a wrong fact passes the quote check). Quote misses: fix the
   draft, never the checker.
 
-Manual path — for each source in the batch:
+Manual path (what Narvi does for a source; in a full session you may do it
+yourself) — for each source in the batch:
 
 1. `reflow.py <slug> <id>` → the text, one paragraph per line. Read the
    **whole** source. Do not filter it with line-based grep — that cuts
@@ -136,7 +143,8 @@ Manual path — for each source in the batch:
    (`feat(personas): <slug> digests P<n>`). The post-commit hook reindexes
    the persona RAG on its own.
 
-**Handing steps 1–2 to a sub-agent: `narvi`, never `general-purpose`.**
+**Handing steps 1–2 to a sub-agent (the default): `narvi`, never
+`general-purpose`.**
 Narvi (`.claude/agents/narvi.md`) holds `Read` and `Write` only, and a hook
 refuses any write outside the scratchpad — `general-purpose` carries every
 tool and ~36k tokens before it reads a line. It has no shell, so prepare

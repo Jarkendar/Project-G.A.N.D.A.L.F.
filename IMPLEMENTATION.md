@@ -1840,7 +1840,7 @@ names are the owner's call; skill sizes are chars / 4):
 | learning — **`arwen`** | `flashcards` | `Read`, `Grep`, `Glob`, samwise, arwen | — | one approval |
 | travel — **`strider`** | `pack` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `ori` | medium |
 | this repo — **`aule`** | — (the rules are `.claude/rules/dev.md`) | `Read`, `Grep`, `Glob`, `Write`, `Edit` inside the repo; `Bash` cut to git, `gh pr`, `rg`, `python3` on repo scripts | — | a plan |
-| personas — stays in a full session | `persona` (typed by hand only) | `Read`, `Write`, `Bash` for the persona scripts | `narvi` | heavy |
+| personas — **`finrod`** (2026-10-21; a full session still works) | `persona` (read on demand; typed by hand only in a full session) | `Read`, `Grep`, `Glob`, `Write`, `Edit` inside `knowledge/personas/` and `/tmp`, `now`, the `mirdain` tools | `narvi`, `legolas`, `ori` | heavy, a stage per turn |
 | calendar — **`faramir`** | — (no skill; the agent's own instructions) | Google Calendar connector (claude.ai): 8 tools, no `Read`, no brain/ | — | a plan before a delete, an edit or an event with guests |
 
 Open in the map: whether `daily` gets an agent of its own (it is half of the
@@ -2315,6 +2315,24 @@ Phases — each ends with a measurement from `token-usage.py`:
   runs 20558714823 and 20546542340. Limit: the raw `start_date` / `timezone`
   of details were never seen — an inference from the difference. **Open:**
   `db/fitness.db` unchecked for the same shift (a Gimli query, separately).
+  **`finrod`, the persona builder, 2026-10-21.** Runs the `persona` skill
+  from the router, one stage per turn (scope, catalogue, one digest batch,
+  card, validation); the stage is read from disk (`status`), so a new session
+  resumes with "kontynuuj <kto>". A sub-agent has no shell, so the scripts of
+  `.claude/scripts/personas/` are wrapped in the `mirdain` MCP server (nine
+  tools; refuses bad slugs, ids and paths). Writes `.md` files under
+  `knowledge/personas/` and `/tmp` only (folder-level: the guard cannot pin a
+  slug, so another persona's folder is closed by his instructions, `CLAUDE.md`
+  by the guard); reads `knowledge/personas/` and the repo, never `core/` or
+  `current/`. Digests: `narvi` (Claude) — the `agy` path stays off since
+  2026-10-10 and the skill says so. Web through Legolas (public names), commits
+  through Ori. `validation_start` only on the owner's word (quota). The
+  IMPLEMENTATION.md entry for a built persona is Aulë's, on the owner's word.
+  Tested: `test_guards.py` (write and read cases), `test_mcp_server.py`
+  (refusals). **Not tested:** a live run, `fetch` from the network, a
+  detached `validate.py`, the card step at 300+ digests (first run: Will
+  Larson). Decision: the owner shortens the catalogue gate only after the
+  first built persona.
   Needs a change in brain/: an exception in `current/fitness/CLAUDE.md` for
   `plans/` (the router orders it).
   **Left open:** the rest of the new agents on the real brain (the lists

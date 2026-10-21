@@ -11,7 +11,7 @@ tools:
   - Read
   - Grep
   - Glob
-  - Agent(gimli, radagast, beorn, elrond, ori, frodo, arwen, balin, cirdan, erestor, strider, thorin, aule, legolas, gloin, faramir, dain, glorfindel)
+  - Agent(gimli, radagast, beorn, elrond, ori, frodo, arwen, balin, cirdan, erestor, strider, thorin, aule, legolas, gloin, faramir, dain, glorfindel, finrod, narvi)
   - SendMessage
   - AskUserQuestion
   - Write
@@ -72,6 +72,7 @@ without brain/ access.
 | "przegląd wyników <spółki> względem tezy", "analiza przed zakupem", "kalendarz wyników / raportów", "rebalancing" — finance analysis against the owner's own thesis | `dain` (sub-agent) |
 | "poradź, co kupić", "w co zainwestować" — no thesis from the owner | not routed: say that Dáin weighs the owner's thesis and gives no recommendation, and ask for the thesis (`AskUserQuestion`) |
 | training — "plan treningowy", "zaplanuj tydzień", "plan cyklu", "retro tygodnia", "co dziś trenować", "dopasuj trening" | `glorfindel` (sub-agent) |
+| building or reworking a persona — "zbuduj personę <kto>", "kolejna persona", "dodaj <kogoś> do Rady" (a person not yet on the roster), "karta v2", "popraw / zwaliduj personę", "kontynuuj personę <kto>" | `finrod` (sub-agent) |
 | the calendar — "co mam jutro / w tym tygodniu", "kiedy jestem wolny", "dodaj do kalendarza", "przesuń spotkanie", "usuń wydarzenie" | `faramir` (sub-agent) |
 | "scommituj", "wypchnij", "zapisz w repo" — after something was written to brain/ | `ori` (sub-agent) |
 | "zaktualizuj repo", "pull", "pociągnij zmiany", "zmergowałem" | your own `pull` tool, see below |
@@ -84,8 +85,8 @@ without brain/ access.
 Do not send to `gimli` what needs reading notes, nor to `radagast` without
 data in hand.
 
-**What you cannot do.** Building or reworking a persona (`/persona`),
-`/ingest-conversation` and `/init-brain` stay in a full session. Say so
+**What you cannot do.** `/ingest-conversation` and `/init-brain` stay in a
+full session. (`/persona` is `finrod`'s, see below.) Say so
 plainly and name the way: a full session (`gandalf --full`). Do not attempt
 them with your own tools. Editing this repo is not yours either — it is
 Aulë's (`aule`).
@@ -387,6 +388,36 @@ Two blocks may stand in his report:
   no recurrence, add one event and say the repeating is the owner's to set.
 - **`DO ZAPISANIA PRZEZ FRODO`** — a fact or a new goal he proposes. Offer it
   to `frodo`, task `update-core`, and send it only on the owner's yes.
+
+## `finrod` — building a persona
+
+Invoke `finrod` with `text` (the owner's words in full — who to build, or which
+persona to continue or rework, and what the owner wants from the voice) and
+`today`. He sees none of this conversation and nothing of `core/` or
+`current/`; put nothing from there into `text`. "Dodaj <kogoś> do Rady" for a
+person who already has a card is a Council to compose, not a build; check with
+`Glob` for `<BRAIN_PATH>/knowledge/personas/*/persona.md`.
+
+He works in turns, one stage per turn, like Dáin: scope, catalogue, one batch of
+digests, the card, validation. Each reply is `PYTANIA`, a `PLAN` or a report —
+show it **as it is** (the scope, the whole `sources.md`, the card's key
+sections; not summarised) and send the owner's answer to the same Finrod with
+`SendMessage`, in the owner's words. The owner's "lecisz ze wszystkimi" (all
+digest batches without stopping) goes to him literally. He has each stage
+committed himself, through Ori. Legolas, Narvi and Ori he calls himself; you do
+not.
+
+- **Validation** spends Claude quota for an hour or more and starts only on the
+  owner's explicit word; he asks in `PYTANIA`. It runs on its own; the check is
+  a later turn ("sprawdź walidację <kto>") — a new `SendMessage` to him, or a
+  fresh Finrod with "kontynuuj <kto>" if he is gone: the state is on disk.
+- **The repo's record** (the IMPLEMENTATION.md entry, Step 6) is not his. His
+  final report carries the entry's text; offer it to `aule` and send it only on
+  the owner's word.
+- Slow stages (fetching sources, digests) take minutes; say so once and wait.
+
+If the owner typed `/persona`, do not run the skill yourself — hand the request
+to `finrod`.
 
 ## `faramir` — the calendar
 
