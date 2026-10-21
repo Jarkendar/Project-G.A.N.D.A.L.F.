@@ -182,6 +182,31 @@ class WriteGuard(unittest.TestCase):
         self.write(os.path.join(BRAIN, "db/fitness.db"), glor, False, agent="glorfindel")
         self.write(os.path.join(REPO, "x.md"), glor, False, agent="glorfindel")
 
+    def test_finrod_personas_only(self):
+        fin = ["finrod", "brain:knowledge/personas", "tmp", "!brain:knowledge/personas/CLAUDE.md"]
+        for ok in ("will-larson/persona.md", "will-larson/sources.md", "will-larson/validation.md"):
+            self.write(os.path.join(BRAIN, "knowledge/personas", ok), fin, True, agent="finrod")
+        self.write(os.path.join(tempfile.gettempdir(), "gandalf-persona/x/notes.md"), fin, True, agent="finrod")
+        for bad in ("knowledge/personas/CLAUDE.md", "knowledge/personas/will-larson/sources.json",
+                    "knowledge/personas/will-larson/validation.json", "knowledge/councils/x.md",
+                    "knowledge/finance/x.md", "core/profile.md", "current/daily/x.md"):
+            self.write(os.path.join(BRAIN, bad), fin, False, agent="finrod")
+        self.write(os.path.join(REPO, "x.md"), fin, False, agent="finrod")
+        self.write(os.path.join(REPO, ".claude/agents/finrod.md"), fin, False, agent="finrod")
+
+    def test_finrod_reads_personas_and_repo_only(self):
+        spec = ["finrod", "--read", "brain:knowledge/personas", "repo"]
+        for tool, tin, ok in (
+            ("Read", {"file_path": os.path.join(BRAIN, "knowledge/personas/x/persona.md")}, True),
+            ("Grep", {"pattern": "x", "path": os.path.join(BRAIN, "knowledge/personas/x")}, True),
+            ("Read", {"file_path": os.path.join(REPO, ".claude/skills/persona/SKILL.md")}, True),
+            ("Read", {"file_path": os.path.join(BRAIN, "core/profile.md")}, False),
+            ("Grep", {"pattern": "x", "path": os.path.join(BRAIN, "current")}, False),
+            ("Glob", {"pattern": BRAIN + "/**/*.md"}, False),
+        ):
+            code, err = run("guard.py", spec, {"agent_type": "finrod", "cwd": REPO, "tool_name": tool, "tool_input": tin})
+            self.assertEqual(code, 0 if ok else 2, f"{tool} {tin}: {err}")
+
     def test_reads(self):
         self.read("Read", {"file_path": os.path.join(REPO, "CLAUDE.md")}, True)
         self.read("Read", {"file_path": ".claude/rules/dev.md"}, True)
