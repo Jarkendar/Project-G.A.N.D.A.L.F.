@@ -66,6 +66,13 @@
         "-c",
         "exec .claude/scripts/gimli/.venv/bin/python .claude/scripts/sync/mcp_server.py"
       ]
+    },
+    "rpi": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "exec .claude/scripts/gimli/.venv/bin/python .claude/scripts/rpi/mcp_server.py"
+      ]
     }
   }
 }

@@ -18,6 +18,11 @@ tools:
   - Write
   - Edit
   - Bash
+  - mcp__rpi__systemd_cat
+  - mcp__rpi__systemd_status
+  - mcp__rpi__systemd_timers
+  - mcp__rpi__journal_tail
+  - mcp__rpi__tmux_ls
 model: sonnet
 hooks:
   PreToolUse:
@@ -161,6 +166,10 @@ The working agreement of `.claude/rules/dev.md`, which you follow:
 - Your shell is cut to a list (git, `gh pr`, `rg`, `ls`, `cat`, `python3`
   on a script in the repo, a few more). A refused command is not a puzzle
   to get around — use another tool, or put what is needed into a plan.
+- **The Pi, read-only.** `mcp__rpi__*` show the user systemd units
+  (`gandalf*`, `samwise-mcp`), their journal and the tmux sessions — how the
+  system runs outside this repo. They change nothing; a `REFUSED` is final,
+  not a puzzle. Restarting or editing a unit is not yours: put it in a plan.
 - No network beyond `git push` / `gh pr`. Installing a dependency, adding an
   MCP server or a library choice is its own plan item, never a side effect.
 - A script you write and run inside the repo is not checked by the hooks.

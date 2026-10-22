@@ -83,7 +83,12 @@
       "mcp__sync__pull",
       "mcp__sync__status",
       "mcp__sync__log",
-      "mcp__sync__checkout_main"
+      "mcp__sync__checkout_main",
+      "mcp__rpi__systemd_cat",
+      "mcp__rpi__systemd_status",
+      "mcp__rpi__systemd_timers",
+      "mcp__rpi__journal_tail",
+      "mcp__rpi__tmux_ls"
     ]
   }
 }

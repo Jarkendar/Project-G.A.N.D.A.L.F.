@@ -4,6 +4,7 @@
 #
 #   python3 .claude/scripts/rpi/test_readops.py
 
+import json
 import os
 import sys
 import unittest
@@ -119,9 +120,16 @@ class Scope(unittest.TestCase):
     def test_only_aule_names_the_tools(self):
         for f in (REPO / ".claude" / "agents").glob("*.md"):
             has = "mcp__rpi__" in f.read_text()
-            if f.name == "aule.md":
-                continue  # asserted once the registration commit lands
-            self.assertFalse(has, f.name)
+            self.assertEqual(has, f.name == "aule.md", f.name)
+
+    def test_settings_allow_exactly_the_five(self):
+        text = (REPO / ".claude" / "settings.json").read_text()
+        for t in ("systemd_cat", "systemd_status", "systemd_timers", "journal_tail", "tmux_ls"):
+            self.assertIn(f'"mcp__rpi__{t}"', text)
+        self.assertEqual(text.count("mcp__rpi__"), 5)
+        json.loads(text)
+        servers = json.loads((REPO / ".mcp.json").read_text())["mcpServers"]
+        self.assertIn("rpi", servers)
 
 
 if __name__ == "__main__":
