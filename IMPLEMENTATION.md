@@ -2335,6 +2335,26 @@ Phases — each ends with a measurement from `token-usage.py`:
   first built persona.
   Needs a change in brain/: an exception in `current/fitness/CLAUDE.md` for
   `plans/` (the router orders it).
+  **`rpi`, Aulë sees the Pi, 2026-10-22.** Aulë could not tell how the system
+  runs outside the repo (the 04:30 timer lives in `~/.config/systemd/user/`),
+  and his Bash guard rightly refuses anything outside it. MCP server `rpi`
+  (`.claude/scripts/rpi/`), read-only, five tools: `systemd_cat`,
+  `systemd_status`, `systemd_timers`, `journal_tail` (1 to 200 lines),
+  `tmux_ls`. None takes a path, so `~/.ssh`, `~/.config` and env files are out
+  of reach; units come through `systemctl --user` only, and only `gandalf*` and
+  `samwise-mcp` (a code change to extend). Arguments are validated by full
+  match before anything runs; argv is a list, no shell, minimal environment,
+  10 s timeout, 20 KB cap; lines that look like secrets are blanked. Only
+  `aule.md` names the tools in `tools:` (a test checks no other agent does);
+  `gandalf --full` sees them like every server. No execution — restart and unit
+  edits are a later stage, on the owner's yes to a plan. Tested:
+  `.claude/scripts/rpi/test_readops.py` (12 cases, injected runner).
+  **Not tested:** the MCP handshake and a real call (Aulë's shell cannot run
+  the Gimli venv or `systemctl`); the first real `systemd_cat
+  gandalf-restart.timer` in a new session is the check, and shows whether the
+  Claude Code sandbox lets the server reach the user bus. **Known gaps:** the
+  journal and `systemctl cat` can still carry private text the redaction does
+  not recognise; the tools reach a new session only.
   **Left open:** the rest of the new agents on the real brain (the lists
   under each phase above); the GPW report fetch (Phase 5); the
   claude.ai-synced skills in a full session (Stage 2); trimming the router's
