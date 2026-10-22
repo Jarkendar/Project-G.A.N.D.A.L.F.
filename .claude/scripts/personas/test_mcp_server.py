@@ -5,6 +5,8 @@
 # Touches nothing in brain/: the checks that write use a throwaway slug and
 # are asserted to be refused before any file is made.
 
+import asyncio
+import inspect
 import sys
 import types
 import unittest
@@ -54,6 +56,33 @@ class Tools(unittest.TestCase):
 
     def test_status_of_unknown_persona(self):
         self.assertIn("no folder yet", m.status("zz-no-such-persona"))
+
+
+EXPECTED_PARAMS = {
+    "status": ["slug"],
+    "catalog_put": ["slug", "sources"],
+    "fetch": ["slug", "wayback", "only"],
+    "prepare": ["slug", "ids"],
+    "assemble": ["slug", "drafts_dir", "ids", "write"],
+    "verify_quotes": ["slug", "ids"],
+    "validation_put": ["slug", "config"],
+    "validation_start": ["slug", "run", "reuse_bare"],
+    "validation_status": ["slug", "run"],
+}
+
+
+class Schemas(unittest.TestCase):
+    def test_signatures_survive_guard(self):
+        for name, params in EXPECTED_PARAMS.items():
+            self.assertEqual(list(inspect.signature(getattr(m, name)).parameters), params, name)
+
+    def test_server_schemas(self):
+        if not hasattr(m.server, "list_tools"):
+            self.skipTest("needs the real MCP SDK (Gimli venv)")
+        tools = {t.name: t for t in asyncio.run(m.server.list_tools())}
+        for name, params in EXPECTED_PARAMS.items():
+            self.assertIn(name, tools)
+            self.assertEqual(list(tools[name].inputSchema["properties"]), params, name)
 
 
 if __name__ == "__main__":
