@@ -15,6 +15,7 @@
 # Run by Claude Code from .mcp.json (stdio), with the Gimli server's venv —
 # the MCP SDK is its only dependency.
 
+import functools
 import json
 import os
 import re
@@ -100,12 +101,14 @@ def _run(args: list[str], timeout: int = 900) -> tuple[int, str]:
 
 
 def _guard(fn):
+    # functools.wraps keeps the signature and annotations: the MCP SDK builds
+    # the tool's input schema from them (without it the schema is `a`, `kw`).
+    @functools.wraps(fn)
     def wrapper(*a, **kw):
         try:
             return fn(*a, **kw)
         except (Refused, OSError, subprocess.SubprocessError, ValueError) as exc:
             return f"MIRDAIN: refused — {exc}"
-    wrapper.__name__, wrapper.__doc__ = fn.__name__, fn.__doc__
     return wrapper
 
 
