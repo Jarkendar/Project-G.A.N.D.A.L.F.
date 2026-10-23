@@ -1568,6 +1568,23 @@ Storage and retrieval:
              within one run, not across runs; the tic list grows from
              reading answers — re-run the old run on the new list before
              comparing.
+- [ ] **Career advisers** (2026-10-23) — a planned series of career voices
+      for the council, built with the persona-building instruction.
+      1. [x] **Will Larson** — engineering management and career; the
+             first of the series. Done 2026-10-23: 195 sources (2008–2026,
+             ~335k words), 195 digests, 185 quotes checked, core card v1.
+             Validation started 2026-10-23, result pending. Gaps: no texts
+             on remote work, mobile or the Polish market; Lenny's without
+             a transcript; podcasts from machine transcripts. Lessons:
+             `catalog_put` rejected the `file` field that `assemble`
+             requires — fixed in `fetch.py` (PR from
+             `fix/persona-fetch-file-field`, merged); the `sources/`
+             directory has to exist before the first digest is written —
+             **open**, to fix in the script; Finrod's read guard does not
+             cover `/tmp`, so he cannot spot-check the cache against the
+             sources himself; a hypothesis about a "revision" of views
+             taken from the scope has to be verified before it goes into
+             the card.
 - [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
       useful_for / not_for; purpose, how it thinks, style, in a council,
       does not). Next to the skill, not in `.claude/agents/`.
