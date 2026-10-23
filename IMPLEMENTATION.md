@@ -1580,9 +1580,12 @@ Storage and retrieval:
              requires — fixed in `fetch.py` (PR from
              `fix/persona-fetch-file-field`, merged); the `sources/`
              directory has to exist before the first digest is written —
-             **open**, to fix in the script; Finrod's read guard does not
-             cover `/tmp`, so he cannot spot-check the cache against the
-             sources himself; a hypothesis about a "revision" of views
+             **open**, to fix in the script; Finrod's read guard did not
+             cover `/tmp` or the persona cache, so he could not spot-check
+             digests against the sources or read the validation answers —
+             fixed (PR from `fix/finrod-read-cache`): read-only
+             `/tmp/gandalf-persona/` and
+             `~/.local/share/gandalf/personas/`; a hypothesis about a "revision" of views
              taken from the scope has to be verified before it goes into
              the card.
 - [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
@@ -1857,7 +1860,7 @@ names are the owner's call; skill sizes are chars / 4):
 | learning — **`arwen`** | `flashcards` | `Read`, `Grep`, `Glob`, samwise, arwen | — | one approval |
 | travel — **`strider`** | `pack` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `ori` | medium |
 | this repo — **`aule`** | — (the rules are `.claude/rules/dev.md`) | `Read`, `Grep`, `Glob`, `Write`, `Edit` inside the repo; `Bash` cut to git, `gh pr`, `rg`, `python3` on repo scripts | — | a plan |
-| personas — **`finrod`** (2026-10-21; a full session still works) | `persona` (read on demand; typed by hand only in a full session) | `Read`, `Grep`, `Glob`, `Write`, `Edit` inside `knowledge/personas/` and `/tmp`, `now`, the `mirdain` tools | `narvi`, `legolas`, `ori` | heavy, a stage per turn |
+| personas — **`finrod`** (2026-10-21; a full session still works) | `persona` (read on demand; typed by hand only in a full session) | `Read`, `Grep`, `Glob`, `Write`, `Edit` inside `knowledge/personas/` and `/tmp`; reads also `/tmp/gandalf-persona/` and the persona cache; `now`, the `mirdain` tools | `narvi`, `legolas`, `ori` | heavy, a stage per turn |
 | calendar — **`faramir`** | — (no skill; the agent's own instructions) | Google Calendar connector (claude.ai): 8 tools, no `Read`, no brain/ | — | a plan before a delete, an edit or an event with guests |
 
 Open in the map: whether `daily` gets an agent of its own (it is half of the
