@@ -12,7 +12,7 @@ The source list (`<cache>/<slug>/sources.json`, or a path given with
 
 Only `id` and `url` are required; the other fields are copied into the
 catalog row (assemble.py needs title, source_type, source_date and file
-later). For each source this script downloads the original into
+later; `file`, the digest's file name, defaults to `<id>.md`). For each source this script downloads the original into
 `originals/<id>.<ext>` (skipped when present, unless --refetch), extracts
 plain text into `text/<id>.txt` (PDF: `pdftotext -layout`, or reading
 order with `"layout": false` for multi-column scans, or OCR with `"ocr":
@@ -249,6 +249,7 @@ def main() -> int:
         if args.wayback and not row.get("wayback"):
             row["wayback"] = wayback_snapshot(src["url"])
         row.setdefault("wayback", "")
+        row.setdefault("file", f"{sid}.md")
         catalog[sid] = row
         print(f"{sid}: {ext}, {row['words']} words, sha256 {row['sha256'][:16]}"
               + (f", wayback {'yes' if row['wayback'] else 'none'}" if args.wayback else ""))
@@ -276,6 +277,7 @@ def main() -> int:
             row = {**catalog.get(src["id"], {}), **src, "url": prow["url"], "sha256": prow["sha256"],
                    "wayback": prow.get("wayback", ""), "words": len(text.split()),
                    "pages": f"{first}–{last}" if last > first else str(first)}
+            row.setdefault("file", f"{src['id']}.md")
             (base / "text" / f"{src['id']}.txt").write_text(text)
             catalog[src["id"]] = row
         print(f"{parent}: {len(group)} excerpts")
