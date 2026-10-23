@@ -195,8 +195,21 @@ class WriteGuard(unittest.TestCase):
         self.write(os.path.join(REPO, ".claude/agents/finrod.md"), fin, False, agent="finrod")
 
     def test_finrod_reads_personas_and_repo_only(self):
-        spec = ["finrod", "--read", "brain:knowledge/personas", "repo"]
+        spec = ["finrod", "--read", "brain:knowledge/personas", "repo",
+                "tmp:gandalf-persona", "home:.local/share/gandalf/personas"]
+        home = os.path.expanduser("~")
+        tmp = tempfile.gettempdir()
         for tool, tin, ok in (
+            ("Read", {"file_path": os.path.join(tmp, "gandalf-persona/x/text/a.txt")}, True),
+            ("Grep", {"pattern": "x", "path": os.path.join(tmp, "gandalf-persona/x/drafts")}, True),
+            ("Read", {"file_path": os.path.join(home, ".local/share/gandalf/personas/x/validation/r/answers.json")}, True),
+            ("Glob", {"pattern": home + "/.local/share/gandalf/personas/x/**/*.json"}, True),
+            ("Read", {"file_path": os.path.join(tmp, "other/x.txt")}, False),
+            ("Read", {"file_path": os.path.join(home, ".ssh/id_rsa")}, False),
+            ("Read", {"file_path": os.path.join(home, ".local/share/other/x")}, False),
+            ("Read", {"file_path": os.path.join(home, ".local/share/gandalf/gandalf.env")}, False),
+            ("Read", {"file_path": os.path.join(tmp, "gandalf-persona/../other/x")}, False),
+            ("Glob", {"pattern": "../x/*.json", "path": os.path.join(tmp, "gandalf-persona")}, False),
             ("Read", {"file_path": os.path.join(BRAIN, "knowledge/personas/x/persona.md")}, True),
             ("Grep", {"pattern": "x", "path": os.path.join(BRAIN, "knowledge/personas/x")}, True),
             ("Read", {"file_path": os.path.join(REPO, ".claude/skills/persona/SKILL.md")}, True),

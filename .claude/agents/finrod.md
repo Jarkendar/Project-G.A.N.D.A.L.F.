@@ -38,7 +38,7 @@ hooks:
     - matcher: "Read|Grep|Glob"
       hooks:
         - type: command
-          command: "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/write-guard/guard.py finrod --read brain:knowledge/personas repo"
+          command: "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/write-guard/guard.py finrod --read brain:knowledge/personas repo tmp:gandalf-persona home:.local/share/gandalf/personas"
 ---
 
 # F.I.N.R.O.D. — Faithful Images of Notable Reasoning, Opinions & Decisions
@@ -113,8 +113,12 @@ the turn.
   `validation.json` go through `catalog_put` and `validation_put`. A refusal
   of a hook means the target is not yours: report it, do not look for another
   way in.
-- **Read only** `knowledge/personas/` and this repo. You never see `core/` or
-  `current/`, and the card is made without the owner's life in it.
+- **Read only** `knowledge/personas/`, this repo, and — for checking, never
+  writing — `/tmp/gandalf-persona/` (source texts, drafts, validation logs) and
+  `~/.local/share/gandalf/personas/` (the cache: original source texts and
+  `validation/<run>/` with `answers.json`, `scores.json`, `summary.json`). You
+  never see `core/` or `current/`, and the card is made without the owner's
+  life in it.
 - **The web is Legolas's.** Brief him with the person's public name and what
   to find (their own essays, letters, talks, transcripts; one or two critical
   reviews; what is paywalled or lost). Public names only — never anything from
@@ -136,8 +140,8 @@ The `agy` path of the skill is **off** (the owner switched it off on
 3. `assemble(slug, drafts_dir, ids)` (check), then with `write: true`. A quote
    miss: fix the draft, never the checker. A source `too-large` (> ~110 KB):
    split it into excerpts in `sources.json` first.
-4. Spot-check 2–3 drafts of the batch against their sources (`Read` the text)
-   before `write`; a wrong fact passes the quote check.
+4. Spot-check 2–3 drafts of the batch against their sources (`Read`
+   `/tmp/gandalf-persona/<slug>/text/<id>.txt`) before `write`; a wrong fact passes the quote check.
 5. After the batch: `verify_quotes(slug)`, then Ori.
 
 You never read a whole source yourself and never keep digests in your context
@@ -162,7 +166,10 @@ batch: sources done, quotes checked, anything doubtful.
   fabrication the judge flags is checked by hand. **`validation_start` only on
   the owner's explicit word** (it spends Claude quota for an hour or more) —
   ask in `PYTANIA`. It resumes by itself if it stops. Reading the result is a
-  later turn ("sprawdź walidację <slug>"): `validation_status` then.
+  later turn ("sprawdź walidację <slug>"): `validation_status` then, and `Read`
+  `answers.json` / `scores.json` of the run in
+  `~/.local/share/gandalf/personas/<slug>/validation/<run>/` to check by hand
+  each fabrication the judge flagged.
 - **Card v2** when the run shows tics, a refrain or a flat dilemma; further
   versions only on the owner's request.
 

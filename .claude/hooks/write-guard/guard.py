@@ -7,6 +7,10 @@
 #
 #   tmp                  the system temp directory (session scratchpad)
 #   brain:<subfolder>    a folder under BRAIN_PATH, e.g. brain:knowledge/councils
+#   tmp:<subfolder>      a folder under the system temp directory, e.g.
+#                        tmp:gandalf-persona
+#   home:<subfolder>     a folder under the user's home, e.g.
+#                        home:.local/share/gandalf/personas
 #   repo                 this repo (CLAUDE_PROJECT_DIR) — files of any type, not
 #                        only `.md`; its `.git/` is always refused
 #   !brain:<subfolder>   a folder carved out of the places above — refused even
@@ -61,6 +65,12 @@ def allowed_roots(specs, project_dir):
     for spec in specs:
         if spec == "tmp":
             roots += [os.path.realpath(tempfile.gettempdir()), os.path.realpath("/tmp")]
+        elif spec.startswith("tmp:") and spec[4:].strip("/"):
+            sub = spec[4:].strip("/")
+            roots += [os.path.realpath(os.path.join(tempfile.gettempdir(), sub)),
+                      os.path.realpath(os.path.join("/tmp", sub))]
+        elif spec.startswith("home:") and spec[5:].strip("/"):
+            roots.append(os.path.realpath(os.path.join(os.path.expanduser("~"), spec[5:].strip("/"))))
         elif spec == "repo":
             roots.append(os.path.realpath(project_dir))
         elif spec.startswith("brain:") and spec[6:].strip("/"):
