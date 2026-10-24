@@ -1588,6 +1588,15 @@ Storage and retrieval:
              `~/.local/share/gandalf/personas/`; a hypothesis about a "revision" of views
              taken from the scope has to be verified before it goes into
              the card.
+      2. [x] **Patrick McKenzie** (patrick-mckenzie) — software, pricing
+             and independent business. Done 2026-10-24: 121 sources
+             (2006–2026, ~620k words), 121 digests, 151 quotes checked, 0
+             missing; core card v1 (brain commit d35606e). Validation not
+             run yet. Gaps: Kalzumeus podcast no. 6 (404), Hacker News,
+             tweetstorms and courses; no texts on the Polish market,
+             mobile or remote work. Lesson: in hosted podcasts (Complex
+             Systems) Narvi attributes the guests' theses to McKenzie, so
+             every digest has to be checked for who is speaking.
 - [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
       useful_for / not_for; purpose, how it thinks, style, in a council,
       does not). Next to the skill, not in `.claude/agents/`.
