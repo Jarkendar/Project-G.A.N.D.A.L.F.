@@ -69,6 +69,7 @@ def main(slug: str, drafts: Path, ids: list[str], write: bool, force: bool) -> i
 
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     base = persona_dir(slug)
+    (base / "sources").mkdir(parents=True, exist_ok=True)
     catalogue = base / "sources.md"
     s = catalogue.read_text()
     for i in ids:
