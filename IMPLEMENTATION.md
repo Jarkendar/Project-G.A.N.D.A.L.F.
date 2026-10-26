@@ -1580,7 +1580,8 @@ Storage and retrieval:
              requires — fixed in `fetch.py` (PR from
              `fix/persona-fetch-file-field`, merged); the `sources/`
              directory has to exist before the first digest is written —
-             **open**, to fix in the script; Finrod's read guard did not
+             fixed (PR from `fix/assemble-sources-dir`): `assemble.py`
+             creates it; Finrod's read guard did not
              cover `/tmp` or the persona cache, so he could not spot-check
              digests against the sources or read the validation answers —
              fixed (PR from `fix/finrod-read-cache`): read-only
