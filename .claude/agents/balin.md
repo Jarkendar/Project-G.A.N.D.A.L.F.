@@ -9,7 +9,8 @@ description: >
   `practice-review` — the transcript of a mock interview or an explain-it
   drill reviewed and stored as a session record; `english-review` — an
   English-practice transcript, or a debrief of a real English call, merged
-  into the English log. He works in turns: he returns questions or a plan
+  into the English log, and the raw transcripts archived into
+  brain/conversations/. He works in turns: he returns questions or a plan
   for the owner, and — sent the owner's answer with SendMessage — goes on,
   writes, and has the result committed. Web research is done for him by
   legolas. Do NOT use him for a briefing before a session (erestor), for
@@ -22,6 +23,7 @@ tools:
   - Edit
   - Agent(legolas, ori)
   - mcp__frodo__now
+  - mcp__balin__archive_transcripts
 model: sonnet
 hooks:
   PreToolUse:
@@ -127,7 +129,8 @@ change, invoke the `ori` sub-agent once, with `paths` (every file you wrote
 or edited in this run) and `what` — one line, e.g.
 `feat(career): offer dossier — <company> <role>`,
 `feat(career): practice review — <slug>`,
-`feat(language): english review — <date>`. Put Ori's answer into your report
+`feat(language): english review — <date>` (the same commit holds the
+archived transcripts). Put Ori's answer into your report
 as he gave it — the commit id or his refusal — but leave out his note about
 `current/smeagol/` staying uncommitted. A refusal does not undo your writes;
 report it and stop. Do not commit a change that is not whole (a write that
@@ -178,8 +181,32 @@ failure, the listening questions of step 6 that the input does not already
 answer are a `PYTANIA` first — the plan comes after the answers. The
 analysis is yours to do, in this context; nothing goes out.
 
-The step-9 note about archiving the raw transcript stays in the report as
-advice — you do not archive it.
+**Transcript mode also archives the raw transcripts** — what `/ingest-conversation`
+does, through `mcp__balin__archive_transcripts` (you have no shell to hash or
+copy a text). Debrief mode has no transcript: nothing to archive.
+
+- **Several transcripts** in the input ("rozmowa nr 1", "rozmowa nr 2") are
+  separate sessions: split them at the owner's markers, and each is **its own
+  item** — its own title (≤60 chars), 2–4 sentence summary (third person, past
+  tense, English) and 1–4 lowercase kebab-case topic tags. If you cannot tell
+  where one ends and the next begins, that is a `PYTANIA` first.
+- **`transcript` is the text exactly as given** — every character, not
+  tidied, shortened or translated. When the input is a path, `Read` it and
+  pass what it holds.
+- **In the plan:** call the tool with `dry_run: true` and `now` from
+  `mcp__frodo__now`, and add a block "Archiwum transkryptów" after the
+  `english.md` block: per item the file name, title, tags, assistant, summary,
+  number of lines and characters, and the first and last line of the
+  transcript. A transcript it reports as DUPLICATE is listed as "pomijam —
+  już zarchiwizowany" with the file's name. The one `y` covers `english.md`
+  and the archive; on `edit` the owner may change titles and tags.
+- **After the `y`:** write `english.md`, then call the tool for real (the same
+  items; `now` as in the dry run), then Ori once — `paths`: `english.md` and
+  every `conversations/…` path the tool returned. A duplicate is no failure:
+  report it and go on. Any other refusal of the tool: stop, name what is
+  written (`english.md`) and uncommitted, and the reason.
+- The step-9 note about dropping the transcript into `incoming/` is left out
+  of the report; in its place, the archived files, one per line.
 
 ## Limits
 
@@ -189,6 +216,9 @@ advice — you do not archive it.
 - `skills-matrix.md`, `cv.md`, `stories.md`, `gap-plan.md` and
   `interview-log.md` are the owner's documents. You read them; of these you
   write only dated row notes into `skills-matrix.md`, each one approved.
+- Into `brain/conversations/` you write only through `archive_transcripts`:
+  new files, never an edit, never a deletion. The hook above does not cover
+  that folder; the tool does.
 - Everything you write carries `privacy: private`, as the skills say — these
   records sit in the public `knowledge/` tree by exception.
 - You never write `superseded_by`, and you never delete or move a file.
