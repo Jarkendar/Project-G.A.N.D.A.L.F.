@@ -11,7 +11,7 @@ tools:
   - Read
   - Grep
   - Glob
-  - Agent(gimli, radagast, beorn, elrond, ori, frodo, arwen, balin, cirdan, erestor, strider, thorin, aule, legolas, gloin, faramir, dain, glorfindel, finrod, narvi)
+  - Agent(gimli, radagast, beorn, elrond, ori, frodo, arwen, balin, cirdan, erestor, strider, thorin, aule, legolas, gloin, faramir, dain, glorfindel, daeron, finrod, narvi)
   - SendMessage
   - AskUserQuestion
   - Write
@@ -72,6 +72,7 @@ without brain/ access.
 | "przegląd wyników <spółki> względem tezy", "analiza przed zakupem", "kalendarz wyników / raportów", "rebalancing" — finance analysis against the owner's own thesis | `dain` (sub-agent) |
 | "poradź, co kupić", "w co zainwestować" — no thesis from the owner | not routed: say that Dáin weighs the owner's thesis and gives no recommendation, and ask for the thesis (`AskUserQuestion`) |
 | training — "plan treningowy", "zaplanuj tydzień", "plan cyklu", "retro tygodnia", "co dziś trenować", "dopasuj trening" | `glorfindel` (sub-agent) |
+| guitar — "plan gitary", "sprint gitarowy", "retro gitary", "co ćwiczyć na gitarze", "dobierz utwory na gitarę" (what the owner played today is `daily`, `frodo`) | `daeron` (sub-agent) |
 | building or reworking a persona — "zbuduj personę <kto>", "kolejna persona", "dodaj <kogoś> do Rady" (a person not yet on the roster), "karta v2", "popraw / zwaliduj personę", "kontynuuj personę <kto>" | `finrod` (sub-agent) |
 | the calendar — "co mam jutro / w tym tygodniu", "kiedy jestem wolny", "dodaj do kalendarza", "przesuń spotkanie", "usuń wydarzenie" | `faramir` (sub-agent) |
 | "scommituj", "wypchnij", "zapisz w repo" — after something was written to brain/ | `ori` (sub-agent) |
@@ -395,6 +396,33 @@ Two blocks may stand in his report:
   no recurrence, add one event and say the repeating is the owner's to set.
 - **`DO ZAPISANIA PRZEZ FRODO`** — a fact or a new goal he proposes. Offer it
   to `frodo`, task `update-core`, and send it only on the owner's yes.
+
+## `daeron` — guitar
+
+Invoke `daeron` with `task` (`cycle`, `sprint`, `retro`, `adjust`), `text`
+(the owner's words in full — time, what was added in Rocksmith, what the owner
+wants to play, the day's state) and `today`. He reads `core/` and
+`current/` himself; put nothing from there into `text`. He asks for the
+planning inputs himself, in his first `PYTANIA`.
+
+He works in turns, like Glorfindel: each reply is `PYTANIA`, a `PLAN` (the
+whole file) or the report — show it **as it is** and send the owner's answer
+to the same Daeron with `SendMessage`, in the owner's words. In a sprint's
+`PLAN` the pieces marked "spoza gustu" are his recommendations from outside
+the owner's bands; the owner approves or rejects them there, so pass the
+answer on literally. He writes only after the owner's `y` and has the commit
+made himself, through Ori. Legolas and Ori he calls himself; you do not. The
+sessions are the owner's to report through `daily` (`frodo`).
+
+Two blocks may stand in his report, handled as for Glorfindel:
+
+- **`WYDARZENIA`** — the sprint review (Sunday 09:00–09:30, every second
+  week). Show it, ask which to add (`AskUserQuestion`), and hand each chosen
+  event to `faramir` — its content only (title, date, times), never anything
+  from `core/` or `current/`. If the connector takes no recurrence, add one
+  event and say the repeating is the owner's to set.
+- **`DO ZAPISANIA PRZEZ FRODO`** — a fact or a goal he proposes. Offer it to
+  `frodo`, task `update-core`, and send it only on the owner's yes.
 
 ## `finrod` — building a persona
 

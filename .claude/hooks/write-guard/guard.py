@@ -13,6 +13,9 @@
 #                        home:.local/share/gandalf/personas
 #   repo                 this repo (CLAUDE_PROJECT_DIR) — files of any type, not
 #                        only `.md`; its `.git/` is always refused
+#   brainfile:<path>     exactly one file under BRAIN_PATH, e.g.
+#                        brainfile:current/CLAUDE.md — not the folder around it,
+#                        not a file beside it, nothing below it
 #   !brain:<subfolder>   a folder carved out of the places above — refused even
 #                        though a wider place contains it, e.g.
 #                        brain:knowledge !brain:knowledge/personas
@@ -80,6 +83,17 @@ def allowed_roots(specs, project_dir):
     return roots
 
 
+def allowed_files(specs, project_dir):
+    # `brainfile:<path>` — exactly one file under BRAIN_PATH, nothing around it.
+    files = []
+    for spec in specs:
+        sub = spec[len("brainfile:"):].strip("/")
+        if not sub:
+            refuse(f"unknown location '{spec}' in the hook's arguments — write refused")
+        files.append(os.path.realpath(os.path.join(brain_path(project_dir), sub)))
+    return files
+
+
 def inside(path, root):
     return path == root or path.startswith(root + os.sep)
 
@@ -131,12 +145,13 @@ def main():
     if caller and caller != owner:
         sys.exit(0)
     project_dir = os.environ.get("CLAUDE_PROJECT_DIR") or event.get("cwd") or os.getcwd()
-    roots = allowed_roots([s for s in specs if not s.startswith("!")], project_dir)
+    roots = allowed_roots([s for s in specs if not s.startswith(("!", "brainfile:"))], project_dir)
+    files = allowed_files([s for s in specs if s.startswith("brainfile:")], project_dir)
     carved = allowed_roots([s[1:] for s in specs if s.startswith("!")], project_dir)
-    if not roots:
+    if not roots and not files:
         refuse("no allowed location configured — refused")
     if read_mode:
-        check_read(event, owner, roots, specs)
+        check_read(event, owner, roots + files, specs)
     try:
         raw = (event.get("tool_input") or {})["file_path"]
     except (KeyError, TypeError, AttributeError):
@@ -144,7 +159,7 @@ def main():
     if not os.path.isabs(raw):
         raw = os.path.join(event.get("cwd") or os.getcwd(), raw)
     path = os.path.realpath(raw)
-    if not any(path.startswith(root + os.sep) for root in roots):
+    if path not in files and not any(path.startswith(root + os.sep) for root in roots):
         refuse(f"{path} is outside the places {owner} may write to ({', '.join(specs)})")
     if any(inside(path, root) for root in carved):
         refuse(f"{path} is in a folder {owner} does not write to — it belongs to another agent or skill")

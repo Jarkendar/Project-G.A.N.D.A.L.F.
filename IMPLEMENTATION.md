@@ -1952,6 +1952,7 @@ names are the owner's call; skill sizes are chars / 4):
 | finance — **`thorin`** | `ingest-finance` (read on demand; on the owner's explicit word only) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now`, `read_export`, `archive_export` | `gloin`, `ori` | one plan |
 | finance analyses — **`dain`** | — (the agent's own instructions: four tasks) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `gloin`, `legolas`, `ori` | one plan per file |
 | fitness training — **`glorfindel`** | — (the agent's own instructions: four tasks) | `Read`, `Grep`, `Glob`, `Write`, `now`, samwise, Strava (read) | `gimli`, `legolas`, `ori` | one plan per file |
+| guitar — **`daeron`** | — (the agent's own instructions: four tasks) | `Read`, `Grep`, `Glob`, `Write`, `now`, samwise | `legolas`, `ori` | one plan per file |
 | learning — **`arwen`** | `flashcards` | `Read`, `Grep`, `Glob`, samwise, arwen | — | one approval |
 | travel — **`strider`** | `pack` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `ori` | medium |
 | this repo — **`aule`** | — (the rules are `.claude/rules/dev.md`) | `Read`, `Grep`, `Glob`, `Write`, `Edit` inside the repo; `Bash` cut to git, `gh pr`, `rg`, `python3` on repo scripts | — | a plan |
@@ -2430,6 +2431,51 @@ Phases — each ends with a measurement from `token-usage.py`:
   runs 20558714823 and 20546542340. Limit: the raw `start_date` / `timezone`
   of details were never seen — an inference from the difference. **Open:**
   `db/fitness.db` unchecked for the same shift (a Gimli query, separately).
+  **`daeron`, the guitar trainer, 2026-10-27.** Four tasks in his own file, no
+  skill: `cycle`, `sprint` (two weeks, a menu to pick from, never a duty),
+  `retro`, `adjust`. Guitar is a hobby: light tone, no counted missed days,
+  about 15 minutes a day as an orientation. The programme is the whole of the
+  technique, with muting in every sprint, and techniques are combined in
+  played fragments, not only drilled. Reads `core/identity/guitar.md` and the
+  guitar goal, `current/daily/` (free text), notes through Samwise and earlier
+  plans; Rocksmith 2014 has no API, so only what the owner reports counts, and
+  he assumes neither a game library nor tabs. Writes only
+  `current/guitar/plans/YYYY-MM-DD.md` (`-<type>` suffix when taken), no
+  `Edit`, after the owner's yes to a full plan; commit through Ori. There is no
+  list of bands in his file: the taste is read from the section Gust of
+  `core/identity/guitar.md`, general (public) knowledge of styles and
+  techniques from the notes in `knowledge/guitar/` (Glob and Samwise, not
+  tied to a file name). The taste is a starting point, not a limit: he
+  recommends pieces and artists from outside it, marks them "spoza gustu"
+  with a reason, and the owner rejects or approves them in the sprint's
+  `PLAN`. Gaps in `knowledge/guitar/` (playing by ear, theory, a band not
+  described) he fills through Legolas with public terms and the musical
+  direction, nothing private; he does not invent, and says plainly when
+  unsure of a technique or difficulty. (The first version of the file, commit
+  `e88b066`, held the list; it was moved to brain/ in a later commit, the
+  history was not rewritten.) The calendar is not his: the
+  `WYDARZENIA` block (review Sunday 09:00–09:30 every second week, first
+  sprint 2026-11-02 to 2026-11-15) goes through the router to Faramir.
+  Tested: write-guard cases (`test_guards.py`). **Not tested:** a live run;
+  Legolas with a musical direction; a first sprint after the section Gust and
+  the notes in `knowledge/guitar/` are written; whether recommendations from
+  outside the taste hit it and the owner's level; recurrence in Faramir's
+  `create_event`. **Open in brain/ (the owner's or Frodo's):** the section
+  Gust in `core/identity/guitar.md` and the style note in `knowledge/guitar/`
+  (Frodo, in progress); the Writers row
+  of `current/CLAUDE.md` still says other agents are read-only (as for
+  Glorfindel); `current/guitar/CLAUDE.md` does not exist; the backlog entry
+  `plan-nauki-i-gitary-sprinty` is to move to "in progress (guitar)", the plan
+  for learning other interests stays open there.
+  **Frodo and `current/guitar/`, 2026-10-27.** So that Frodo can file
+  `current/guitar/CLAUDE.md` and add Daeron to `current/CLAUDE.md`, the
+  write-guard got a new place kind, `brainfile:<path>` — exactly one file, not
+  the folder around it, nothing beside or below it; no other agent uses it, so
+  nothing else is opened (tests: Glorfindel's and Daeron's guards still refuse
+  `current/CLAUDE.md`). Frodo's hook now allows `current/guitar/` except
+  `plans/` (Daeron's) and the one file `current/CLAUDE.md`, to be changed only
+  with `Edit`, only the Writers table and the Subfolders list, with the
+  owner's approval of the change. Frodo has to be started anew to load it.
   **`finrod`, the persona builder, 2026-10-21.** Runs the `persona` skill
   from the router, one stage per turn (scope, catalogue, one digest batch,
   card, validation); the stage is read from disk (`status`), so a new session
