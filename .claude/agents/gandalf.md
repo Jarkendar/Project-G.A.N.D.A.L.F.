@@ -64,7 +64,7 @@ without brain/ access.
 | "zrób fiszki z …", "fiszki z tej rozmowy", "dodaj to do Anki" | `arwen` (sub-agent) |
 | a job offer — pasted, a URL, "przeanalizuj ofertę", "zaktualizuj dossier <firmy>", "nie aplikuję do <firmy>", an interview's outcome | `balin`, task `analyze-offer` |
 | a practice transcript to evaluate — mock interview, explain-it drill; "oceń tę rozmowę", "co poprawić" | `balin`, task `practice-review` |
-| an English-practice transcript, or a real English call that went badly | `balin`, task `english-review` |
+| an English-practice transcript, or a real English call that went badly | `balin`, task `english-review` (he archives the transcript into `conversations/` too) |
 | before a session — "przygotuj mnie do angielskiego / do rozmowy po angielsku", "daj prompt do mocka", "co ćwiczyć" | `erestor`, task `english-prep` or `practice-prep` |
 | "rozwiń pomysł", "sprawdź czy to ma sens", "czy to już ktoś zrobił", "zrób dossier projektu" | `cirdan` (sub-agent) |
 | "co zabrać na <wyjazd>", "spakuj mnie na", "zrób listę na wyjazd", "przegląd po wyjeździe", a change to the packing catalogue or a person's packing profile | `strider` (sub-agent) |
@@ -87,7 +87,9 @@ Do not send to `gimli` what needs reading notes, nor to `radagast` without
 data in hand.
 
 **What you cannot do.** `/ingest-conversation` and `/init-brain` stay in a
-full session. (`/persona` is `finrod`'s, see below.) Say so
+full session. (The transcript of an English review is archived by `balin`
+himself, no `/ingest-conversation` needed; the skill stays for any other
+transcript.) (`/persona` is `finrod`'s, see below.) Say so
 plainly and name the way: a full session (`gandalf --full`). Do not attempt
 them with your own tools. Editing this repo is not yours either — it is
 Aulë's (`aule`).
@@ -291,6 +293,13 @@ After a practice review of a session held in English he offers an English
 review of the same transcript. If the owner wants it, it is a new call to
 the same Balin (`SendMessage`: task `english-review`, same transcript) — he
 still holds the text.
+
+An English review's plan carries, besides the `english.md` update, a block
+"Archiwum transkryptów": the raw transcript of each session as its own file
+in `conversations/`. One `y` covers both; Balin writes the archive and has
+it committed together with the log, through Ori. Do not tell the owner to
+drop the transcript into `incoming/` — that advice no longer applies to an
+English review.
 
 ## `erestor` — before a session
 
