@@ -55,10 +55,12 @@ for later ones (~0.3–0.5 s). Measured on the Pi 5:
 | idle, no worker | ~95 MB |
 | worker loaded (granite-311m float32 = 1.6 GB of it) | ~2.2 GB |
 
-After `SAMWISE_IDLE_UNLOAD` seconds without a query (default 3600, 0 = never)
-the worker is shut down. An hour, not the earlier 10 minutes: calls come in
-bursts within a session, and at 600 s 8 of the first 13 logged calls paid
-the cold start.
+After `SAMWISE_IDLE_UNLOAD` seconds without a query (default 10800, 0 = never)
+the worker is shut down. Three hours, not the earlier 10 minutes or one hour:
+calls come in bursts within a session, and at 600 s 8 of the first 13 logged
+calls paid the cold start; at 3600 s, with the warm-up, still 6 of 15 brain
+queries (2026-10-06 – 10-27) — the question came over an hour after the
+session started.
 
 **Warm-up.** `POST /warmup` (HTTP transport) starts the worker in the
 background and returns `202` at once; on a running worker it only resets the

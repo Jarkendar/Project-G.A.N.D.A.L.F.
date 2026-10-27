@@ -989,6 +989,24 @@ shown to match it, then it is removed. One commit per step on
       `SessionStart` hook warms the worker (`POST /warmup`). Splitting
       imladris stays deferred; the `brain` index is re-reviewed on
       2026-10-26 and 2026-11-30, with open questions going to Samwise first.
+- [x] **Usage review (2026-10-27, for 2026-10-26):** 15 queries on the
+      `brain` index since 2026-10-06 (one in the period before), 5 on
+      `personas`, all `ok`; the session-start warm-up ran 215 times. 6 of the
+      15 brain queries still paid the cold start (15–21 s): the question came
+      over an hour into the session. Sméagol's `tools_called` counts right
+      (13 turns with Samwise in 745), but lists MCP calls only — the order
+      Samwise → grep had to be read from the transcripts: of ~10 open
+      questions about the owner's own data, 7 went to Samwise first; three
+      ("jakie kategorie person chciałem", twice "jakie persony są do
+      zrobienia") went to grep, while the same question on 2026-10-26 went
+      to Samwise. Questions on the training plan, the backlog and the repo
+      went by Glob/Grep to known paths, as they should. Answer quality was
+      not compared. The engine has not changed since 2026-10-05. Changes:
+      Sméagol logs `brain_first` (the first tool that reached brain/ in a
+      turn), idle unload 3600 → 10800 s, and the router and CLAUDE.md say
+      that what the owner wanted or still has to do is an open question —
+      Samwise first. Splitting imladris: deferred again by the owner, to the
+      2026-11-30 review.
 
 #### Multi-file questions — experiments (2026-09-26)
 

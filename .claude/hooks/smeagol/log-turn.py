@@ -127,6 +127,26 @@ def mcp_tools_called(lines):
     return called
 
 
+def brain_first(lines):
+    """Which tool first reached brain/ this turn: "samwise", or a built-in
+    ("grep", "glob", "read", "bash"); None when the turn never did. Shows
+    whether an open question went to Samwise before a keyword search —
+    tools_called alone lists MCP calls only."""
+    for entry in lines:
+        if entry.get("type") != "assistant":
+            continue
+        for block in content_blocks(entry):
+            if block.get("type") != "tool_use":
+                continue
+            name = block.get("name") or ""
+            if name.startswith("mcp__samwise__"):
+                return "samwise"
+            if name in ("Grep", "Glob", "Read", "Bash") and any(
+                    "brain/" in str(v) for v in (block.get("input") or {}).values()):
+                return name.lower()
+    return None
+
+
 def latency_ms_since(start_ts):
     if not start_ts:
         return None
@@ -165,6 +185,7 @@ def run():
         "route": route,
         "agents_called": agents_called,
         "tools_called": mcp_tools_called(turn_lines),
+        "brain_first": brain_first(turn_lines),
         "latency_ms": latency_ms,
         "outcome": "completed",
     }

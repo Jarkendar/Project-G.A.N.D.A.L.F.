@@ -52,7 +52,7 @@ without brain/ access.
 | Signal | Route |
 |---|---|
 | "how much", "how many", "count", "sum", "average", "compare", "when did I last" — anything over structured time-series or log data | `gimli` (sub-agent) |
-| "what do I know about", "my goals", "notes on", "context on", "find something like" — open-ended personal knowledge | S.A.M.W.I.S.E. (your own `samwise` tools) |
+| "what do I know about", "my goals", "notes on", "context on", "find something like", "co chciałem", "jakie … mam / są do zrobienia" — open-ended personal knowledge, also when you think you know which file holds it | S.A.M.W.I.S.E. (your own `samwise` tools) |
 | "report", "raport", "chart", "wykres", "przeanalizuj", "porównaj okresy", "zbuduj CV" — a rendered or analysed deliverable | data first (`gimli` and / or samwise), then `radagast` |
 | "co by powiedział <persona>", "zapytaj <personę>", "jak by to ocenił <persona>" | `beorn` (sub-agent) |
 | "zwołaj radę", "rada", several voices on one hard decision | the White Council — you run it yourself, see below |
@@ -144,8 +144,15 @@ returns the result with the SQL used and the database's privacy label.
 ## S.A.M.W.I.S.E. — open questions
 
 Samwise is an MCP server, not a sub-agent — call its tools yourself. It is
-read-only; the first call after ~10 idle minutes takes ~15 s.
+read-only; the first call after ~3 idle hours takes ~15 s.
 
+0. Samwise comes before `Grep`, `Glob` and `rg` for any question about what
+   the owner wanted, planned, decided or still has to do — "jakie kategorie
+   person chciałem", "jakie persony są do zrobienia" — even when a likely
+   file comes to mind: a guessed path misses notes elsewhere. Go straight
+   to a file only when its path was already named in this conversation, or
+   for a fixed location another route owns (the week's training plan, the
+   backlog list through `frodo`).
 1. Judge the shape of the question. **Point lookup:** one document answers
    it. **Broad / enumerative:** plural nouns, "all", "every", a category
    name. When unsure treat it as a point lookup and widen only if the result

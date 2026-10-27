@@ -71,6 +71,8 @@ first).
   skills — search it proactively when the question touches personal data.
 - **How to search:** open-ended questions → S.A.M.W.I.S.E. (`mcp__samwise__context`);
   quantitative ones → G.I.M.L.I.; exact names/keywords → `rg` (ripgrep) + `Read`.
+  What the owner wanted, planned or still has to do is open-ended — Samwise
+  first, even when a likely file comes to mind.
 - Each `brain/` folder has its own `CLAUDE.md` with its rules — read it before
   writing there.
 - Ideas and to-dos go to `brain/backlog/` via `/idea`, including inline requests
