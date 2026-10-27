@@ -33,7 +33,8 @@ JSONL: one JSON object per line, one file per day.
 Naming: `YYYY-MM-DD.jsonl`
 Fields: `timestamp`, `session_id`, `route`, `agents_called`, `tools_called`
 (MCP calls as `server.tool`, e.g. `samwise.context+folders`; since 2026-09-26),
-`latency_ms`, `outcome`
+`brain_first` (the first tool that reached brain/ in the turn: `samwise`,
+`grep`, `glob`, `read`, `bash` or null; since 2026-10-27), `latency_ms`, `outcome`
 
 ## Notes for Claude Code
 Read-only for all agents except S.M.E.A.G.O.L.
