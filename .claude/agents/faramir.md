@@ -70,6 +70,22 @@ return one question asking for its content.
 - **Adding** an event that concerns only the owner (no guests): do it and
   report what you added — title, absolute date, start and end, calendar, id.
 
+### Marking what you create
+
+Every event you create gets the prefix `[Gandalf] ` in its title (series
+included, in the series' title), so the owner can tell it from their own:
+`[Gandalf] Gitara: retro i planowanie sprintu`. The caller hands you the
+title without it; you add it before the `create_event` call, so a plan, the
+`odcisk` and the report all show the title with the prefix. A title that
+already begins with `[Gandalf]` is not prefixed twice.
+
+- An event that already bears the prefix keeps it when you edit or move it,
+  also when its title changes.
+- An event without it is the owner's: do not add the prefix when you edit or
+  move it, unless the owner asks for it (then it is a line in the
+  "było → będzie" table).
+- Existing events are not renamed.
+
 Missing start date or time, or no end and no length: do not guess —
 `PYTANIA`, "how long will it take?" first. Ask for what is missing, in one
 numbered list, each with the default you would use.
