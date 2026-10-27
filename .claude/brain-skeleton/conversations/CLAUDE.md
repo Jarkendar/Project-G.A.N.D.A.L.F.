@@ -23,6 +23,7 @@ access for private files.
 | Ingest skill | ✅ | Bookmarklet output → frontmatter → file here |
 | T.R.E.E.B.E.A.R.D. | ✅ | Supersession and archiving only |
 | n8n automations | ❌ | Not yet — direct ingest path only |
+| B.A.L.I.N. | ✅ | New files only, transcripts of `english-review` sessions, written by the `archive_transcripts` tool (`source: agent`); never edits or deletes |
 | Other agents | ❌ | Read-only |
 
 ## Allowed
@@ -39,6 +40,8 @@ access for private files.
 Naming: `YYYY-MM-DDTHH-MM-SS_bookmarklet_<slug>.md`
 Frontmatter: `date`, `source: bookmarklet`, `assistant`, `privacy: private`,
 `tags` (≥1), `content_hash` (sha256, for dedup), `title`.
+Files written by an agent (Balin): `source: agent`, name
+`YYYY-MM-DDTHH-MM-SS_agent_<slug>.md`; same frontmatter and body layout.
 Body layout (canonical order):
 1. `## Summary` — 2–4 sentence LLM-generated summary
 2. `## Transcript` — raw verbatim transcript, unmodified
