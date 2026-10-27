@@ -2405,6 +2405,12 @@ Phases — each ends with a measurement from `token-usage.py`:
   `list_events`, `update_event`, `delete_event` are guesses to verify with
   `/mcp`; that a frontmatter hook fires on connector tools of a sub-agent;
   whether the connector's own "ask each time" shows under `--yolo`.
+  **Title mark, 2026-10-27.** Every event Faramir creates gets the prefix
+  `[Gandalf] ` in its title, so the owner tells it from their own (a prefix,
+  not a suffix: month and phone views cut the end). Edits keep it where it
+  is and do not add it to the owner's events; existing events are not
+  renamed. The hook is unchanged — the fingerprint is taken from the title
+  with the prefix.
   **Known gaps:** the guest field's name in `create_event` is a guess
   (`attendees`, `guests`, …, or any key with attend / guest / invit /
   particip in it; a non-list shape counts as guests) — a field named
