@@ -1602,7 +1602,8 @@ Storage and retrieval:
              capital, deep work, slow productivity, remote work, ambition,
              AI as a frame). Complements Larson (organisation, promotion)
              and McKenzie (negotiation, pricing) without their domains.
-             Done 2026-10-26: 206 sources — 161 Study Hacks posts
+             Done 2026-10-26 (card v2 active, validation v1–v3 closed
+             2026-10-27): 206 sources (2007–2026) — 161 Study Hacks posts
              (2007–2026), 38 Deep Questions episodes (machine transcripts
              from podscripts.co, 2020–2026), 5 interviews (Art of
              Manliness, Ferriss x3, Adam Grant), 2 third-party critiques
@@ -1637,12 +1638,21 @@ Storage and retrieval:
              ryzykowne, bo musisz dostarczyć" — it is risky because you
              have to deliver, a closing "Co dokładnie robisz…?" — what
              exactly do you do…?) and the opening "Nie powiem tego" (I
-             won't say that). v3 (damping the new refrains) was considered
-             and rejected by the owner; the card stays at v2 with its weak
-             points documented. Gaps: no texts on Android, the senior
-             product track or job search; no specifics on time zones;
-             episode 187, Warner 2016, New Yorker/NYT (paywall), books;
-             podcast transcripts are machine-made, the split of voices is
+             won't say that). v3 (2026-10-27, run 2026-10-27-v3; details
+             in `validation.md`) removed the target formulas (the
+             reactive-to-proactive ratio, "Co dokładnie robisz?"), but the
+             refrain moved to the neighbouring ones ("ryzykowne, bo trzeba
+             dostarczyć", openings "Nie powiem tego…"). Persona vs bare
+             (max 72): path 63 vs 44, character 63 vs 47, nuance 66 vs 45;
+             consistent 36/36 vs 32; yielding 0; ornaments 2 vs 13; no
+             inventions found. v2 for comparison: path 64, character 62,
+             nuance 69 — the judge's score did not gain. The owner
+             rejected v3; v2 is restored and active (`card_version: 2`;
+             brain commit 0bc3ccf "cal-newport card v2 restored;
+             validation v3 rejected"). v4 only on the owner's request.
+             Gaps: no texts on Android, Poland or time zones; episode 187,
+             Warner 2016, New Yorker/NYT (paywall), books; podcast
+             transcripts are machine-made, the split of voices is
              uncertain. Lessons: (1) Narvi without editing leaves typos
              and conclusions drawn from context — read his "doubts" before
              assemble; (2) episodes retried after a 429 have to be added to
@@ -1652,7 +1662,9 @@ Storage and retrieval:
              little about his reasoning, so the card does not attribute
              them to him; (5) adding a fixed "first step" to the card turns
              it into a refrain — phrase card instructions as conditions of
-             use, not as mandatory steps.
+             use, not as mandatory steps; (6) removing one learned formula
+             from the card moves the refrain to a neighbouring one — after
+             three versions there is no gain, so stop.
 - [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
       useful_for / not_for; purpose, how it thinks, style, in a council,
       does not). Next to the skill, not in `.claude/agents/`.
