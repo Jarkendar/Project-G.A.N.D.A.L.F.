@@ -408,7 +408,7 @@ planning inputs himself, in his first `PYTANIA`.
 He works in turns, like Glorfindel: each reply is `PYTANIA`, a `PLAN` (the
 whole file) or the report — show it **as it is** and send the owner's answer
 to the same Daeron with `SendMessage`, in the owner's words. In a sprint's
-`PLAN` the pieces marked "spoza katalogu" are his recommendations from outside
+`PLAN` the pieces marked "spoza gustu" are his recommendations from outside
 the owner's bands; the owner approves or rejects them there, so pass the
 answer on literally. He writes only after the owner's `y` and has the commit
 made himself, through Ori. Legolas and Ori he calls himself; you do not. The

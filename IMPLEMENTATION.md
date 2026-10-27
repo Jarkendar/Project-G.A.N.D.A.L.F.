@@ -2441,22 +2441,28 @@ Phases — each ends with a measurement from `token-usage.py`:
   plans; Rocksmith 2014 has no API, so only what the owner reports counts, and
   he assumes neither a game library nor tabs. Writes only
   `current/guitar/plans/YYYY-MM-DD.md` (`-<type>` suffix when taken), no
-  `Edit`, after the owner's yes to a full plan; commit through Ori. The
-  musicians' catalogue in his file (Bernth, Bullet for My Valentine,
-  DragonForce, Sonata Arctica, Nocny Kochanek, Lady Pank, 94Stones, Throw the
-  Fight) is a starting point and a sign of taste, not a limit: he recommends
-  pieces and artists from outside it, marks them "spoza katalogu" with a
-  reason, and the owner rejects or approves them in the sprint's `PLAN`. Public
-  facts about style and technique come from Legolas with the musical direction
-  and public names, nothing private; he does not invent, and says plainly when
-  unsure of a technique or difficulty. Gaps in the catalogue are only missing
-  facts about style (94Stones, Throw the Fight). The calendar is not his: the
+  `Edit`, after the owner's yes to a full plan; commit through Ori. There is no
+  list of bands in his file: the taste is read from the section Gust of
+  `core/identity/guitar.md`, general (public) knowledge of styles and
+  techniques from the notes in `knowledge/guitar/` (Glob and Samwise, not
+  tied to a file name). The taste is a starting point, not a limit: he
+  recommends pieces and artists from outside it, marks them "spoza gustu"
+  with a reason, and the owner rejects or approves them in the sprint's
+  `PLAN`. Gaps in `knowledge/guitar/` (playing by ear, theory, a band not
+  described) he fills through Legolas with public terms and the musical
+  direction, nothing private; he does not invent, and says plainly when
+  unsure of a technique or difficulty. (The first version of the file, commit
+  `e88b066`, held the list; it was moved to brain/ in a later commit, the
+  history was not rewritten.) The calendar is not his: the
   `WYDARZENIA` block (review Sunday 09:00–09:30 every second week, first
   sprint 2026-11-02 to 2026-11-15) goes through the router to Faramir.
   Tested: write-guard cases (`test_guards.py`). **Not tested:** a live run;
-  Legolas with a musical direction; whether recommendations from outside the
-  catalogue hit the owner's taste and level; recurrence in Faramir's
-  `create_event`. **Open in brain/ (the owner's or Frodo's):** the Writers row
+  Legolas with a musical direction; a first sprint after the section Gust and
+  the notes in `knowledge/guitar/` are written; whether recommendations from
+  outside the taste hit it and the owner's level; recurrence in Faramir's
+  `create_event`. **Open in brain/ (the owner's or Frodo's):** the section
+  Gust in `core/identity/guitar.md` and the style note in `knowledge/guitar/`
+  (Frodo, in progress); the Writers row
   of `current/CLAUDE.md` still says other agents are read-only (as for
   Glorfindel); `current/guitar/CLAUDE.md` does not exist; the backlog entry
   `plan-nauki-i-gitary-sprinty` is to move to "in progress (guitar)", the plan
