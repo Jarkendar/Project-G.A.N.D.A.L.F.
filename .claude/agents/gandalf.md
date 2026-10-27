@@ -144,7 +144,7 @@ returns the result with the SQL used and the database's privacy label.
 ## S.A.M.W.I.S.E. — open questions
 
 Samwise is an MCP server, not a sub-agent — call its tools yourself. It is
-read-only; the first call after ~10 idle minutes takes ~15 s.
+read-only; the first call after ~3 idle hours takes ~15 s.
 
 1. Judge the shape of the question. **Point lookup:** one document answers
    it. **Broad / enumerative:** plural nouns, "all", "every", a category

@@ -10,9 +10,10 @@
 # RAM: the model and the index live in a worker process (~2.2 GB loaded;
 # granite-311m in float32 is 1.6 of it), the MCP server itself in ~80 MB
 # without torch. After --idle-unload seconds without a call
-# (SAMWISE_IDLE_UNLOAD, default 3600; 0 = never) the worker is shut down and
+# (SAMWISE_IDLE_UNLOAD, default 10800; 0 = never) the worker is shut down and
 # the next query starts a new one (~15 s). Calls come in bursts within a
-# session, hours apart: 8 of the first 13 logged calls were cold at 600 s. A process, not an in-process
+# session, hours apart: 8 of the first 13 logged calls were cold at 600 s,
+# 6 of 15 brain queries still at 3600 s. A process, not an in-process
 # unload: dropping the model inside a process gave back only ~0.4 of the
 # 2.2 GB — torch keeps the rest, whatever glibc is told (measured
 # 2026-09-26).
@@ -69,7 +70,7 @@ Strategy = Literal[samwise.STRATEGIES]
 IndexName = Literal["brain", "personas"]
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
-DEFAULT_IDLE_UNLOAD = 3600  # seconds
+DEFAULT_IDLE_UNLOAD = 10800  # seconds
 DEFAULT_PORT = 8765
 
 server = MCPServer(
