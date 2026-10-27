@@ -182,6 +182,18 @@ class WriteGuard(unittest.TestCase):
         self.write(os.path.join(BRAIN, "db/fitness.db"), glor, False, agent="glorfindel")
         self.write(os.path.join(REPO, "x.md"), glor, False, agent="glorfindel")
 
+    def test_daeron_plans_only(self):
+        dae = ["daeron", "brain:current/guitar/plans"]
+        self.write(os.path.join(BRAIN, "current/guitar/plans/2026-11-02.md"), dae, True, agent="daeron")
+        self.write(os.path.join(BRAIN, "current/guitar/plans/2026-11-15-retro.md"), dae, True, agent="daeron")
+        self.write(os.path.join(BRAIN, "current/guitar/plans/x.py"), dae, False, agent="daeron")
+        self.write(os.path.join(BRAIN, "current/guitar/2026-11.md"), dae, False, agent="daeron")
+        self.write(os.path.join(BRAIN, "current/fitness/plans/2026-11-02.md"), dae, False, agent="daeron")
+        self.write(os.path.join(BRAIN, "current/daily/x.md"), dae, False, agent="daeron")
+        self.write(os.path.join(BRAIN, "core/identity/guitar.md"), dae, False, agent="daeron")
+        self.write(os.path.join(BRAIN, "db/fitness.db"), dae, False, agent="daeron")
+        self.write(os.path.join(REPO, "x.md"), dae, False, agent="daeron")
+
     def test_finrod_personas_only(self):
         fin = ["finrod", "brain:knowledge/personas", "tmp", "!brain:knowledge/personas/CLAUDE.md"]
         for ok in ("will-larson/persona.md", "will-larson/sources.md", "will-larson/validation.md"):
