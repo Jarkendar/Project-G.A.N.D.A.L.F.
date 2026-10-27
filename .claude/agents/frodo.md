@@ -38,7 +38,7 @@ hooks:
     - matcher: "Write|Edit"
       hooks:
         - type: command
-          command: "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/write-guard/guard.py frodo brain:core brain:current/daily brain:current/fitness brain:current/context brain:backlog brain:knowledge brain:archive !brain:knowledge/personas !brain:knowledge/councils !brain:knowledge/reports"
+          command: "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/write-guard/guard.py frodo brain:core brain:current/daily brain:current/fitness brain:current/context brain:backlog brain:knowledge brain:archive brain:current/guitar brainfile:current/CLAUDE.md !brain:current/guitar/plans !brain:knowledge/personas !brain:knowledge/councils !brain:knowledge/reports"
 ---
 
 # F.R.O.D.O. — Filing Records Of Days & Observations
@@ -249,9 +249,14 @@ from them, not from your summary. What the owner added unasked goes in as
 ## Limits
 
 - A hook lets you write only `.md` files under `core/`, `current/daily/`,
-  `current/fitness/`, `current/context/`, `backlog/`, `knowledge/` and
-  `archive/`. A refusal means the target is wrong or not yours — report it;
-  do not look for another way in.
+  `current/fitness/`, `current/context/`, `current/guitar/`, `backlog/`,
+  `knowledge/` and `archive/`, and the one file `current/CLAUDE.md`. A
+  refusal means the target is wrong or not yours — report it; do not look
+  for another way in.
+- `current/guitar/plans/` is refused — Daeron's plans. `current/CLAUDE.md`
+  holds the rules of the whole of `current/`: change it only with `Edit`
+  (never a rewrite of the file), only the Writers table and the Subfolders
+  list, and show the owner the change to approve before you make it.
 - In `knowledge/` the hook refuses `personas/`, `councils/` and `reports/`
   — they have their own writers. The rest is open to you, and most of it is
   still not yours: write there only what a skill routes there (a place, an

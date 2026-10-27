@@ -194,6 +194,24 @@ class WriteGuard(unittest.TestCase):
         self.write(os.path.join(BRAIN, "db/fitness.db"), dae, False, agent="daeron")
         self.write(os.path.join(REPO, "x.md"), dae, False, agent="daeron")
 
+    def test_frodo_guitar_and_current_claude(self):
+        frodo = ["frodo", "brain:current/daily", "brain:current/guitar",
+                 "brainfile:current/CLAUDE.md", "!brain:current/guitar/plans"]
+        for ok in ("current/CLAUDE.md", "current/guitar/CLAUDE.md", "current/guitar/2026-11.md",
+                   "current/daily/2026-11.md"):
+            self.write(os.path.join(BRAIN, ok), frodo, True, agent="frodo")
+        for no in ("current/guitar/plans/2026-11-02.md", "current/guitar/x.py", "current/guitar-x/y.md",
+                   "current/OTHER.md", "current/CLAUDE.md.bak", "current/CLAUDE.md/x.md",
+                   "current/smeagol/x.md", "current/inbox/x.md"):
+            self.write(os.path.join(BRAIN, no), frodo, False, agent="frodo")
+        self.write(os.path.join(REPO, "x.md"), frodo, False, agent="frodo")
+
+    def test_brainfile_opens_nothing_for_others(self):
+        dae = ["daeron", "brain:current/guitar/plans"]
+        self.write(os.path.join(BRAIN, "current/CLAUDE.md"), dae, False, agent="daeron")
+        glor = ["glorfindel", "brain:current/fitness/plans"]
+        self.write(os.path.join(BRAIN, "current/CLAUDE.md"), glor, False, agent="glorfindel")
+
     def test_finrod_personas_only(self):
         fin = ["finrod", "brain:knowledge/personas", "tmp", "!brain:knowledge/personas/CLAUDE.md"]
         for ok in ("will-larson/persona.md", "will-larson/sources.md", "will-larson/validation.md"):

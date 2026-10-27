@@ -2461,6 +2461,15 @@ Phases — each ends with a measurement from `token-usage.py`:
   Glorfindel); `current/guitar/CLAUDE.md` does not exist; the backlog entry
   `plan-nauki-i-gitary-sprinty` is to move to "in progress (guitar)", the plan
   for learning other interests stays open there.
+  **Frodo and `current/guitar/`, 2026-10-27.** So that Frodo can file
+  `current/guitar/CLAUDE.md` and add Daeron to `current/CLAUDE.md`, the
+  write-guard got a new place kind, `brainfile:<path>` — exactly one file, not
+  the folder around it, nothing beside or below it; no other agent uses it, so
+  nothing else is opened (tests: Glorfindel's and Daeron's guards still refuse
+  `current/CLAUDE.md`). Frodo's hook now allows `current/guitar/` except
+  `plans/` (Daeron's) and the one file `current/CLAUDE.md`, to be changed only
+  with `Edit`, only the Writers table and the Subfolders list, with the
+  owner's approval of the change. Frodo has to be started anew to load it.
   **`finrod`, the persona builder, 2026-10-21.** Runs the `persona` skill
   from the router, one stage per turn (scope, catalogue, one digest batch,
   card, validation); the stage is read from disk (`status`), so a new session
