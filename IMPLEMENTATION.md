@@ -1946,7 +1946,7 @@ names are the owner's call; skill sizes are chars / 4):
 | questions | — | the router with `gimli`, `radagast`, samwise | — | — |
 | council | `council` (1.8 k, preloaded in the router) | `beorn` × N | — | in the router |
 | personal records (`core/`, `current/`, `backlog/`) — **`frodo`** | `daily` (8.7 k), `update-core`, `add-contact`, `idea`, `interview` — ~18.5 k together | `Read`, `Grep`, `Glob`, `Write`, `Edit`, Strava | `ori` | heavy |
-| career & practice — **`balin`** | `analyze-offer`, `practice-review`, `english-review` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `legolas`, `ori` | medium |
+| career & practice — **`balin`** | `analyze-offer`, `practice-review`, `english-review` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now`, `archive_transcripts` | `legolas`, `ori` | medium |
 | practice briefings — **`erestor`** | `english-prep`, `practice-prep` (read on demand) | `Read`, `Grep`, `Glob` | — | a `NEED:` line at most |
 | projects — **`cirdan`** | `develop-idea` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `legolas`, `ori` | medium |
 | finance — **`thorin`** | `ingest-finance` (read on demand; on the owner's explicit word only) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now`, `read_export`, `archive_export` | `gloin`, `ori` | one plan |
@@ -2185,6 +2185,32 @@ Phases — each ends with a measurement from `token-usage.py`:
   `practice-prep`, a `NEED:` round, a non-career practice topic, anything
   on the real brain. Seen once: the router paraphrased a plan block instead
   of showing it as returned.
+  **Follow-up 2026-10-27 — Balin archives the transcripts of an English
+  review.** Before, `english-review` ended with advice to drop the transcript
+  into `data_providers/chats/incoming/` and run `/ingest-conversation`, which
+  exists only in a full session. Now Balin does the archiving in the same
+  turn as the log: the plan of an `english-review` in transcript mode gets a
+  block "Archiwum transkryptów" (file name, title, tags, assistant, summary,
+  size, first and last line, duplicates marked), one `y` covers it and
+  `english.md`, and one Ori commit holds both. Several transcripts of one
+  session are separate files (`now` + 1 s each); debrief mode archives
+  nothing. Done by a small MCP tool, `archive_transcripts`
+  (`.claude/scripts/balin/`, stdlib logic + the Gimli venv wrapper): Balin has
+  no shell for the sha256 and a hand-copied transcript could drift, so the tool
+  hashes, deduplicates against every `content_hash` in `conversations/`
+  (including files made by `/ingest-conversation`), writes the file in the
+  `brain/conversations/CLAUDE.md` format with `source: agent` and
+  `…_agent_<slug>.md`, and reads it back to compare. It writes new files in
+  `conversations/` only — the write-guard of Balin is unchanged, Ori needed
+  no change (he takes any path in brain/). `brain/conversations/CLAUDE.md`
+  still lists "other agents" as read-only: the owner adds Balin's row there
+  (the skeleton copy is updated). Tested: 14 cases on a throwaway brain
+  (hash equal to `sha256sum`, verbatim round trip with Polish letters, CRLF
+  and a 5000-turn text, dedup against an ingest-format file, several items,
+  whole-or-nothing, no overwrite, no folder creation) and the wrapper.
+  **Not yet run:** Balin and the router on a real English review; whether
+  the model copies a long transcript into the tool call without a slip (the
+  tool compares the file to its input, not to the original).
 - [x] **Phase 5 — travel and finance.** Done 2026-10-11; personas stay in
   a full session (owner's decision).
   - **`strider`** (S.T.R.I.D.E.R. — Supplies, Trips & Route Inventory,
