@@ -1598,6 +1598,73 @@ Storage and retrieval:
              mobile or remote work. Lesson: in hosted podcasts (Complex
              Systems) Narvi attributes the guests' theses to McKenzie, so
              every digest has to be checked for who is speaking.
+      3. [x] **Cal Newport** (cal-newport) — career and work (career
+             capital, deep work, slow productivity, remote work, ambition,
+             AI as a frame). Complements Larson (organisation, promotion)
+             and McKenzie (negotiation, pricing) without their domains.
+             Done 2026-10-26 (card v2 active, validation v1–v3 closed
+             2026-10-27): 206 sources (2007–2026) — 161 Study Hacks posts
+             (2007–2026), 38 Deep Questions episodes (machine transcripts
+             from podscripts.co, 2020–2026), 5 interviews (Art of
+             Manliness, Ferriss x3, Adam Grant), 2 third-party critiques
+             (Boykis 2019, McHale 2024); fetched 206/206 (8 episodes that
+             failed with 429 retried). Digests 206/206 in batches P1–P10
+             (Narvi, one batch per turn; commits 4d75e30, f9a63a2,
+             f5e643e, 0faef06, 857a809, 07dfdda, c01f368, 3363cda,
+             c762e59, ce03af7); quotes 197, none missing (verify_quotes).
+             Manual spot-check: 9 digests against their sources; typos
+             fixed and 5 inferred sentences (not from the text) removed or
+             softened. Card: v2 is final (v1: c153fe9, v2: 5e10af6), 16
+             heuristics, a table of views, blind spots from McHale 2024 and
+             Boykis 2019, no abandoned views; change of practice: tally →
+             deep scheduling (2016). The card was built from a selective
+             reading of about 40 of the 206 digests. Validation (6
+             dilemmas x 3 phrasings x 2 variants = 36 persona answers and
+             36 bare; commits 23f447d, 91a51a6). v1: consistent 36/36
+             (bare 32/36), yielding 0, path 69/72 (bare 48), character
+             66/72 (bare 44), nuance 62/72 (bare 43), ornaments 6 (bare 9),
+             coherence 22 (bare 17); tics "kapitał kariery" (career
+             capital) in 14/36 answers, "za dziesięć lat" (in ten years)
+             in 13, "trzy osoby" (three people) in 6; answers with a tic
+             21/36 (bare 19/36). v2: consistent 36/36, yielding 0, path
+             64/72 (bare 44), character 62/72 (bare 44), nuance 69/72
+             (bare 46), ornaments 6 (bare 13), coherence 21 (bare 16);
+             "kapitał kariery" 2/36, "trzy osoby" 3/36, "dziesięć lat"
+             9/36; answers with a tic 24/36 across 18 patterns (v1: 15
+             patterns, not comparable). Nuance rose by 7 (fix: the valid
+             part of the pressure first), path and character fell by 5 and
+             4; in D3 new refrains appeared ("stosunek pracy reaktywnej do
+             proaktywnej" — ratio of reactive to proactive work, "to
+             ryzykowne, bo musisz dostarczyć" — it is risky because you
+             have to deliver, a closing "Co dokładnie robisz…?" — what
+             exactly do you do…?) and the opening "Nie powiem tego" (I
+             won't say that). v3 (2026-10-27, run 2026-10-27-v3; details
+             in `validation.md`) removed the target formulas (the
+             reactive-to-proactive ratio, "Co dokładnie robisz?"), but the
+             refrain moved to the neighbouring ones ("ryzykowne, bo trzeba
+             dostarczyć", openings "Nie powiem tego…"). Persona vs bare
+             (max 72): path 63 vs 44, character 63 vs 47, nuance 66 vs 45;
+             consistent 36/36 vs 32; yielding 0; ornaments 2 vs 13; no
+             inventions found. v2 for comparison: path 64, character 62,
+             nuance 69 — the judge's score did not gain. The owner
+             rejected v3; v2 is restored and active (`card_version: 2`;
+             brain commit 0bc3ccf "cal-newport card v2 restored;
+             validation v3 rejected"). v4 only on the owner's request.
+             Gaps: no texts on Android, Poland or time zones; episode 187,
+             Warner 2016, New Yorker/NYT (paywall), books; podcast
+             transcripts are machine-made, the split of voices is
+             uncertain. Lessons: (1) Narvi without editing leaves typos
+             and conclusions drawn from context — read his "doubts" before
+             assemble; (2) episodes retried after a 429 have to be added to
+             sources.md by hand before assemble (the script turns todo →
+             digest only for existing rows); (3) podcast digests regularly
+             exceed the word limit; (4) guest and promotional posts say
+             little about his reasoning, so the card does not attribute
+             them to him; (5) adding a fixed "first step" to the card turns
+             it into a refrain — phrase card instructions as conditions of
+             use, not as mandatory steps; (6) removing one learned formula
+             from the card moves the refrain to a neighbouring one — after
+             three versions there is no gain, so stop.
 - [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
       useful_for / not_for; purpose, how it thinks, style, in a council,
       does not). Next to the skill, not in `.claude/agents/`.
