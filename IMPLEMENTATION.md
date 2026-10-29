@@ -2609,6 +2609,29 @@ listed with their narrowed tools, the `gimli` server connects, and the four
 
 ---
 
+## OKI account simulation (side project, 2026-10-29)
+
+Not an agent: a model and a workbook generator in `.claude/scripts/oki/`
+(README there), built from section 8 of the owner's dossier in
+`brain/knowledge/projects/` (the specification stays there).
+
+- `model.py` — the five ways to hold a lump sum (plain account, OKI, IKE +
+  account, OKI + account, OKI + IKE + account) over 800 configurations; every
+  unverified point (q, w, π, rates — the dossier's V1–V7) is a parameter.
+- `build_xlsx.py` — `output/oki-symulacje.xlsx` (gitignored) with live
+  formulas and changeable parameter cells; each formula is stored with the
+  value Python computed. Needs `xlsxwriter` (`requirements.txt`, owner's
+  approval 2026-10-29, not installed on the Pi when this was written).
+- Checked: the dossier's T1–T10 against the model (`test_model.py`) and the
+  workbook's formulas against the model's values, evaluated without Excel
+  (`test_formulas.py`; SUMPRODUCT, COUNTIFS, MINIFS, MATCH and text joins are
+  skipped there). **Not yet done:** opening the file in Excel — the sheet
+  `Kontrola_Python` then shows the gap between formulas and Python values.
+- Conclusions (H1–H4, examples) are the owner's to file in the dossier,
+  through Círdan.
+
+---
+
 ## Long-term (condensed)
 
 Steps 4–11 from the README roadmap, condensed for orientation. Detailed tasks will
