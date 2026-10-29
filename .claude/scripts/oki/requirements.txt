@@ -1,0 +1,3 @@
+# The workbook generator (build_xlsx.py) — xlsxwriter and nothing else; the
+# model and the tests are plain Python.
+xlsxwriter>=3.1

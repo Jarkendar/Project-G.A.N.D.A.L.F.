@@ -228,3 +228,6 @@ __marimo__/
 
 # Stray editor/manual backups — never commit (see settings.json.bak, 2026-08)
 *.bak
+
+# Generated workbooks (.claude/scripts/oki/build_xlsx.py)
+output/
