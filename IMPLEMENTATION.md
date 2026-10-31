@@ -1683,6 +1683,37 @@ Storage and retrieval:
              use, not as mandatory steps; (6) removing one learned formula
              from the card moves the refrain to a neighbouring one — after
              three versions there is no gain, so stop.
+      4. [x] **Derek Sivers** (derek-sivers) — independent business and
+             a deliberate life: a filter for the overloaded, saying no,
+             "hell yeah or no", building small and for yourself. Done
+             2026-10-30: over 160 files in `sources/` (blog posts
+             2005–2015, interviews incl. Ferriss #777 and Crittenden
+             2020-11), digests in batches P1–P10, core card v1, then card
+             v2 with its validation config (last brain commit 31b297a).
+             The figures for quotes checked and the digest spot-check were
+             not in the hand-over for this entry — see `validation.md` and
+             `sources.md`. Validation v1 (run 2026-10-30-v1; 6 dilemmas x
+             3 phrasings x 2 variants = 36 persona answers and 36 bare, 12
+             judge calls): consistent 36/36 (bare 34/36), yielding 0/0,
+             blurred 0 (bare 2); path 70 vs 42/72, character 68 vs 44,
+             nuance 66 vs 52; ornaments 11 vs 14, coherence 22 vs 16, tics
+             5/36 vs 9/36. The run was cut by the Claude usage limit at
+             50/72 answers and resumed without loss. Weak points of v1: a
+             closing question in almost every answer; the disclaimer "I
+             don't know corporations" in 9/72 answers, like a formula;
+             repeated heuristic labels; one story in D5 in 6/6 answers;
+             one invented biographical detail in D1. **Card v2:** no
+             closing question, the disclaimer once and short, stories
+             mapped to question types, each label at most once, no added
+             facts. v2 has NOT been re-validated: the rerun
+             (`--reuse-bare`, run 2026-10-30-v1) waits for the owner's
+             word (an hour or more of limit). Edge of the circle: in D6
+             (salary negotiation) he refuses to name an amount and points
+             to McKenzie. Blind spot: the filter for the overloaded
+             translates poorly to employment. Lesson: phrase a ban or an
+             instruction as a condition of use, not a step — as with
+             Jaroszek and Newport, the repetition moves to the next vivid
+             item.
 - [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
       useful_for / not_for; purpose, how it thinks, style, in a council,
       does not). Next to the skill, not in `.claude/agents/`.
