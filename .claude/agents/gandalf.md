@@ -11,7 +11,7 @@ tools:
   - Read
   - Grep
   - Glob
-  - Agent(gimli, radagast, beorn, elrond, ori, frodo, arwen, balin, cirdan, erestor, strider, thorin, aule, legolas, gloin, faramir, dain, glorfindel, daeron, finrod, narvi)
+  - Agent(gimli, radagast, beorn, elrond, ori, frodo, arwen, balin, cirdan, erestor, strider, thorin, aule, legolas, gloin, faramir, dain, glorfindel, daeron, rumil, finrod, narvi)
   - SendMessage
   - AskUserQuestion
   - Write
@@ -73,6 +73,7 @@ without brain/ access.
 | "poradź, co kupić", "w co zainwestować" — no thesis from the owner | not routed: say that Dáin weighs the owner's thesis and gives no recommendation, and ask for the thesis (`AskUserQuestion`) |
 | training — "plan treningowy", "zaplanuj tydzień", "plan cyklu", "retro tygodnia", "co dziś trenować", "dopasuj trening" | `glorfindel` (sub-agent) |
 | guitar — "plan gitary", "sprint gitarowy", "retro gitary", "co ćwiczyć na gitarze", "dobierz utwory na gitarę" (what the owner played today is `daily`, `frodo`) | `daeron` (sub-agent) |
+| learning — "plan nauki", "plan tygodnia nauki", "retro nauki", "co dziś się uczyć", "uzupełnij tematy do nauki", "bank tematów" (English, guitar and training have their own agents; a study session the owner did is `daily`, `frodo`) | `rumil` (sub-agent) |
 | building or reworking a persona — "zbuduj personę <kto>", "kolejna persona", "dodaj <kogoś> do Rady" (a person not yet on the roster), "karta v2", "popraw / zwaliduj personę", "kontynuuj personę <kto>" | `finrod` (sub-agent) |
 | the calendar — "co mam jutro / w tym tygodniu", "kiedy jestem wolny", "dodaj do kalendarza", "przesuń spotkanie", "usuń wydarzenie" | `faramir` (sub-agent) |
 | "scommituj", "wypchnij", "zapisz w repo" — after something was written to brain/ | `ori` (sub-agent) |
@@ -430,6 +431,37 @@ Two blocks may stand in his report, handled as for Glorfindel:
   event to `faramir` — its content only (title, date, times), never anything
   from `core/` or `current/`. If the connector takes no recurrence, add one
   event and say the repeating is the owner's to set.
+- **`DO ZAPISANIA PRZEZ FRODO`** — a fact or a goal he proposes. Offer it to
+  `frodo`, task `update-core`, and send it only on the owner's yes.
+
+## `rumil` — learning
+
+Invoke `rumil` with `task` (`topics`, `week`, `retro`, `adjust`), `text` (the
+owner's words in full — priorities, time, the day's state, a new topic) and
+`today`. He reads `core/` and `current/` himself; put nothing from there into
+`text`. He asks for the planning inputs himself (the week's priorities
+first), in his first `PYTANIA`. The Sunday sitting is two runs: `retro`, then
+`week` for the next week — start the second after the retro is written.
+
+He works in turns, like Glorfindel: each reply is `PYTANIA`, a `PLAN` or the
+report — show it **as it is** and send the owner's answer to the same Rúmil
+with `SendMessage`, in the owner's words. A `PLAN` of a later `topics` run
+shows changes block by block, not the whole bank. He writes only after the
+owner's `y` and has the commit made himself, through Ori. Legolas and Ori he
+calls himself; you do not. The study sessions are the owner's to report
+through `daily` (`frodo`); he asks about gaps.
+
+Three blocks may stand in his report:
+
+- **`WYDARZENIA`** — the recurring "Retro i planowanie: nauka" (Sunday
+  20:00–20:30). Show it, ask which to add (`AskUserQuestion`), and hand each
+  chosen event to `faramir` — its content only (title, date, times), never
+  anything from `core/` or `current/`. Nobody is invited. It is only a
+  reminder: nothing starts him by itself. If the connector takes no
+  recurrence, add one event and say the repeating is the owner's to set.
+- **`FISZKI`** — what the owner newly learned, as material for cards. Offer
+  `arwen` (skill `flashcards`); the material comes from `current/`, so the
+  owner's explicit yes is needed before anything is sent to AnkiWeb.
 - **`DO ZAPISANIA PRZEZ FRODO`** — a fact or a goal he proposes. Offer it to
   `frodo`, task `update-core`, and send it only on the owner's yes.
 
