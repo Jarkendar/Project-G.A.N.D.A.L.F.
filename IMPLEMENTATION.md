@@ -1984,6 +1984,7 @@ names are the owner's call; skill sizes are chars / 4):
 | finance analyses — **`dain`** | — (the agent's own instructions: four tasks) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `gloin`, `legolas`, `ori` | one plan per file |
 | fitness training — **`glorfindel`** | — (the agent's own instructions: four tasks) | `Read`, `Grep`, `Glob`, `Write`, `now`, samwise, Strava (read) | `gimli`, `legolas`, `ori` | one plan per file |
 | guitar — **`daeron`** | — (the agent's own instructions: four tasks) | `Read`, `Grep`, `Glob`, `Write`, `now`, samwise | `legolas`, `ori` | one plan per file |
+| learning plans — **`rumil`** | — (the agent's own instructions: four tasks) | `Read`, `Grep`, `Glob`, `Write`, `Edit` (the bank only), `now`, samwise | `legolas`, `ori` | one plan per file |
 | learning — **`arwen`** | `flashcards` | `Read`, `Grep`, `Glob`, samwise, arwen | — | one approval |
 | travel — **`strider`** | `pack` (read on demand) | `Read`, `Grep`, `Glob`, `Write`, `Edit`, `now` | `ori` | medium |
 | this repo — **`aule`** | — (the rules are `.claude/rules/dev.md`) | `Read`, `Grep`, `Glob`, `Write`, `Edit` inside the repo; `Bash` cut to git, `gh pr`, `rg`, `python3` on repo scripts | — | a plan |
@@ -2539,6 +2540,35 @@ Phases — each ends with a measurement from `token-usage.py`:
   `plans/` (Daeron's) and the one file `current/CLAUDE.md`, to be changed only
   with `Edit`, only the Writers table and the Subfolders list, with the
   owner's approval of the change. Frodo has to be started anew to load it.
+  **`rumil`, the learning teacher, 2026-11-02.** Four tasks in his own file, no
+  skill: `topics` (the bank of topics), `week` (seven sessions of about 30
+  minutes, Monday to Sunday), `retro`, `adjust`. Every session is a concrete
+  task with a "done when"; the default shape (recall, task, one line of
+  result) gives way to `current/learning/method.md` if it exists (a Frodo
+  `interview`, optional, to come). Priorities are asked in the first `PYTANIA`
+  of each `week`, none are kept. Reads the bank, the method, the learning
+  lines of `current/daily/` (free text; sessions are reported through `daily`),
+  the source notes in `knowledge/` and `backlog/`, earlier plans. Writes
+  `current/learning/plans/YYYY-MM-DD[-type].md` (append-only), edits
+  `current/learning/topics.md` in place (the one place he has `Edit` for) and
+  writes `current/learning/CLAUDE.md` once, in his first plan; after the
+  owner's yes, commit through Ori. The write-guard names exactly those files
+  (`brainfile:` for the two), so `method.md` stays Frodo's (his hook got that
+  one file) and Glorfindel's and Daeron's folders stay closed. The bank's
+  format (blocks with status `[ ]` / `[~]` / `[x]`, area, source, time,
+  "done when", task, tags) is described in `rumil.md`; the first
+  `topics.md` is the next step, after this PR is merged and in a new session,
+  built from the source files, not from a summary. Retro and planning are
+  Sunday 20:00–20:30 (`WYDARZENIA` through the router to Faramir; Glorfindel
+  19:00, Daeron 09:00 every second week); flashcard material goes out as
+  `FISZKI` to Arwen on the owner's yes. Out of scope: English, guitar,
+  training, the calendar; Danish only as a parked topic. Tested: write-guard
+  cases (`test_guards.py`, 17 tests). **Not tested:** a live run; recurrence in
+  Faramir's `create_event`; whether `daily` notes about learning are found.
+  **Open in brain/:** the Writers row of `current/CLAUDE.md` (Frodo, with the
+  owner's approval); the backlog entry `plan-nauki-i-gitary-sprinty` — mark
+  its learning part as done (the owner or `DO ZAPISANIA PRZEZ FRODO`). Rúmil
+  and Frodo have to be started anew to load the changes.
   **`finrod`, the persona builder, 2026-10-21.** Runs the `persona` skill
   from the router, one stage per turn (scope, catalogue, one digest batch,
   card, validation); the stage is read from disk (`status`), so a new session
