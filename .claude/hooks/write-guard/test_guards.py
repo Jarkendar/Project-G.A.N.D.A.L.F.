@@ -194,6 +194,26 @@ class WriteGuard(unittest.TestCase):
         self.write(os.path.join(BRAIN, "db/fitness.db"), dae, False, agent="daeron")
         self.write(os.path.join(REPO, "x.md"), dae, False, agent="daeron")
 
+    def test_rumil_learning_only(self):
+        rum = ["rumil", "brain:current/learning/plans", "brainfile:current/learning/topics.md",
+               "brainfile:current/learning/CLAUDE.md"]
+        for ok in ("current/learning/plans/2026-11-08.md", "current/learning/plans/2026-11-08-retro.md",
+                   "current/learning/topics.md", "current/learning/CLAUDE.md"):
+            self.write(os.path.join(BRAIN, ok), rum, True, agent="rumil")
+        for no in ("current/learning/method.md", "current/learning/plans/x.py", "current/learning/x.md",
+                   "current/learning/topics.md.bak", "current/CLAUDE.md", "current/fitness/plans/2026-11-08.md",
+                   "current/guitar/plans/2026-11-08.md", "current/daily/x.md", "core/identity/goals.md"):
+            self.write(os.path.join(BRAIN, no), rum, False, agent="rumil")
+        self.write(os.path.join(REPO, "x.md"), rum, False, agent="rumil")
+
+    def test_frodo_learning_method_only(self):
+        frodo = ["frodo", "brain:current/guitar", "brainfile:current/CLAUDE.md",
+                 "brainfile:current/learning/method.md"]
+        self.write(os.path.join(BRAIN, "current/learning/method.md"), frodo, True, agent="frodo")
+        for no in ("current/learning/topics.md", "current/learning/CLAUDE.md",
+                   "current/learning/plans/2026-11-08.md", "current/learning/method.md.bak"):
+            self.write(os.path.join(BRAIN, no), frodo, False, agent="frodo")
+
     def test_frodo_guitar_and_current_claude(self):
         frodo = ["frodo", "brain:current/daily", "brain:current/guitar",
                  "brainfile:current/CLAUDE.md", "!brain:current/guitar/plans"]
