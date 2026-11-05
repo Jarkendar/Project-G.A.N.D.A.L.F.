@@ -9,7 +9,9 @@
 
 ## ⚠️ Project status
 
-**This is a concept document.** Nothing is implemented yet. Every element described below — architecture, agents, knowledge base structure, technology choices — is subject to change as the project evolves. The README captures the *direction*, not the specification. Pieces will be built incrementally, and the design will adapt to what real usage reveals.
+**The MVP is running on Claude Code** (updated 2026-11-05). Gandalf is a router in the main thread, the agents are Claude Code sub-agents, the engine is the Claude API. Built so far: the router and about two dozen agents, 21 skills, ten MCP servers, a RAG over the private `brain/` (Qdrant), query logging, a calendar agent, a White Council of personas, and agents that keep the owner's records, finance, training and learning. Not built: the local engine (Ollama), the move to the Pi as the sole host, the archivist (Treebeard), reminders and delegation (Faramir), the gateway and voice. The execution path with dates and open items lives in [IMPLEMENTATION.md](IMPLEMENTATION.md).
+
+The README remains the *direction*, not the specification: the vision sections (knowledge base, memory hierarchy, potential paths) are canon and change only by the owner's decision, while status, the agent table and the graphs follow what is built.
 
 ---
 
@@ -43,48 +45,177 @@ G.A.N.D.A.L.F. is built as a **router + specialised sub-agents** pattern, with a
 
 The architecture is intentionally open to **multiple orchestrators** in the future. Gandalf is the first one — a generalist router for personal queries — but specialised orchestrators (for example, a dev-focused or a homelab-focused one) can co-exist and federate. For now there is one Gandalf and the rest is intentional headroom.
 
+The router is a main-thread Claude Code agent that holds the conversation and carries questions and answers between the owner and the sub-agents (a sub-agent cannot ask the owner itself). The graphs below show the system as built on 2026-11-05; dashed boxes are planned.
+
+### Graph 1 — who talks to whom
+
 ```mermaid
 flowchart TD
-    User["👤 User<br/><i>text or voice</i>"]
-    Gandalf["🧙 G.A.N.D.A.L.F.<br/><b>Orchestrator</b><br/><i>routing · synthesis · privacy gate</i>"]
+    User["👤 Owner<br/><i>text</i>"]
+    Gandalf["🧙 G.A.N.D.A.L.F.<br/><b>router</b><br/><i>classify · route · ask · confirm</i>"]
 
-    subgraph Skills["⚪ Skills layer (higher-order workflows)"]
-        WhiteCouncil["🕊️ White Council<br/><i>multi-perspective deliberation</i>"]
-        OtherSkill["…"]
+    subgraph Questions["🔎 Questions and reports"]
+        Samwise["🧑‍🌾 S.A.M.W.I.S.E.<br/><i>semantic search</i>"]
+        Gimli["🪓 G.I.M.L.I.<br/><i>read-only SQL</i>"]
+        Radagast["🐦 R.A.D.A.G.A.S.T.<br/><i>reports</i>"]
+        Erestor["📜 E.R.E.S.T.O.R.<br/><i>practice briefings</i>"]
     end
 
-    subgraph Agents["🧝 Agents layer (single-responsibility specialists)"]
-        Samwise["🧑‍🌾 S.A.M.W.I.S.E.<br/><i>RAG / embeddings</i>"]
-        Gimli["🪓 G.I.M.L.I.<br/><i>SQL agent</i>"]
-        Legolas["🏹 L.E.G.O.L.A.S.<br/><i>web search</i>"]
-        Bilbo["🎒 B.I.L.B.O.<br/><i>indexer</i>"]
-        Faramir["🛡️ F.A.R.A.M.I.R.<br/><i>calendar & delegation</i>"]
-        Smeagol["👁️ S.M.E.A.G.O.L.<br/><i>query logger</i>"]
-        Treebeard["🌳 T.R.E.E.B.E.A.R.D.<br/><i>archivist · compression</i>"]
+    subgraph Records["📓 Records and plans (write to brain/)"]
+        Frodo["🧑‍🌾 F.R.O.D.O.<br/><i>days · ideas · profile · contacts</i>"]
+        Balin["⛏️ B.A.L.I.N.<br/><i>career · English</i>"]
+        Cirdan["⚓ C.I.R.D.A.N.<br/><i>project ideas</i>"]
+        Strider["🥾 S.T.R.I.D.E.R.<br/><i>packing</i>"]
+        Arwen["🧝 A.R.W.E.N.<br/><i>flashcards</i>"]
     end
 
-    Brain[("🧠 brain repo<br/>markdown files<br/>+ SQL where it pays off")]
-    External["🌐 Web · DuckDuckGo / SearXNG"]
-    Forge["⚒️ agentic-sdlc-forge"]
-    N8N["🔗 n8n · webhooks · IoT"]
+    subgraph Coaches["🏋️ Trainers and teachers"]
+        Glorfindel["G.L.O.R.F.I.N.D.E.L.<br/><i>training</i>"]
+        Daeron["D.A.E.R.O.N.<br/><i>guitar</i>"]
+        Rumil["R.U.M.I.L.<br/><i>learning</i>"]
+    end
 
-    User --> Gandalf
-    Gandalf -.routes.-> Skills
-    Gandalf -.routes.-> Agents
-    Gandalf ==logs all queries==> Smeagol
+    subgraph Finance["💰 Finance"]
+        Thorin["T.H.O.R.I.N.<br/><i>portfolio record</i>"]
+        Dain["D.A.I.N.<br/><i>analyses</i>"]
+        Gloin["G.L.O.I.N.<br/><i>public reports</i>"]
+    end
 
-    Skills --> Agents
+    subgraph Council["🕊️ White Council"]
+        Beorn["B.E.O.R.N.<br/><i>persona voice</i>"]
+        Elrond["E.L.R.O.N.D.<br/><i>synthesis</i>"]
+        Finrod["F.I.N.R.O.D.<br/><i>persona builder</i>"]
+        Narvi["N.A.R.V.I.<br/><i>digests</i>"]
+    end
 
-    Samwise --> Brain
-    Gimli --> Brain
-    Bilbo --> Brain
-    Treebeard --> Brain
-    Legolas --> External
-    Faramir --> Forge
-    Faramir --> N8N
+    Legolas["🏹 L.E.G.O.L.A.S.<br/><i>web research</i>"]
+    Faramir["🛡️ F.A.R.A.M.I.R.<br/><i>calendar</i>"]
+    Aule["🔨 A.U.L.E.<br/><i>this repo</i>"]
+    Ori["📦 O.R.I.<br/><i>commits brain/</i>"]
+    Smeagol["👁️ S.M.E.A.G.O.L.<br/><i>Stop-hook logger</i>"]
 
-    N8N -.triggers.-> Bilbo
+    User <--> Gandalf
+    Gandalf -.routes.-> Questions
+    Gandalf -.routes.-> Records
+    Gandalf -.routes.-> Coaches
+    Gandalf -.routes.-> Finance
+    Gandalf -.runs.-> Council
+    Gandalf -.routes.-> Faramir
+    Gandalf -.routes.-> Legolas
+    Gandalf -.routes.-> Aule
+    Gandalf ==every turn==> Smeagol
+
+    Records -->|"paths written"| Ori
+    Coaches --> Ori
+    Finance --> Ori
+    Finrod --> Ori
+    Balin --> Legolas
+    Cirdan --> Legolas
+    Coaches --> Legolas
+    Dain --> Gloin
+    Thorin --> Gloin
+    Finrod --> Narvi
+    Coaches -.calendar events via the router.-> Faramir
+    Rumil -.flashcard material via the router.-> Arwen
+
+    Treebeard["🌳 T.R.E.E.B.E.A.R.D.<br/><i>archivist — planned</i>"]:::planned
+    Gandalf -.-> Treebeard
+    classDef planned stroke-dasharray: 5 5,color:#888
 ```
+
+### Graph 2 — data, MCP servers and privacy
+
+```mermaid
+flowchart LR
+    subgraph Brain["🧠 brain/ — private repo, sibling directory"]
+        Core["core/ · current/<br/>🔒 PRIVATE"]
+        Knowledge["knowledge/<br/>public"]
+        Db[("db/*.db<br/>SQLite")]
+        Conv["conversations/ · backlog/"]
+    end
+
+    subgraph MCP["🔌 MCP servers (.mcp.json)"]
+        mSamwise["samwise (http)"]
+        mGimli["gimli (read-only)"]
+        mOri["ori"]
+        mFrodo["frodo"]
+        mBalin["balin"]
+        mThorin["thorin"]
+        mElrond["elrond"]
+        mMirdain["mirdain"]
+        mArwen["arwen"]
+        mSync["sync"]
+        mStrava["strava"]
+    end
+
+    subgraph Guards["🛡️ Guards (hooks)"]
+        WG["write-guard<br/><i>per-agent write zones</i>"]
+        BG["bash-guard"]
+        FG["faramir-guard<br/><i>consent token</i>"]
+        BIS["brain-instruction-sync"]
+    end
+
+    subgraph External["🌐 External"]
+        Web["Web"]
+        AnkiWeb["AnkiWeb"]
+        GCal["Google Calendar"]
+        StravaAPI["Strava"]
+        Edgar["SEC EDGAR"]
+        ClaudeAPI["Claude API<br/><i>the engine</i>"]
+    end
+
+    Agents["🧝 agents"] --> WG
+    Agents --> mSamwise --> Core
+    mSamwise --> Knowledge
+    Agents --> mGimli --> Db
+    Agents --> mFrodo --> Db
+    Agents --> mOri -->|"commit · push, main only"| Brain
+    Agents --> mBalin --> Conv
+    Agents --> mThorin --> Edgar
+    Agents --> mArwen --> AnkiWeb
+    Agents --> mStrava --> StravaAPI
+    Agents --> FG --> GCal
+    Agents -->|"Legolas only"| Web
+    Core -.->|"MVP exception"| ClaudeAPI
+    Gandalf["🧙 router"] --> mSync
+    BIS -.->|"folder rules into context"| Agents
+```
+
+Reading the privacy picture: `core/` and `current/` are private by folder, `knowledge/` is public. In the Claude-API MVP the engine itself may see private content (a conscious, time-boxed exception — see IMPLEMENTATION.md § "Privacy in the Claude-API MVP"); the only agent with the open web (Legolas) is given public names only, and cards that leave for AnkiWeb from private folders need the owner's explicit yes. Only Ori commits and pushes `brain/`, and only on `main`.
+
+### Graph 3 — retrieval (RAG over brain/)
+
+```mermaid
+flowchart LR
+    Commit["git commit / merge in brain/"] -->|"post-commit · post-merge hook"| Bilbo["🎒 B.I.L.B.O.<br/><i>hierarchical index v2</i>"]
+    Bilbo --> Qdrant[("Qdrant<br/><i>imladris-rag</i>")]
+    Qdrant --> Mcp["samwise MCP (http :8765)"]
+    Mcp --> Rerank["reranker"]
+    Rerank --> Router["🧙 router and agents<br/><i>context · search</i>"]
+    Warm["samwise-warmup hook"] -.-> Mcp
+    Router --> Files["Read the files<br/><i>paths relative to brain/</i>"]
+```
+
+### Graph 4 — a White Council
+
+```mermaid
+sequenceDiagram
+    participant O as Owner
+    participant G as Router
+    participant B as Beorn x N (persona cards)
+    participant E as Elrond
+    participant K as knowledge/councils/
+    O->>G: a hard decision, several voices
+    G->>O: roster and question — confirm
+    G->>B: the question, one call per voice
+    B-->>G: each answer to a scratchpad file
+    G->>E: the folder of answer files
+    E->>K: synthesis + assembled record (record tool)
+    E-->>G: summary
+    G->>O: voices, disagreements, synthesis
+```
+
+Persona cards are built separately: Finrod runs the `persona` skill stage by stage (scope, sources, digests through Narvi, card, validation), and the cards live in `knowledge/personas/`.
 
 ### Engine layer
 
@@ -106,65 +237,102 @@ The fellowship splits into two layers:
 - **Agents** are single-responsibility specialists. Each owns one narrow job and is named after a Tolkien character with the matching disposition, with the role encoded as an acronym (e.g. G.I.M.L.I. — *Generative Intelligence Mining Local Information*). Small local models perform well on narrow tasks and poorly on generic "do everything" prompts, which is why this layer exists at all.
 - **Skills** are higher-order workflows that orchestrate multiple agents to deliver something none of them can deliver alone. Skills follow the event-or-group naming convention described above.
 
-### Roles — current and proposed
+### Agents — what is built (2026-11-05)
 
-The table below maps roles to the fellowship: what already exists, what could be added, and the proposed Tolkien naming. None of the *proposed* names are commitments — they're sketches showing the convention extends cleanly past the MVP.
+Every agent is a Claude Code sub-agent with the narrowest tool list its job allows (Gandalf's own list is the router's: read, search, ask, call the agents below, a small write zone in the scratchpad, and read-only git tools). "Writes" names the only places an agent may write; a `write-guard` hook enforces it. Anything written to `brain/` is committed by Ori, never by the writer. Full definitions: `.claude/agents/`; per-agent rules for this repo: `.claude/rules/dev.md`.
 
-| Role | Type | Status | Tolkien proposal | Acronym / rationale |
+**Router and retrieval**
+
+| Agent | Acronym | Tasks / modes | Tools and access | Writes |
 |---|---|---|---|---|
-| Orchestrator (router + synthesis) | — | exists | **G.A.N.D.A.L.F.** | *Generative Agent Navigating Databases And Local Files* |
-| Semantic search over notes | Agent | exists | **S.A.M.W.I.S.E.** | *SQL And Markdown Wading Into Semantic Embeddings* |
-| Structured-data querying | Agent | exists | **G.I.M.L.I.** | *Generative Intelligence Mining Local Information* |
-| Web search / outside world | Agent | exists | **L.E.G.O.L.A.S.** | *Local Engine Generating Outputs, Looking At Search* |
-| Background indexer | Agent | exists | **B.I.L.B.O.** | *Bot Indexing Local Binary Objects* |
-| Calendar / delegation / actions | Agent | exists | **F.A.R.A.M.I.R.** | *Forwarding Actions, Reminders And Meetings, Invoking Repositories* |
-| Query logging | Agent | exists | **S.M.E.A.G.O.L.** | *Storage Module Evaluating All Gandalf's Operational Logs* |
-| Archival / compression / historical retrieval | Agent | exists | **T.R.E.E.B.E.A.R.D.** | *Temporal Repository Engine Evaluating, Archiving And Reducing Data* |
-| Personal advisor (single voice) | Agent | proposed | **G.A.L.A.D.R.I.E.L.** | *Guidance Agent for Life Alignment: Decisions, Reflection, Insight, Evaluation, Lookahead* |
-| Content drafting (posts, articles, copy) | Agent | proposed | **L.I.N.D.I.R.** | *Language and Ideation Node for Drafting, Illustrating, Rewriting*. Minstrel of Rivendell — composes words for an audience. |
-| Outreach / external lead research | Agent | proposed | **H.A.L.D.I.R.** | *Handling Active Lead Discovery, Intelligence, Research*. Lothlórien border-warden — works at the edge of known territory. |
-| Multi-perspective deliberation | Skill | proposed | **White Council** | Orchestrates several advisor-agents (e.g. Galadriel + others) to surface multiple angles on a hard decision. Skill name follows the event-or-group convention. |
-| Multi-channel gateway / dispatcher | Agent | proposed | **R.A.D.A.G.A.S.T.** | *Relaying Agent Dispatching And Gathering Across System Transports* — Radagast the Brown, friend to birds and beasts, carries messages across wild lands; disposition = multi-channel reach. |
-| Log analysis & insight extraction | Agent or Skill | TBD | — | Reads Smeagol's logs to surface patterns, gaps, retro material. Persona deliberately not assigned yet. |
-| Development task execution | external | exists | [`agentic-sdlc-forge`](https://github.com/Jarkendar/agentic-sdlc-forge) via F.A.R.A.M.I.R. | Not part of the fellowship — an external executor invoked through Faramir. |
+| 🧙 **G.A.N.D.A.L.F.** | *Generative Agent Navigating Databases And Local Files* | classifies, routes, holds the conversation, asks and confirms; quick public checks; runs a White Council; `pull` / `status` / `log` / `checkout_main` for both repos | Read · Grep · Glob · calls all sub-agents · Samwise · `WebSearch` / `WebFetch` (public names only) · `sync` MCP | scratchpad only; no commit, push or merge |
+| 🧑‍🌾 **S.A.M.W.I.S.E.** | *SQL And Markdown Wading Into Semantic Embeddings* | semantic search over `brain/` (`context`, `search`) | MCP server over Qdrant, reranked | nothing |
+| 🪓 **G.I.M.L.I.** | *Generative Intelligence Mining Local Information* | analytical SQL: sums, counts, trends | `gimli` MCP: `databases`, `schema`, `query` — read-only SQLite, results labelled with privacy level; model: haiku | nothing |
+| 🐦 **R.A.D.A.G.A.S.T.** | *Reporting Agent Delivering Analysis, Graphs, Assessments, Summaries & Trends* | reports and charts from data handed to him | Read · Write | `knowledge/reports/` |
+| 🏹 **L.E.G.O.L.A.S.** | *Local Engine Generating Outputs, Looking At Search* | web research; the forked helpers `research-offer`, `research-idea` | `WebSearch` · `WebFetch` only — no file tools | nothing |
+| 📜 **E.R.E.S.T.O.R.** | *Evaluator Reading Earlier Sessions To Orient Rehearsal* | briefings before English or interview practice (`english-prep`, `practice-prep`) | Read · Grep · Glob | nothing |
 
-The eight existing agents are described below. The proposed roles are placeholders to be revisited once Smeagol's logs reveal which gaps actually matter.
+**Records and plans (write to `brain/`)**
 
-### 🧑‍🌾 S.A.M.W.I.S.E.
+| Agent | Acronym | Tasks / modes | Tools and access | Writes |
+|---|---|---|---|---|
+| 🧑‍🌾 **F.R.O.D.O.** | *Filing Records Of Days & Observations* | `daily`, `idea`, `update-core`, `add-contact`, `interview` | Read/Write/Edit · Strava read tools · `fitness_upsert`, `now` · calls Ori | daily notes, backlog, `core/identity/`, contacts, fitness DB, learning method note |
+| ⛏️ **B.A.L.I.N.** | *Briefs, Assessments & Lessons for Interviews and Negotiations* | `analyze-offer`, `practice-review`, `english-review` | Read/Write/Edit · `archive_transcripts` · calls Legolas, Ori | offer dossiers, practice records, English reviews, `conversations/` |
+| ⚓ **C.I.R.D.A.N.** | *Concept Investigation, Research, Dossier, Assessment & Next-steps* | `develop-idea`: feasibility, prior art, execution scenario | Read/Write/Edit · calls Legolas, Ori | `knowledge/projects/` |
+| 🥾 **S.T.R.I.D.E.R.** | *Supplies, Trips & Route Inventory, Drafted for Every Road* | `pack`: trip lists, post-trip reviews, item catalogue, packing profiles | Read/Write/Edit · calls Ori | packing records |
+| 🧝 **A.R.W.E.N.** | *Anki Repetition & Web-sync Engine for Notes* | `flashcards`: drafts atomic cards, drops duplicates, adds on approval | Read · Samwise · `arwen` MCP (`list_decks`, `find_notes`, `add_notes`) | the Anki collection (synced to AnkiWeb); private-folder cards only on the owner's yes |
 
-**S**QL **A**nd **M**arkdown **W**ading **I**nto **S**emantic **E**mbeddings
+**Trainers and teachers** — each runs four tasks from his own instructions (plan, retro, adjustment, menu), writes a plan only on the owner's yes to a full plan, and sends calendar events through the router to Faramir.
 
-The semantic search specialist. Handles unstructured data: notes, PDFs, transcripts, articles. Generates embeddings via a local model (e.g. `nomic-embed-text` through Ollama) and queries a vector database. Sam is the agent that knows *where to look* in private documents.
+| Agent | Acronym | Domain | Tools and access | Writes |
+|---|---|---|---|---|
+| 🏋️ **G.L.O.R.F.I.N.D.E.L.** | *Goal-Led Orchestration of Runs, Form, Intervals, Nutrition, Daily Effort & Load* | cycle and week training plans, weekly retro | Read/Grep/Glob/Write · Strava read · Samwise · calls Gimli, Legolas, Ori | `current/fitness/plans/` |
+| 🎸 **D.A.E.R.O.N.** | *Deliberate Ear, Axe, Riffs, Orchestrated Practice & Notation* | guitar sprint plans, review, adjustments | Read/Grep/Glob/Write · Samwise · calls Legolas, Ori | `current/guitar/plans/` |
+| 📚 **R.U.M.I.L.** | *Reps, Understanding, Mnemonics, Inquiry & Lore* | topic bank, week plans of ~30-minute sessions, Sunday retro | Read/Grep/Glob/Write/Edit · Samwise · calls Legolas, Ori | `current/learning/` (plans, `topics.md`) |
 
-### 🪓 G.I.M.L.I.
+**Finance**
 
-**G**enerative **I**ntelligence **M**ining **L**ocal **I**nformation
+| Agent | Acronym | Tasks / modes | Tools and access | Writes |
+|---|---|---|---|---|
+| 🏔️ **T.H.O.R.I.N.** | *Treasury Holdings & Official Reports INgest* | `ingest-finance` — only on the owner's explicit word | Read/Write/Edit · `read_export`, `archive_export` · calls Glóin, Ori | `core/finance/finance.md`, archived export |
+| 📈 **D.A.I.N.** | *Decisions, Analyses & Investment Notes* | earnings review against the thesis, pre-investment, event calendar, rebalancing against the thesis' own triggers; gives no recommendation without the owner's thesis | Read/Grep/Glob/Write/Edit · calls Glóin, Legolas, Ori | `knowledge/finance/analyses/` |
+| 🧾 **G.L.O.I.N.** | *Gathering Ledgers Of Issuers' Numbers* | fetches public company reports (`fetch-finance-reports`) | `WebFetch` · `edgar_reports` MCP · Write — no shell | `knowledge/finance/<TICKER>/` |
 
-The SQL agent. Digs through structured data: finance exports, dev-tracker logs, media metadata, homelab telemetry. Operates on SQLite databases with schema-aware prompts. When a question involves counting, summing, filtering, or comparing — Gimli takes over.
+**White Council and persona building**
 
-### 🏹 L.E.G.O.L.A.S.
+| Agent | Acronym | Tasks / modes | Tools and access | Writes |
+|---|---|---|---|---|
+| 🐻 **B.E.O.R.N.** | *Bearer of Embodied Opinions, Roles & Natures* | speaks as one persona card; model: opus for fidelity | Read · Grep · Glob · `samwise context` | one answer file in the scratchpad |
+| 🧝‍♂️ **E.L.R.O.N.D.** | *Examiner Laying out Rounds' Outcomes, Noting Dissent* | closes a Council: synthesis and the assembled record | Read · Glob · Write · `elrond` `record` | `knowledge/councils/` |
+| 🌟 **F.I.N.R.O.D.** | *Faithful Images of Notable Reasoning, Opinions & Decisions* | builds a persona stage by stage: scope, sources, digests, card, validation (`persona` skill) | Read/Grep/Glob/Write/Edit · `mirdain` MCP · calls Narvi, Legolas, Ori | `knowledge/personas/` |
+| ⚒️ **N.A.R.V.I.** | *Note-taker Abstracting Reasoning, Views & Idiom* | persona digest drafts | Read · Write — no shell | `.md` in the temp directory only |
 
-**L**ocal **E**ngine **G**enerating **O**utputs, **L**ooking **A**t **S**earch
+**Calendar and repository**
 
-The scout. The only agent with outbound network access. Performs web searches for fact verification, current prices, exchange rates, news, and anything time-sensitive that can't live in the local knowledge base. Starts with DuckDuckGo, with a self-hosted SearXNG instance as the long-term target.
+| Agent | Acronym | Tasks / modes | Tools and access | Writes |
+|---|---|---|---|---|
+| 🛡️ **F.A.R.A.M.I.R.** | *Forwarding Actions, Reminders And Meetings, Invoking Repositories* | reads the main and shared calendars, creates events (titles marked `[Gandalf]`); reminders and delegation to the forge are not built yet | Google Calendar connector only; no `brain/` access; deletes, edits and events with guests need the owner's yes (consent-token hook) | the main calendar |
+| 🔨 **A.U.L.E.** | *Agent Updating Logic & Ecosystem* | changes to this repo: agents, skills, routing, hooks, scripts, docs — plan first, then branch, commits, PR; never merges | Read/Grep/Glob/Write/Edit · Bash behind a guard | this repo, on a branch |
+| 📦 **O.R.I.** | *Orderly Record Inscriber* | commits and pushes `brain/` — the only agent that may; main only; model: haiku | `ori` MCP: `status`, `commit` | git history of `brain/` |
 
-### 🎒 B.I.L.B.O.
+**Scripts and hooks (not reactive agents)**
 
-**B**ot **I**ndexing **L**ocal **B**inary **O**bjects
+| Component | Acronym | Role |
+|---|---|---|
+| 🎒 **B.I.L.B.O.** | *Bot Indexing Local Binary Objects* | embedding indexer; reindexes on every commit or merge in `brain/` through git hooks |
+| 👁️ **S.M.E.A.G.O.L.** | *Storage Module Evaluating All Gandalf's Operational Logs* | Stop-hook that logs every turn to `brain/current/smeagol/` — writes the log, never reads it |
 
-The indexer. Not a reactive agent — runs in the background as a scheduled task. Walks watched directories, detects new or modified files, chunks them, and stores them in the knowledge base. Bilbo is what keeps the knowledge base alive without manual upkeep.
+**Planned or only proposed** — placeholders to be revisited once Smeagol's logs reveal which gaps matter. None of these names is a commitment.
 
-### 🛡️ F.A.R.A.M.I.R.
+| Role | Status | Name | Notes |
+|---|---|---|---|
+| Archival, compression, historical retrieval | planned (Step 10) | **T.R.E.E.B.E.A.R.D.** | *Temporal Repository Engine Evaluating, Archiving And Reducing Data* — meaningful once 6–12 months of data accumulate |
+| Personal advisor (single voice) | proposed | **G.A.L.A.D.R.I.E.L.** | *Guidance Agent for Life Alignment: Decisions, Reflection, Insight, Evaluation, Lookahead* |
+| Content drafting | proposed | **L.I.N.D.I.R.** | *Language and Ideation Node for Drafting, Illustrating, Rewriting* |
+| Outreach and lead research | proposed | **H.A.L.D.I.R.** | *Handling Active Lead Discovery, Intelligence, Research* |
+| Multi-channel gateway and voice | planned (E1) | — | the dispatcher role Radagast once sketched is not what he does now |
+| Log analysis and insight extraction | open | — | Radagast could read Smeagol's logs; a dedicated layer is E3 |
+| Development task execution | external | [`agentic-sdlc-forge`](https://github.com/Jarkendar/agentic-sdlc-forge) | an external executor Faramir is to invoke — not built |
 
-**F**orwarding **A**ctions, **R**eminders **A**nd **M**eetings, **I**nvoking **R**epositories
+### Skills
 
-The executor and delegator. Manages calendars, reminders, and — most importantly — delegates real work to external systems. Faramir is the bridge between G.A.N.D.A.L.F. (knowledge orchestration) and tools like [`agentic-sdlc-forge`](https://github.com/Jarkendar/agentic-sdlc-forge) (development orchestration) or `n8n` workflows. When a request requires *doing something* rather than *knowing something*, Faramir handles the handoff.
+Skills are the higher-order workflows; most are owned by one agent, which runs them. Built so far (21): `daily`, `idea`, `update-core`, `add-contact`, `interview` (Frodo); `analyze-offer`, `practice-review`, `english-review` (Balin); `english-prep`, `practice-prep` (Erestor, forked); `develop-idea` (Círdan); `pack` (Strider); `flashcards` (Arwen); `ingest-finance` (Thorin); `fetch-finance-reports` (Glóin, forked); `research-offer`, `research-idea` (Legolas, forked helpers); `persona` (Finrod); `council` (the White Council, run by the router); and two that only run in a full session: `init-brain`, `ingest-conversation`.
+
+### The White Council and personas
+
+The White Council is the first skill: several advisers, each a persona card spoken by Beorn, answer one hard decision independently, then Elrond writes a synthesis that keeps the dissent. The personas are built and validated against their sources by Finrod. They fall into broad groups — finance and investing, productivity and work, philosophy and the examined life, and Polish-language voices — and the aim is deliberately to hear angles the owner would not reach alone, including uncomfortable ones. The current roster and its history are in IMPLEMENTATION.md.
+
+### Two roles worth a paragraph
+
+**F.A.R.A.M.I.R.** is meant to be the bridge between G.A.N.D.A.L.F. (knowledge orchestration) and tools like [`agentic-sdlc-forge`](https://github.com/Jarkendar/agentic-sdlc-forge) or `n8n` workflows: when a request requires *doing something* rather than *knowing something*, he handles the handoff. Today only the calendar half exists; reminders and delegation are Step 4.
+
+**L.E.G.O.L.A.S.** is the only agent with the open web. The search backend is still the built-in `WebSearch` / `WebFetch`; a self-hosted SearXNG remains the long-term target.
 
 ### 👁️ S.M.E.A.G.O.L.
 
 **S**torage **M**odule **E**valuating **A**ll **G**andalf's **O**perational **L**ogs
 
-Smeagol's job ends at *writing the log*. He doesn't analyse it. The system improves by reading its own logs, but the *reader* is intentionally a separate role (see the role table — a future log-analysis agent or skill, persona TBD). Keeping logging and analysis separate makes both replaceable.
+Smeagol's job ends at *writing the log*. He doesn't analyse it. The system improves by reading its own logs, but the *reader* is intentionally a separate role (see the planned table — a future log-analysis agent or skill, persona TBD). Keeping logging and analysis separate makes both replaceable.
 
 ### 🌳 T.R.E.E.B.E.A.R.D.
 
@@ -195,7 +363,7 @@ The knowledge base is the hardest part of the project. Not because storing data 
 
 ### Phase 1 — A markdown brain in a git repo
 
-The MVP knowledge base is a **separate `brain/` repository, mostly markdown files, version-controlled in git**. No vector database, no embeddings — at MVP scale they cost more than they pay back, and a flat tree of MD files is debuggable in a way Chroma never is.
+The MVP knowledge base is a **separate `brain/` repository, mostly markdown files, version-controlled in git**. No vector database, no embeddings — at MVP scale they cost more than they pay back, and a flat tree of MD files is debuggable in a way a vector store never is. *(Status: the vector layer of Phase 2 was added anyway in September 2026 — Qdrant, a hierarchical index and a reranker, read through Samwise — once questions about "what did I plan" outgrew grep.)*
 
 ```
 brain/
@@ -269,7 +437,7 @@ Data lives in one of three tiers, chosen by the *shape of questions* you'd reali
 | Tier | Backend | Use when the question is… | Examples |
 |---|---|---|---|
 | **A — Structured** | SQLite | *how much / when / which / count* | Bank transactions, dev-tracker telemetry, media consumption log, life timeline |
-| **B — Semantic** | ChromaDB (vector) | *what did I think / how does X work / find similar* | Notes, conversation summaries, article digests, project context |
+| **B — Semantic** | Qdrant (vector; ChromaDB was the first sketch) | *what did I think / how does X work / find similar* | Notes, conversation summaries, article digests, project context |
 | **C — Cold blobs** | Filesystem + SQLite manifest | *where is the original* | Full PDFs, course HTML, raw exports, source documents |
 
 The cold tier is critical and easy to underestimate. Vectorising a 400-page book produces hundreds of low-quality chunks that pollute retrieval. Storing the file in `brain/_blobs/` and indexing only a 200-word LLM-generated summary plus metadata in the manifest gives Gandalf enough to say *"this is in `sapiens.pdf`, chapter 3 covers your question"* — which is usually what you actually want.
@@ -313,7 +481,7 @@ Updates never delete. Each chunk carries enough metadata to be replaced without 
 }
 ```
 
-When a fact is updated, the new chunk is created and the old one's `superseded_by` field points to it. Default retrieval filters `superseded_by IS NULL`, so users see only the current truth. Treebeard, however, can follow the chain backward when asked historical questions. Cost is negligible — Chroma stores this as plain metadata, embeddings are not duplicated.
+When a fact is updated, the new chunk is created and the old one's `superseded_by` field points to it. Default retrieval filters `superseded_by IS NULL`, so users see only the current truth. Treebeard, however, can follow the chain backward when asked historical questions. Cost is negligible — Qdrant stores this as plain payload, embeddings are not duplicated.
 
 ### Compression thresholds (tentative)
 
@@ -397,7 +565,7 @@ How they're connected is intentionally low-tech: `brain/` and `prompt-vault` are
 | Local LLM runtime (Phase 2) | — | Ollama | ARM-friendly, model swapping, already in use. |
 | Models (Phase 2, RPi 5) | — | Phi-3, Qwen2 7B, Gemma 3 | Small, capable, decent tool-calling. |
 | Models (Phase 2, desktop fallback) | — | Larger Qwen / Llama via RTX 2070S | Heavy reasoning offloaded over Tailscale. |
-| Knowledge store (text) | Markdown files in `brain/` git repo | + ChromaDB index on top | Files first, vectors when they earn it. |
+| Knowledge store (text) | Markdown files in `brain/` git repo | + Qdrant index on top (built; the markdown stays canonical) | Files first, vectors when they earn it. |
 | Knowledge store (structured) | SQLite | SQLite | Lightweight, file-based, plays well with git LFS or external mount. |
 | Ingestion glue | n8n | n8n + webhooks | Already running on the homelab. |
 | Background jobs | systemd timers | systemd timers | Already in use for `dev-tracker`. |
@@ -408,7 +576,7 @@ How they're connected is intentionally low-tech: `brain/` and `prompt-vault` are
 
 ## 🚀 Running it
 
-The MVP has no separate Gandalf binary — the project working directory *is* Gandalf, and `CLAUDE.md` is what makes Claude Code behave like one. `bin/gandalf` is a small launcher that removes the manual `cd` + repo-sync dance:
+The MVP has no separate Gandalf binary — the project working directory is Gandalf's home, and `.claude/agents/gandalf.md` (the router, a main-thread agent) plus `CLAUDE.md` are what make Claude Code behave like one. `bin/gandalf` is a small launcher that removes the manual `cd` + repo-sync dance and starts the router; `gandalf --full` opens a full session instead (every tool, for `/init-brain`, `/ingest-conversation` and work outside the router's reach):
 
 ```bash
 ./bin/gandalf --install   # one-time: symlinks `gandalf` and `brain` into ~/.local/bin
@@ -424,6 +592,7 @@ brain -c                  # same thing — `brain` is just a second name for mus
 | `--model <m>` / `--effort <lvl>` | forwarded to `claude` |
 | `--yolo` | shorthand for `--dangerously-skip-permissions` |
 | `--no-sync` | skip the git pull / branch check, start immediately |
+| `--full` | open a full session instead of the router |
 
 Before launching, the script pulls both this repo and `brain/` on their current branch, and asks before switching either one to `main` if it's elsewhere — uncommitted changes are never discarded.
 
@@ -431,19 +600,23 @@ Before launching, the script pulls both this repo and `brain/` on their current 
 
 ## 🗺️ Roadmap
 
-The project is at **concept stage**. The intended build order:
+The MVP stage is done and the project is in the phase of growing the agent team around it. Status per step (details and dates in IMPLEMENTATION.md):
 
-1. **MVP — Gandalf on Claude Code, brain repo as plain markdown.** Single orchestrator (Gandalf as a CC skill), G.I.M.L.I. against `dev-tracker` SQLite, plus direct markdown access for everything else. No embeddings, no Ollama, no Pi yet. Validates the router pattern and the shape of the brain repo.
-2. **Add S.M.E.A.G.O.L.** — query logging from day one, even before there's anything to analyse.
-3. **Add S.A.M.W.I.S.E. — minimal version.** Direct markdown retrieval first (grep + LLM read), embeddings only if that proves insufficient.
-4. **Add F.A.R.A.M.I.R.** — calendar, reminders, delegation to `agentic-sdlc-forge`.
-5. **Add L.E.G.O.L.A.S.** — web search for fact verification.
-6. **Add the first skill (White Council)** — proves the agent/skill split works in practice, not just on paper.
-7. **Add Ollama + engine abstraction.** Local models become an option, agents become model-portable. This is the point at which the project actually becomes local-first.
-8. **Migrate to RPi 5.** Observe what breaks, optimise model choice.
-9. **Add B.I.L.B.O.** — scheduled indexing & vector DB, once the brain repo grows past the "grep is fine" threshold.
-10. **Add T.R.E.E.B.E.A.R.D.** — once the active base has 6–12 months of data and compression becomes meaningful.
-11. **Optional voice layer** — only if real usage proves it's wanted.
+| # | Step | Status |
+|---|---|---|
+| 1 | **MVP — Gandalf on Claude Code, brain repo as markdown.** G.I.M.L.I. over SQLite, direct markdown access | done |
+| 2 | **S.M.E.A.G.O.L.** — query logging | done |
+| 3 | **S.A.M.W.I.S.E.** — semantic retrieval | done (Qdrant, index v2, reranker; usage review scheduled for 2026-11-30) |
+| 4 | **F.A.R.A.M.I.R.** — calendar, reminders, delegation to `agentic-sdlc-forge` | calendar built, awaiting a live check; reminders and delegation open |
+| 5 | **L.E.G.O.L.A.S.** — web search | built on `WebSearch` / `WebFetch`; search backend (SearXNG) open |
+| 6 | **First skill (White Council)** | done and in use |
+| 7 | **Ollama + engine abstraction** — the point where the system becomes local-first | open; the MVP privacy exception closes here |
+| 8 | **Local models on the RPi 5** | open (the Pi already hosts the router, the index and the MCP servers; the engine is still the Claude API) |
+| 9 | **B.I.L.B.O.** — indexing & vector DB | done, running on the Pi, reindexes on commit |
+| 10 | **T.R.E.E.B.E.A.R.D.** — compression and archive retrieval | open; meaningful once 6–12 months of data accumulate |
+| 11 | **Optional voice layer** | open — only if real usage proves it's wanted |
+
+Beyond the numbered list, a team of domain agents grew from real use rather than from the original plan: records (Frodo, Balin, Círdan, Strider, Arwen), trainers and teachers, finance, and the Council's builders. Next candidates: reminders and delegation (Step 4), the conversational gateway (E1), and the engine abstraction (Step 7).
 
 Order is a guess; Smeagol's logs will likely shuffle it.
 
