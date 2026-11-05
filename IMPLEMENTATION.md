@@ -4,7 +4,7 @@
 the execution path — *how* and *when*. README is the canon; this file is updated
 as work progresses without touching the canon.
 
-Last updated: 2026-10-10
+Last updated: 2026-11-05
 
 ---
 
@@ -61,6 +61,65 @@ entirely — see backlog note).
 - **CC artefacts live here.** Claude Code skill and sub-agent definitions belong
   in `.claude/` in this repo. New skills are *exported* to `prompt-vault` as
   backup — that is the direction (this repo → vault), not the reverse.
+
+---
+
+## Status at a glance (2026-11-05)
+
+Read this first; the sections below are the history and the detail.
+
+| Area | State | Where |
+|---|---|---|
+| Runtime | MVP on Claude Code: router `gandalf` (main-thread agent), sub-agents, engine = Claude API; `gandalf --full` for a full session | Stage 3 |
+| Retrieval | S.A.M.W.I.S.E. over Qdrant (index v2, reranker), B.I.L.B.O. reindexes on commit; RAG usage review 2026-10-27 done, next 2026-11-30 with the imladris decision | Steps 3, 9 |
+| Structured data | G.I.M.L.I. over `brain/db/` and `GIMLI_EXTRA_DBS`, read-only MCP | Step 1, Stage 1 |
+| Logging | S.M.E.A.G.O.L. Stop-hook; `token-usage.py` for the token baseline | Step 2 |
+| Router and agents | 23 agent files: router + 22 sub-agents (list below) | Stage 3 |
+| Skills | 21; two of them (`init-brain`, `ingest-conversation`) only in a full session | — |
+| MCP servers | strava, samwise (http), arwen, gimli, ori, frodo, elrond, mirdain, thorin, balin, sync | `.mcp.json` |
+| Guards | `write-guard` (per-agent zones, Bash guard, read guard), `faramir-guard` (consent token), `brain-instruction-sync`, `samwise-warmup` | hooks |
+| White Council | `council`, `persona` skills; persona roster grows from the owner's queue (finance, productivity, philosophy, Polish voices) | Step 6 |
+| Not built | Ollama / engine abstraction (Step 7), local models on the Pi (Step 8), T.R.E.E.B.E.A.R.D. (Step 10), voice (Step 11), gateway and scheduler (E1, E2), Faramir's reminders and delegation (Step 4) | Long-term |
+
+**Agents by group.** Router: gandalf. Questions and reports: gimli, radagast,
+erestor, legolas (samwise is an MCP server, not an agent file). Records:
+frodo, balin, cirdan, strider, arwen. Trainers and teachers: glorfindel,
+daeron, rumil. Finance: thorin, dain, gloin. White Council: beorn, elrond,
+finrod, narvi. Calendar: faramir. Repo and git: aule, ori. Full table with
+tools and write zones: README.md § agents.
+
+## Open items and what to verify
+
+Collected from the sections below so that nothing hides in a log. Grouped by
+who has to act.
+
+**To check live (the owner starts it; a headless router run is not mine):**
+- Faramir's calendar against a real Google Calendar (built 2026-10-17, title
+  mark `[Gandalf]` added later, PR #93).
+- Thorin on a real myFund export (the guards are tested on synthetic files).
+- The harness running a frontmatter hook for a sub-agent (Narvi) end to end —
+  Stage 1 note.
+- The router's rule that private content never goes to the web is an
+  instruction, not a structure — watch Smeagol's logs.
+
+**Decisions waiting for the owner:**
+- Whether the dev session also drops the claude.ai-synced skills
+  (`--setting-sources project,local` in the launcher; Stage 2).
+- Polish voices and career advisers for the Council (open in the Step 6
+  section).
+- Stage 3, Phase 2: the box "personal records, starting with `daily`" is
+  still unchecked in its section although `frodo` is built — close it or
+  say what remains.
+- RAG: on 2026-11-30, whether imladris stays on this host.
+- Reminders and delegation (Step 4) and the search backend (Step 5).
+
+**Known gaps:**
+- `GIMLI_EXTRA_DBS` points at a `dev_tracker.db` that does not exist here.
+- `english-prep` creates `english-scenarios.md` when it is missing, against
+  its own "writes nothing".
+- `dev.md` agent table and `.claude/agents/` are synchronised by hand; a
+  check script is a candidate (not built).
+- `ARCHITECTURE.md` is the owner's and not written.
 
 ---
 
@@ -1955,7 +2014,7 @@ What the numbers say:
   source end to end through `assemble.py`. `/persona` says to do that single
   run before fanning out.
 
-README.md § agents does not list `erestor`, `gloin` and `narvi` yet (owner's file).
+README.md § agents lists all agents since 2026-11-05.
 
 **Stage 2 — context diet.**
 - [x] `disable-model-invocation: true` on `init-brain`, `ingest-finance`,
@@ -1974,8 +2033,10 @@ README.md § agents does not list `erestor`, `gloin` and `narvi` yet (owner's fi
 
 **Stage 3 — Gandalf as a router, the work in domain agents.** Direction set
 by the owner 2026-10-11. It replaces the launcher-profile plan (questions /
-capture / dev — in git history, commit 0ec5562). This is the plan only;
-nothing below is built, and it is built one domain at a time.
+capture / dev — in git history, commit 0ec5562). *Status
+2026-11-05:* built, one domain at a time — the router (`gandalf`), and the
+domain agents in the table below; see § "Status at a glance". Phase notes
+further down record each step.
 
 ```
 owner ↔ Gandalf — router, main thread: holds the conversation, asks, confirms
@@ -2739,10 +2800,13 @@ reshuffle it.**
   `WebSearch` + `WebFetch`, target of the forked research helpers). The
   Gandalf route is done (2026-10-18: the router calls him for research and
   does quick public checks itself); the search backend is still this step.
-- [ ] **Step 6 — First skill: White Council** — multi-perspective deliberation
+- [x] **Step 6 — First skill: White Council** — multi-perspective deliberation
   over a hard question; validates the agent/skill split in practice.
   Design agreed 2026-09-28 (one card-driven agent, persona and role cards) —
-  see the detailed section above.
+  see the detailed section above. Built and in use: `beorn`, `elrond`,
+  `finrod`, `narvi` and the `council` and `persona` skills; the roster keeps
+  growing (smoke test 2026-10-05; Polish voices and career advisers still
+  open in the detailed section).
 - [ ] **Step 7 — Ollama + engine abstraction** — model-agnostic interface; agents
   become portable across Claude API, local Ollama, and hosted OSS. This is the
   point at which the system actually becomes local-first.
