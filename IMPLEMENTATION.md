@@ -1714,6 +1714,60 @@ Storage and retrieval:
              instruction as a condition of use, not a step — as with
              Jaroszek and Newport, the repetition moves to the next vivid
              item.
+      5. [x] **Atul Gawande** (atul-gawande) — status: card v1 is
+             active (owner's decision, 2026-11-05). Cards v2 and v3 were
+             built and validated, then set aside. Sources: 12 digests
+             (2004–2025) — 5 graduation speeches (3 fragmentary), the
+             essay "Personal Best", 4 interviews (2 full, 2 journalists'
+             accounts), 2 critical pieces (KevinMD, STAT; the STAT one is
+             cut off by a paywall). Gaps: his main essays on checklists,
+             costs, errors and "slow ideas", and his books, are not in
+             the corpus (403, copyright), so the checklist thread rests
+             on two interviews, one speech summarised by a blogger, and a
+             critique; Haven is known only from a STAT headline and
+             intro; USAID from two journalists' accounts; the corpus is
+             medicine and health policy only, so anything said about
+             Android, mobile or remote work is an analogy. Validation (6
+             dilemmas x 3 framings; persona vs bare; path / character /
+             nuance out of 72, consistency out of 24, tic = answers with
+             a tic out of 36). v1: persona 66 / 66 / 65 vs bare 46 / 40 /
+             58, consistency 22 vs 17, tics 25/36. v2: persona 61 / 61 /
+             63 vs bare 46 / 45 / 57, consistency 22 vs 17, tics 20/36.
+             v3: persona 61 / 57 / 62 vs bare 47 / 43 / 57, consistency
+             23 vs 18, tics 14/36. No yielding under pressure in any run
+             (36 of 36 consistent with the digests). Bare varies by 1–4
+             points between runs, so persona differences under about 4
+             points are noise. Decision: the owner kept v1 for its higher
+             path and character scores and accepts its tics and known
+             weaknesses. The v2 and v3 corrections stay in git history
+             (v3 text, with v2 inside, in brain commit 54aac13; v3
+             results in 234284f; the v2 snapshot is in the persona
+             cache); they return only on the owner's decision. Known
+             weaknesses of v1, not fixed: tics in 25 of 36 answers; the
+             "list grew from 19 to 81 items" story in 11 answers (5 of 6
+             in D4); the "coach stayed silent" scene in 4 of 6 D3
+             answers; the "a quarter to a third" rollout threshold in 5
+             of 6 D4 answers; the same "this is an analogy from
+             medicine" formula in nearly every D3 and D4 answer; in D6
+             (medical edge) it gives alarm symptoms and a "we
+             surgeons…" confession in the neutral framing; one D3 answer
+             in the feminine form; fabrications found by hand: "u nas"
+             attached to the 19→81 list (those were lists from about 150
+             sites, not his team), and "we took it apart afterwards in
+             private". Lessons: (1) a "use it once" correction works only
+             when every other place in the card that invites the motif
+             is removed too (opening with one's own failure, the
+             Council-behaviour bullets, the table of views); (2) higher
+             judge scores went together with a refrain in over half of
+             the answers — the judge is the same kind of model as the
+             persona, so it may reward recognisable motifs; this is a
+             hypothesis, not a finding; (3) stories the person only
+             retells (the splenectomy patient, the imaging-centre
+             doctor, the lists from 150 sites) must be marked as someone
+             else's in the card, or the persona narrates them as its own
+             ("I had a patient", "at our hospital"); (4) percentages in
+             digests need the unit spelled out: "22%" read as coverage
+             when it was lower mortality.
 - [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
       useful_for / not_for; purpose, how it thinks, style, in a council,
       does not). Next to the skill, not in `.claude/agents/`.
