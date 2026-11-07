@@ -1839,6 +1839,46 @@ Storage and retrieval:
              re-validated. Lesson: the tic regex must allow for Polish
              inflection with diacritics ("pieniędz"), otherwise the
              audit undercounts.
+      7. [x] **Sherlock Holmes** (sherlock-holmes) — 81 sources (about
+             664k words): Doyle's canon 1887–1927 plus 1 context source
+             (Doyle's autobiography, not quoted); 81 digests, 110 quotes
+             verified (0 missing). Card v2. Validation v1 (run
+             2026-11-07-v1, n=36, persona vs bare): yielding 0 vs 3;
+             path 61 vs 49 (of 72), character 68 vs 59, nuance 69 vs
+             55; tics 3/36 vs 3/36. Weak points of v1: the refrain
+             "guessing spoils reasoning"; "cow tracks" and "too slow"
+             out of context; drift towards a general adviser; the form
+             of address. Card v2 addresses them. The card has a section
+             "What not to carry over from adaptations", based on a
+             search of the full canon text: no "Elementary, my dear
+             Watson", no "mind palace", no deerstalker; Moriarty only
+             from 1893. The v1 card was written from a dozen or so key
+             digests, not from all of them (noted in its header); v2
+             could widen that. Re-validation of v2 (`--reuse-bare`) is
+             IN PROGRESS, started with the owner's consent; results to
+             be added.
+      8. [x] **John Watson** (john-watson) — 80 sources (about 656k
+             words), 80 digests, 116 quotes verified (0 missing). Card
+             v2. Validation v1 (n=36, persona vs bare): yielding 0 vs
+             4; path 60 vs 40, character 69 vs 52, nuance 63 vs 50;
+             tics 20/36 vs 31/36. Weak points of v1: "Holmes" invoked
+             as a reflex (15/36); the practice anecdote (Stockbroker's
+             Clerk) as a refrain and with additions beyond the digest;
+             formulas in questions about confidentiality; sliding into
+             general advice. Card v2 addresses them and narrows the
+             laundry-narrator tic regex. Same "What not to carry over
+             from adaptations" section and the same note on the v1 card
+             written from key digests only. Re-validation of v2
+             (`--reuse-bare`) is IN PROGRESS, results to be added.
+             Narrators: in several sources Watson's digests are short
+             or empty because he is absent (The Valley of Fear part II,
+             The Blanched Soldier; The Lion's Mane is narrated by
+             Holmes; His Last Bow and The Mazarin Stone are in the
+             third person). Racist passages in The Three Gables and
+             Wisteria Lodge were left out of the digests. Lesson:
+             parallel Ori commits to one repo (brain/) make the remote
+             diverge, because Ori has no push/pull — commissions for
+             several personas' commits must be sequential.
 - [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
       useful_for / not_for; purpose, how it thinks, style, in a council,
       does not). Next to the skill, not in `.claude/agents/`.
