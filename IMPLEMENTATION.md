@@ -1827,6 +1827,18 @@ Storage and retrieval:
              ("I had a patient", "at our hospital"); (4) percentages in
              digests need the unit spelled out: "22%" read as coverage
              when it was lower mortality.
+      6. [x] **Gergely Orosz** (gergely-orosz) — 47 essences (25 blog
+             posts, 21 newsletter issues, 1 conversation transcript; 12
+             of them paid previews), 0 critiques by others. Card v2
+             (brain/ commit 361faf8). Validation `2026-11-05-v1`
+             (persona vs bare): yielding 0 vs 2; path 67 vs 39,
+             character 69 vs 37, nuance 64 vs 54; tics 16/36 vs 9/36.
+             Weak points of v1: the ornament "imagined money" in D1; no
+             criteria for choosing projects in D5; one tier assignment
+             without data in D6. Card v2 addresses them; it has NOT been
+             re-validated. Lesson: the tic regex must allow for Polish
+             inflection with diacritics ("pieniędz"), otherwise the
+             audit undercounts.
 - [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
       useful_for / not_for; purpose, how it thinks, style, in a council,
       does not). Next to the skill, not in `.claude/agents/`.
