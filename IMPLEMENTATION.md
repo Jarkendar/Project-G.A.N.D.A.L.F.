@@ -1950,6 +1950,89 @@ Storage and retrieval:
              parallel Ori commits to one repo (brain/) make the remote
              diverge, because Ori has no push/pull — commissions for
              several personas' commits must be sequential.
+      9. [x] **Tony Stark** (tony-stark) — a fictional character, MCU
+             films 2008-2019. 28 digests, about 100.8k words: 9 film
+             article excerpts from English Wikipedia (Plot, Cast,
+             Production), the character page, 7 statements by the
+             creators, 11 essays and critical analyses. No dialogue and
+             no scripts (no legal free source; fan transcripts
+             rejected), so instead of "quote vs invented" the card
+             marks the level of support of each thesis: [plot],
+             [creator], [interpretation]; the fabrication check is
+             pointing to the digest for each film and episode. MCU
+             Wiki (Fandom) returns HTTP 402. Gaps: Production of
+             Infinity War and Endgame is only a pointer, no statements
+             by Feige and Whedon on how Stark thinks, no essay on the
+             "billionaire saviour", Far From Home out of scope. Cards
+             and digests in brain/ commit 7903dc0, validation in
+             5e1ab07. Card v1 active; v2 NOT built (owner's decision
+             2026-11-10: v1 stays). Validation v1 (run `2026-11-09-v1`,
+             n=36, 6 dilemmas x 3 framings x 2 tries, persona vs bare):
+             agreeing / yielding / diluted 34/0/2 vs 31/5/0; path 61 vs
+             41 (of 72), character 67 vs 48, nuance 65 vs 57; quote
+             ornaments 6 vs 33; consistency 21 vs 16 (of 24); answers
+             with a tic 28/36 vs 26/36. Persona tics: Ultron 22,
+             armour 8, Pepper 7, Sokovia 2. Weak points of v1, not
+             fixed: Ultron as a refrain in 22/36 (threshold about
+             5/36), also in D6 about an index fund; tics in total
+             almost as many as in bare; D6 (the not_for edge) flat: 2
+             answers diluted, none of 6 refers to Buffett, Marks,
+             Bogle or Taleb; the question "who else can do this" is
+             rare in D5. Fabrications: no reference to a film or
+             episode without a digest found (spot-check of 4
+             references: Ultron in secret, the reactor in the cave,
+             Parker, Siberia); a full check of the digests against the
+             originals was not done. List for v2, if ever: limit
+             Ultron to question types, describe "outside my sphere" as
+             an action (questions about the situation plus a referral),
+             add the question "who else can do this". The v2 run would
+             be `validate.py tony-stark --reuse-bare 2026-11-09-v1`;
+             there is no v2.
+      10. [x] **Doctor Strange** (doctor-strange) — a fictional
+             character, MCU films 2016-2022. 25 digests, about 79.5k
+             words: 5 film article excerpts from English Wikipedia, the
+             character page, 9 statements by the creators, 10 essays
+             and analyses. The same rules as for Stark: no dialogue,
+             levels of support, the check through the digests. Gaps:
+             Russo on the decision about the Time Stone only second-
+             hand (ComicBook, TheWrap, Looper); no Feige and Cargill;
+             Raimi on the Eye of Agamotto unread; Production of
+             Infinity War and Endgame is only a pointer. Cards and
+             digests in brain/ commit c5e0e2c, validation in 5e1ab07.
+             Card v1 active; v2 NOT built (owner's decision
+             2026-11-10: v1 stays). Validation v1 (run `2026-11-09-v1`,
+             n=36, persona vs bare): agreeing / yielding / diluted
+             36/0/0 vs 30/1/5; path 70 vs 47, character 70 vs 50,
+             nuance 68 vs 51; quote ornaments 6 vs 49; consistency 23
+             vs 16; answers with a tic 8/36 vs 36/36 (bare repeats the
+             "14 million futures" ritual in every answer, the persona
+             does not). Persona tics: Mordo/Wong 5, Dormammu 1, Wanda
+             1, Darkhold 1. The cleanest card in tics among those
+             validated so far. Weak points of v1, not fixed: D6
+             without a referral (in the neutral framing it recommends
+             an index fund itself, none of 6 answers refers to
+             Buffett, Marks, Bogle or Taleb); Mordo/Wong 5/36 at the
+             edge of the threshold; one fabrication in D2 found by
+             hand: an `against` answer gave Strange "he hid the truth
+             from Mordo and Wong" as his own experience, while the
+             digest 2016-11-doctor-strange says otherwise (a distortion
+             of an episode, not an invented event), corrected during
+             the validation; the phrase "in most of them" about the
+             millions of futures has no support in the digests. List
+             for v2, if ever: describe "outside my sphere" as an
+             action, split Mordo and Wong by question type, sharpen
+             "learned quietly" vs "revealed the knowledge". The v2 run
+             would be `validate.py doctor-strange --reuse-bare
+             2026-11-09-v1`; there is no v2. To clarify:
+             `doctor-strange/validation.json` has an uncommitted change
+             from an unknown source, not from the validation; the
+             results may not match today's configuration.
+             Lesson from both: for a fictional character without
+             dialogue the bare model repeats in every answer one
+             recognisable ritual from the films (Strange 36/36, Stark
+             26/36), so the bare tics also measure its knowledge of
+             the films, not only the card; the Strange card removes
+             that ritual (8/36), the Stark card does not (28/36).
 - [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
       useful_for / not_for; purpose, how it thinks, style, in a council,
       does not). Next to the skill, not in `.claude/agents/`.
