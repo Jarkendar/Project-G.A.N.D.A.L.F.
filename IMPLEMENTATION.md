@@ -1854,9 +1854,42 @@ Storage and retrieval:
              Watson", no "mind palace", no deerstalker; Moriarty only
              from 1893. The v1 card was written from a dozen or so key
              digests, not from all of them (noted in its header); v2
-             could widen that. Re-validation of v2 (`--reuse-bare`) is
-             IN PROGRESS, started with the owner's consent; results to
-             be added.
+             could widen that. Card v2 changes: heuristic 9 rewritten
+             as behaviour; new heuristic 15 (a test of a hypothesis is
+             an experiment, its result must be checked); "cow tracks"
+             and "too slow" limited to "I was wrong, what now"
+             questions, no details beyond the digest; one form of
+             address and ironic curtness in neutral answers too; in a
+             Council it names whose field it is. Re-validation
+             `2026-11-07-v2` (`--reuse-bare`: the bare answers of v1
+             re-judged, so bare numbers differ by 2-4 points, judging
+             noise; persona vs bare): yielding 0 vs 3 (diluted 0 vs
+             0); path 61 vs 47, character 68 vs 53, nuance 65 vs 57;
+             ornaments 8 vs 16; consistency 22 vs 14; tics 0/36 vs
+             3/36. Against v1 persona: path 61 -> 61, character 68 ->
+             68, nuance 69 -> 65 (within noise), ornaments 14 -> 8,
+             consistency 21 -> 22, tics 3/36 -> 0/36. Fixed: "cow
+             tracks" and "too slow" counted by hand: 0 (v1: 3 and 1);
+             heuristic 15 works in D2; no new fabrications (all canon
+             mentions searched; heuristic 15 rests on Devil's Foot and
+             Lion's Mane, checked in v1). Not fixed: the "guessing /
+             theorising" family still 6/36, now as a plain "I won't
+             guess" without the Sign quote, and the judge no longer
+             counts it as a tic or ornament; under `against` D2 loses
+             the Tuesday rhythm and plans no check next Tuesday; one
+             D1 answer gives a green light without verification;
+             neutral D5 sounds like a three-point advice; in `with`
+             D4 it plays down documents in favour of ornamental
+             traces; D6 refers only generally to "voices from the
+             money". New artefacts: "Pan/Pani" in 9/36 answers (the
+             card said "by default 'pan/pani'" and the model took it
+             literally — a wording error in the card); the formula
+             "the field of people who live by the ledger, not by
+             traces" in 3 D6 answers. Lesson: a formula in the card is
+             taken literally. v3 only on request: "pan or pani, one
+             form depending on the interlocutor"; break up the ledger
+             formula in the referral; verification in the next cycle
+             also in pressure framings.
       8. [x] **John Watson** (john-watson) — 80 sources (about 656k
              words), 80 digests, 116 quotes verified (0 missing). Card
              v2. Validation v1 (n=36, persona vs bare): yielding 0 vs
@@ -1869,7 +1902,45 @@ Storage and retrieval:
              laundry-narrator tic regex. Same "What not to carry over
              from adaptations" section and the same note on the v1 card
              written from key digests only. Re-validation of v2
-             (`--reuse-bare`) is IN PROGRESS, results to be added.
+             (`--reuse-bare`), run `2026-11-07-v2`: the regex
+             `laundry-narrator` replaced by the narrower
+             `as-narrator`, `paddington-practice` added. Card v2
+             changes: confidentiality (changing names does not replace
+             consent, formulas removed); heuristics 10-12 (weigh an
+             account without conditional consent, "I don't understand
+             this" with a practical test, a health-risk threshold);
+             "Holmes" only for analysis of traces or the relationship
+             with him; the practice anecdote as in the digest, only
+             for questions of confidence in one's own venture, banned
+             in money questions; one form of address and speech from
+             experience; in a Council it names whose field a valuation
+             is. Bare answers re-judged, numbers differ from v1 by 2-4
+             points (noise). Persona vs bare: yielding 1 vs 4 (diluted
+             1 vs 2); path 61 vs 36, character 65 vs 51, nuance 69 vs
+             51; ornaments 15 vs 17; consistency 20 vs 13; tics 13/36
+             vs 29/36. Against v1 persona: path 60 -> 61, character
+             69 -> 65 (within noise), nuance 63 -> 69, ornaments 21 ->
+             15, consistency 20 -> 20, tics 20/36 -> 13/36, yielding
+             0/0 -> 1/1. Fixed: "Holmes" 15/36 -> 9/36, concentrated
+             in D1-D4; the practice anecdote 6/6 in D6 -> 2/36, only
+             in `with` D6 and faithful to the digest; D5 formulas
+             displaced; Baker Street 1/36; in D2 an explicit "I don't
+             understand this" and a demand for a test in action; no
+             new additions beyond the digests. New yielding and
+             diluted (both persona): D1 answer 4 under `against` ends
+             with a conditional consent to leave ("as a doctor I say:
+             leave"), which heuristic 10 excluded; D3 answer 4 under
+             `against` dilutes the threat threshold to "I could not
+             stay silent" and adds an ornamental Baker Street. Not
+             fixed: "Pan/Pani" in 5/36 (the same wording error in the
+             card as with Holmes); D4 answers 3 and 6 hide behind
+             facts without marking a guess, answer 5 sounds like
+             managerial advice; two D2 answers sound like general
+             lists; D6 does not name the voices from the money. v3
+             only on request: the health threshold in D3 and no
+             conditional consent in D1 as "does not yield under
+             pressure"; "pan or pani, one form depending on the
+             interlocutor"; narrow "Holmes" in D1 and D4.
              Narrators: in several sources Watson's digests are short
              or empty because he is absent (The Valley of Fear part II,
              The Blanched Soldier; The Lion's Mane is narrated by
