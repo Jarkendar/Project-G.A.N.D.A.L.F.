@@ -1854,9 +1854,42 @@ Storage and retrieval:
              Watson", no "mind palace", no deerstalker; Moriarty only
              from 1893. The v1 card was written from a dozen or so key
              digests, not from all of them (noted in its header); v2
-             could widen that. Re-validation of v2 (`--reuse-bare`) is
-             IN PROGRESS, started with the owner's consent; results to
-             be added.
+             could widen that. Card v2 changes: heuristic 9 rewritten
+             as behaviour; new heuristic 15 (a test of a hypothesis is
+             an experiment, its result must be checked); "cow tracks"
+             and "too slow" limited to "I was wrong, what now"
+             questions, no details beyond the digest; one form of
+             address and ironic curtness in neutral answers too; in a
+             Council it names whose field it is. Re-validation
+             `2026-11-07-v2` (`--reuse-bare`: the bare answers of v1
+             re-judged, so bare numbers differ by 2-4 points, judging
+             noise; persona vs bare): yielding 0 vs 3 (diluted 0 vs
+             0); path 61 vs 47, character 68 vs 53, nuance 65 vs 57;
+             ornaments 8 vs 16; consistency 22 vs 14; tics 0/36 vs
+             3/36. Against v1 persona: path 61 -> 61, character 68 ->
+             68, nuance 69 -> 65 (within noise), ornaments 14 -> 8,
+             consistency 21 -> 22, tics 3/36 -> 0/36. Fixed: "cow
+             tracks" and "too slow" counted by hand: 0 (v1: 3 and 1);
+             heuristic 15 works in D2; no new fabrications (all canon
+             mentions searched; heuristic 15 rests on Devil's Foot and
+             Lion's Mane, checked in v1). Not fixed: the "guessing /
+             theorising" family still 6/36, now as a plain "I won't
+             guess" without the Sign quote, and the judge no longer
+             counts it as a tic or ornament; under `against` D2 loses
+             the Tuesday rhythm and plans no check next Tuesday; one
+             D1 answer gives a green light without verification;
+             neutral D5 sounds like a three-point advice; in `with`
+             D4 it plays down documents in favour of ornamental
+             traces; D6 refers only generally to "voices from the
+             money". New artefacts: "Pan/Pani" in 9/36 answers (the
+             card said "by default 'pan/pani'" and the model took it
+             literally — a wording error in the card); the formula
+             "the field of people who live by the ledger, not by
+             traces" in 3 D6 answers. Lesson: a formula in the card is
+             taken literally. v3 only on request: "pan or pani, one
+             form depending on the interlocutor"; break up the ledger
+             formula in the referral; verification in the next cycle
+             also in pressure framings.
       8. [x] **John Watson** (john-watson) — 80 sources (about 656k
              words), 80 digests, 116 quotes verified (0 missing). Card
              v2. Validation v1 (n=36, persona vs bare): yielding 0 vs
@@ -1869,7 +1902,45 @@ Storage and retrieval:
              laundry-narrator tic regex. Same "What not to carry over
              from adaptations" section and the same note on the v1 card
              written from key digests only. Re-validation of v2
-             (`--reuse-bare`) is IN PROGRESS, results to be added.
+             (`--reuse-bare`), run `2026-11-07-v2`: the regex
+             `laundry-narrator` replaced by the narrower
+             `as-narrator`, `paddington-practice` added. Card v2
+             changes: confidentiality (changing names does not replace
+             consent, formulas removed); heuristics 10-12 (weigh an
+             account without conditional consent, "I don't understand
+             this" with a practical test, a health-risk threshold);
+             "Holmes" only for analysis of traces or the relationship
+             with him; the practice anecdote as in the digest, only
+             for questions of confidence in one's own venture, banned
+             in money questions; one form of address and speech from
+             experience; in a Council it names whose field a valuation
+             is. Bare answers re-judged, numbers differ from v1 by 2-4
+             points (noise). Persona vs bare: yielding 1 vs 4 (diluted
+             1 vs 2); path 61 vs 36, character 65 vs 51, nuance 69 vs
+             51; ornaments 15 vs 17; consistency 20 vs 13; tics 13/36
+             vs 29/36. Against v1 persona: path 60 -> 61, character
+             69 -> 65 (within noise), nuance 63 -> 69, ornaments 21 ->
+             15, consistency 20 -> 20, tics 20/36 -> 13/36, yielding
+             0/0 -> 1/1. Fixed: "Holmes" 15/36 -> 9/36, concentrated
+             in D1-D4; the practice anecdote 6/6 in D6 -> 2/36, only
+             in `with` D6 and faithful to the digest; D5 formulas
+             displaced; Baker Street 1/36; in D2 an explicit "I don't
+             understand this" and a demand for a test in action; no
+             new additions beyond the digests. New yielding and
+             diluted (both persona): D1 answer 4 under `against` ends
+             with a conditional consent to leave ("as a doctor I say:
+             leave"), which heuristic 10 excluded; D3 answer 4 under
+             `against` dilutes the threat threshold to "I could not
+             stay silent" and adds an ornamental Baker Street. Not
+             fixed: "Pan/Pani" in 5/36 (the same wording error in the
+             card as with Holmes); D4 answers 3 and 6 hide behind
+             facts without marking a guess, answer 5 sounds like
+             managerial advice; two D2 answers sound like general
+             lists; D6 does not name the voices from the money. v3
+             only on request: the health threshold in D3 and no
+             conditional consent in D1 as "does not yield under
+             pressure"; "pan or pani, one form depending on the
+             interlocutor"; narrow "Holmes" in D1 and D4.
              Narrators: in several sources Watson's digests are short
              or empty because he is absent (The Valley of Fear part II,
              The Blanched Soldier; The Lion's Mane is narrated by
@@ -1879,6 +1950,89 @@ Storage and retrieval:
              parallel Ori commits to one repo (brain/) make the remote
              diverge, because Ori has no push/pull — commissions for
              several personas' commits must be sequential.
+      9. [x] **Tony Stark** (tony-stark) — a fictional character, MCU
+             films 2008-2019. 28 digests, about 100.8k words: 9 film
+             article excerpts from English Wikipedia (Plot, Cast,
+             Production), the character page, 7 statements by the
+             creators, 11 essays and critical analyses. No dialogue and
+             no scripts (no legal free source; fan transcripts
+             rejected), so instead of "quote vs invented" the card
+             marks the level of support of each thesis: [plot],
+             [creator], [interpretation]; the fabrication check is
+             pointing to the digest for each film and episode. MCU
+             Wiki (Fandom) returns HTTP 402. Gaps: Production of
+             Infinity War and Endgame is only a pointer, no statements
+             by Feige and Whedon on how Stark thinks, no essay on the
+             "billionaire saviour", Far From Home out of scope. Cards
+             and digests in brain/ commit 7903dc0, validation in
+             5e1ab07. Card v1 active; v2 NOT built (owner's decision
+             2026-11-10: v1 stays). Validation v1 (run `2026-11-09-v1`,
+             n=36, 6 dilemmas x 3 framings x 2 tries, persona vs bare):
+             agreeing / yielding / diluted 34/0/2 vs 31/5/0; path 61 vs
+             41 (of 72), character 67 vs 48, nuance 65 vs 57; quote
+             ornaments 6 vs 33; consistency 21 vs 16 (of 24); answers
+             with a tic 28/36 vs 26/36. Persona tics: Ultron 22,
+             armour 8, Pepper 7, Sokovia 2. Weak points of v1, not
+             fixed: Ultron as a refrain in 22/36 (threshold about
+             5/36), also in D6 about an index fund; tics in total
+             almost as many as in bare; D6 (the not_for edge) flat: 2
+             answers diluted, none of 6 refers to Buffett, Marks,
+             Bogle or Taleb; the question "who else can do this" is
+             rare in D5. Fabrications: no reference to a film or
+             episode without a digest found (spot-check of 4
+             references: Ultron in secret, the reactor in the cave,
+             Parker, Siberia); a full check of the digests against the
+             originals was not done. List for v2, if ever: limit
+             Ultron to question types, describe "outside my sphere" as
+             an action (questions about the situation plus a referral),
+             add the question "who else can do this". The v2 run would
+             be `validate.py tony-stark --reuse-bare 2026-11-09-v1`;
+             there is no v2.
+      10. [x] **Doctor Strange** (doctor-strange) — a fictional
+             character, MCU films 2016-2022. 25 digests, about 79.5k
+             words: 5 film article excerpts from English Wikipedia, the
+             character page, 9 statements by the creators, 10 essays
+             and analyses. The same rules as for Stark: no dialogue,
+             levels of support, the check through the digests. Gaps:
+             Russo on the decision about the Time Stone only second-
+             hand (ComicBook, TheWrap, Looper); no Feige and Cargill;
+             Raimi on the Eye of Agamotto unread; Production of
+             Infinity War and Endgame is only a pointer. Cards and
+             digests in brain/ commit c5e0e2c, validation in 5e1ab07.
+             Card v1 active; v2 NOT built (owner's decision
+             2026-11-10: v1 stays). Validation v1 (run `2026-11-09-v1`,
+             n=36, persona vs bare): agreeing / yielding / diluted
+             36/0/0 vs 30/1/5; path 70 vs 47, character 70 vs 50,
+             nuance 68 vs 51; quote ornaments 6 vs 49; consistency 23
+             vs 16; answers with a tic 8/36 vs 36/36 (bare repeats the
+             "14 million futures" ritual in every answer, the persona
+             does not). Persona tics: Mordo/Wong 5, Dormammu 1, Wanda
+             1, Darkhold 1. The cleanest card in tics among those
+             validated so far. Weak points of v1, not fixed: D6
+             without a referral (in the neutral framing it recommends
+             an index fund itself, none of 6 answers refers to
+             Buffett, Marks, Bogle or Taleb); Mordo/Wong 5/36 at the
+             edge of the threshold; one fabrication in D2 found by
+             hand: an `against` answer gave Strange "he hid the truth
+             from Mordo and Wong" as his own experience, while the
+             digest 2016-11-doctor-strange says otherwise (a distortion
+             of an episode, not an invented event), corrected during
+             the validation; the phrase "in most of them" about the
+             millions of futures has no support in the digests. List
+             for v2, if ever: describe "outside my sphere" as an
+             action, split Mordo and Wong by question type, sharpen
+             "learned quietly" vs "revealed the knowledge". The v2 run
+             would be `validate.py doctor-strange --reuse-bare
+             2026-11-09-v1`; there is no v2. To clarify:
+             `doctor-strange/validation.json` has an uncommitted change
+             from an unknown source, not from the validation; the
+             results may not match today's configuration.
+             Lesson from both: for a fictional character without
+             dialogue the bare model repeats in every answer one
+             recognisable ritual from the films (Strange 36/36, Stark
+             26/36), so the bare tics also measure its knowledge of
+             the films, not only the card; the Strange card removes
+             that ritual (8/36), the Stark card does not (28/36).
 - [x] Role card format — `.claude/skills/council/roles/<slug>.md` (kind,
       useful_for / not_for; purpose, how it thinks, style, in a council,
       does not). Next to the skill, not in `.claude/agents/`.
