@@ -11,7 +11,7 @@ order: README → USE-CASES → IMPLEMENTATION.
 
 **Status legend:** ✅ have · 🟡 partial · ⬜ planned / not started.
 
-Last updated: 2026-06-25.
+Last updated: 2026-11-26.
 
 ---
 
@@ -93,8 +93,14 @@ Two distinct halves:
 - **Feeds:** UC-6 (sports coaching) and UC-8 (diet), which both need current health
   state before proposing a plan.
 - **Privacy:** PRIVATE (`core/`).
-- **Status:** 🟡 partial (templates exist, no journaling/trend skill yet) · ⬜
-  planned (recommendation logic).
+- **Lab results (added 2026-11-26):** the owner attaches blood or other results
+  (PDF, photo, screenshot, text) in the conversation and wants their history, an
+  interpretation of the current ones and of the trends, so as to see a doctor
+  when something worries. `ioreth` covers this: a transcription with its source
+  and `db/labs.db`, no originals, no diagnoses.
+- **Status:** 🟡 partial (lab results: built, not yet run on real ones; no
+  journaling/trend skill for weight, injuries and pain) · ⬜ planned
+  (recommendation logic).
 
 ### UC-4 — Financial research & strategy assistant
 
