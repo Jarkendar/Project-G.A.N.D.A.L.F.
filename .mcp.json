@@ -73,6 +73,13 @@
         "-c",
         "exec .claude/scripts/gimli/.venv/bin/python .claude/scripts/sync/mcp_server.py"
       ]
+    },
+    "ioreth": {
+      "command": "bash",
+      "args": [
+        "-c",
+        "exec .claude/scripts/gimli/.venv/bin/python .claude/scripts/ioreth/mcp_server.py"
+      ]
     }
   }
 }
