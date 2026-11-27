@@ -11,6 +11,7 @@ Primary source for G.I.M.L.I. structured queries ("how much / when / count").
 |---|---|---|
 | `smeagol.db` | PRIVATE | S.M.E.A.G.O.L. |
 | `fitness.db` | PRIVATE | `/daily` skill |
+| `labs.db` | PRIVATE | `ioreth` |
 
 Add rows to this table as new databases are introduced.
 

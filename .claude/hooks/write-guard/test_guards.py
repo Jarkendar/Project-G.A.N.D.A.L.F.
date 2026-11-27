@@ -226,6 +226,16 @@ class WriteGuard(unittest.TestCase):
             self.write(os.path.join(BRAIN, no), frodo, False, agent="frodo")
         self.write(os.path.join(REPO, "x.md"), frodo, False, agent="frodo")
 
+    def test_ioreth_labs_but_not_transcriptions(self):
+        ior = ["ioreth", "brain:core/health/labs", "!brain:core/health/labs/reports"]
+        for ok in ("core/health/labs/2026-11-26_interpretation.md", "core/health/labs/CLAUDE.md"):
+            self.write(os.path.join(BRAIN, ok), ior, True, agent="ioreth")
+        for no in ("core/health/labs/reports/2026-03-02_x.md", "core/health/labs/x.py", "core/health/health.md",
+                   "core/health/body.md", "core/identity/profile.md", "db/labs.db", "db/CLAUDE.md",
+                   "current/inbox/x.md"):
+            self.write(os.path.join(BRAIN, no), ior, False, agent="ioreth")
+        self.write(os.path.join(REPO, "x.md"), ior, False, agent="ioreth")
+
     def test_brainfile_opens_nothing_for_others(self):
         dae = ["daeron", "brain:current/guitar/plans"]
         self.write(os.path.join(BRAIN, "current/CLAUDE.md"), dae, False, agent="daeron")

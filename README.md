@@ -9,7 +9,7 @@
 
 ## ⚠️ Project status
 
-**The MVP is running on Claude Code** (updated 2026-11-05). Gandalf is a router in the main thread, the agents are Claude Code sub-agents, the engine is the Claude API. Built so far: the router and about two dozen agents, 21 skills, ten MCP servers, a RAG over the private `brain/` (Qdrant), query logging, a calendar agent, a White Council of personas, and agents that keep the owner's records, finance, training and learning. Not built: the local engine (Ollama), the move to the Pi as the sole host, the archivist (Treebeard), reminders and delegation (Faramir), the gateway and voice. The execution path with dates and open items lives in [IMPLEMENTATION.md](IMPLEMENTATION.md).
+**The MVP is running on Claude Code** (updated 2026-11-05). Gandalf is a router in the main thread, the agents are Claude Code sub-agents, the engine is the Claude API. Built so far: the router and about two dozen agents, 21 skills, twelve MCP servers, a RAG over the private `brain/` (Qdrant), query logging, a calendar agent, a White Council of personas, and agents that keep the owner's records, medical examinations, finance, training and learning. Not built: the local engine (Ollama), the move to the Pi as the sole host, the archivist (Treebeard), reminders and delegation (Faramir), the gateway and voice. The execution path with dates and open items lives in [IMPLEMENTATION.md](IMPLEMENTATION.md).
 
 The README remains the *direction*, not the specification: the vision sections (knowledge base, memory hierarchy, potential paths) are canon and change only by the owner's decision, while status, the agent table and the graphs follow what is built.
 
@@ -45,7 +45,7 @@ G.A.N.D.A.L.F. is built as a **router + specialised sub-agents** pattern, with a
 
 The architecture is intentionally open to **multiple orchestrators** in the future. Gandalf is the first one — a generalist router for personal queries — but specialised orchestrators (for example, a dev-focused or a homelab-focused one) can co-exist and federate. For now there is one Gandalf and the rest is intentional headroom.
 
-The router is a main-thread Claude Code agent that holds the conversation and carries questions and answers between the owner and the sub-agents (a sub-agent cannot ask the owner itself). The graphs below show the system as built on 2026-11-05; dashed boxes are planned.
+The router is a main-thread Claude Code agent that holds the conversation and carries questions and answers between the owner and the sub-agents (a sub-agent cannot ask the owner itself). The graphs below show the system as built on 2026-11-05 (Ioreth added 2026-11-26); dashed boxes are planned.
 
 ### Graph 1 — who talks to whom
 
@@ -67,6 +67,7 @@ flowchart TD
         Cirdan["⚓ C.I.R.D.A.N.<br/><i>project ideas</i>"]
         Strider["🥾 S.T.R.I.D.E.R.<br/><i>packing</i>"]
         Arwen["🧝 A.R.W.E.N.<br/><i>flashcards</i>"]
+        Ioreth["🌿 I.O.R.E.T.H.<br/><i>medical examinations</i>"]
     end
 
     subgraph Coaches["🏋️ Trainers and teachers"]
@@ -111,6 +112,7 @@ flowchart TD
     Finrod --> Ori
     Balin --> Legolas
     Cirdan --> Legolas
+    Ioreth --> Legolas
     Coaches --> Legolas
     Dain --> Gloin
     Thorin --> Gloin
@@ -145,6 +147,7 @@ flowchart LR
         mMirdain["mirdain"]
         mArwen["arwen"]
         mSync["sync"]
+        mIoreth["ioreth"]
         mStrava["strava"]
     end
 
@@ -169,6 +172,8 @@ flowchart LR
     mSamwise --> Knowledge
     Agents --> mGimli --> Db
     Agents --> mFrodo --> Db
+    Agents --> mIoreth --> Db
+    mIoreth --> Core
     Agents --> mOri -->|"commit · push, main only"| Brain
     Agents --> mBalin --> Conv
     Agents --> mThorin --> Edgar
@@ -261,6 +266,7 @@ Every agent is a Claude Code sub-agent with the narrowest tool list its job allo
 | ⚓ **C.I.R.D.A.N.** | *Concept Investigation, Research, Dossier, Assessment & Next-steps* | `develop-idea`: feasibility, prior art, execution scenario | Read/Write/Edit · calls Legolas, Ori | `knowledge/projects/` |
 | 🥾 **S.T.R.I.D.E.R.** | *Supplies, Trips & Route Inventory, Drafted for Every Road* | `pack`: trip lists, post-trip reviews, item catalogue, packing profiles | Read/Write/Edit · calls Ori | packing records |
 | 🧝 **A.R.W.E.N.** | *Anki Repetition & Web-sync Engine for Notes* | `flashcards`: drafts atomic cards, drops duplicates, adds on approval | Read · Samwise · `arwen` MCP (`list_decks`, `find_notes`, `add_notes`) | the Anki collection (synced to AnkiWeb); private-folder cards only on the owner's yes |
+| 🌿 **I.O.R.E.T.H.** | *Interpretation Of Results, Evolution & Trends in Health* | `import` results from a PDF, photo or text; `interpret` what is out of range, what changes and what to take to a doctor — no diagnoses | Read/Grep/Glob/Write/Edit · `ioreth` MCP · calls Legolas (parameter names only), Ori | `core/health/labs/`, `db/labs.db`; no originals kept |
 
 **Trainers and teachers** — each runs four tasks from his own instructions (plan, retro, adjustment, menu), writes a plan only on the owner's yes to a full plan, and sends calendar events through the router to Faramir.
 

@@ -74,9 +74,9 @@ Read this first; the sections below are the history and the detail.
 | Retrieval | S.A.M.W.I.S.E. over Qdrant (index v2, reranker), B.I.L.B.O. reindexes on commit; RAG usage review 2026-10-27 done, next 2026-11-30 with the imladris decision | Steps 3, 9 |
 | Structured data | G.I.M.L.I. over `brain/db/` and `GIMLI_EXTRA_DBS`, read-only MCP | Step 1, Stage 1 |
 | Logging | S.M.E.A.G.O.L. Stop-hook; `token-usage.py` for the token baseline | Step 2 |
-| Router and agents | 23 agent files: router + 22 sub-agents (list below) | Stage 3 |
+| Router and agents | 24 agent files: router + 23 sub-agents (list below) | Stage 3 |
 | Skills | 21; two of them (`init-brain`, `ingest-conversation`) only in a full session | — |
-| MCP servers | strava, samwise (http), arwen, gimli, ori, frodo, elrond, mirdain, thorin, balin, sync | `.mcp.json` |
+| MCP servers | strava, samwise (http), arwen, gimli, ori, frodo, elrond, mirdain, thorin, balin, sync, ioreth | `.mcp.json` |
 | Guards | `write-guard` (per-agent zones, Bash guard, read guard), `faramir-guard` (consent token), `brain-instruction-sync`, `samwise-warmup` | hooks |
 | White Council | `council`, `persona` skills; persona roster grows from the owner's queue (finance, productivity, philosophy, Polish voices) | Step 6 |
 | Not built | Ollama / engine abstraction (Step 7), local models on the Pi (Step 8), T.R.E.E.B.E.A.R.D. (Step 10), voice (Step 11), gateway and scheduler (E1, E2), Faramir's reminders and delegation (Step 4) | Long-term |
@@ -84,7 +84,7 @@ Read this first; the sections below are the history and the detail.
 **Agents by group.** Router: gandalf. Questions and reports: gimli, radagast,
 erestor, legolas (samwise is an MCP server, not an agent file). Records:
 frodo, balin, cirdan, strider, arwen. Trainers and teachers: glorfindel,
-daeron, rumil. Finance: thorin, dain, gloin. White Council: beorn, elrond,
+daeron, rumil. Health: ioreth. Finance: thorin, dain, gloin. White Council: beorn, elrond,
 finrod, narvi. Calendar: faramir. Repo and git: aule, ori. Full table with
 tools and write zones: README.md § agents.
 
@@ -97,6 +97,9 @@ who has to act.
 - Faramir's calendar against a real Google Calendar (built 2026-10-17, title
   mark `[Gandalf]` added later, PR #93).
 - Thorin on a real myFund export (the guards are tested on synthetic files).
+- Ioreth on a real attachment, once with a PDF and once with a photo: whether
+  the sub-agent can read the path the router hands her, and which permission
+  prompts show (built 2026-11-26, tested on synthetic data only).
 - The harness running a frontmatter hook for a sub-agent (Narvi) end to end —
   Stage 1 note.
 - The router's rule that private content never goes to the web is an
@@ -2988,6 +2991,42 @@ What this means for Stage 3:
 Seen after the restart: `gimli`, `legolas`, `erestor`, `gloin`, `narvi` are
 listed with their narrowed tools, the `gimli` server connects, and the four
 `disable-model-invocation` skills are out of the model's listing.
+
+---
+
+## I.O.R.E.T.H. — medical examinations (2026-11-26)
+
+UC-3 had no place for lab results. `ioreth` (`.claude/agents/ioreth.md`) keeps
+them and reads them back: tasks `import` and `interpret`, the store and its
+MCP server in `.claude/scripts/ioreth/`.
+
+Decided with the owner:
+- Files are attached in the conversation; the router passes their paths. Seen
+  in a router session: an image lands under the session's temp directory, a PDF
+  under `~/.claude/uploads/`, and the router could `Read` both. Neither layout
+  is relied on by code — only the agent opens the file.
+- **No originals are stored.** Each examination is a transcription
+  (`core/health/labs/reports/`) and, for tabular results, rows in
+  `db/labs.db` linking to it. Both come from one reading of the document, so
+  the owner's check of the table before `y` is the only verification.
+- The source is kept (provider, collection point, order and exam numbers,
+  dates) so the original can be asked for. PESEL, address and anything else
+  identifying the owner is not.
+- Interpretation: out of range, change over time, what to take to a doctor. No
+  diagnosis, no treatment advice. Blood first; urine alike; descriptive
+  examinations are transcribed and not interpreted from images.
+- Web (through Legolas): generic parameter names only.
+
+In code, not in the instructions: status and change are computed from the
+printed strings; `save` refuses a report that differs from the previewed one,
+a duplicate, and a PESEL; nothing is deleted (`superseded_by` on the row, the
+new file names the old one).
+
+The `ioreth` tools are not on the allow list of `.claude/settings.json`; adding
+them there is the owner's call.
+
+For the owner in brain/: the `labs.db` row in `db/CLAUDE.md`, and Ioreth in the
+writers table of `core/CLAUDE.md`, which still says other agents only read.
 
 ---
 
